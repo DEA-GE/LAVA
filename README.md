@@ -20,4 +20,4 @@ The script `spatial_data_prep_JOM.py` performs multiple data preprocessing steps
 * download administrative boundary of the study region from gadm.org using the package pygadm
 * calculate the local UTM zone
 * clip and reproject to local UTM zone OSM railways, land cover data and elevation data
-The files are saved to a folder within the __"data"__.
+The files are saved to a folder within the __"data"__-folder.
