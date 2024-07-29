@@ -1,0 +1,15 @@
+name: land_analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - geopandas
+  - rasterio
+  - shapely
+  - unidecode
+  - pyyaml
+  - pandas
+  - matplotlib
+  - numpy
+  - pygadm
+  - shapely
