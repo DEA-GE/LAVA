@@ -29,19 +29,21 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 #https://www.earthenv.org/topography
 
-#only mainland of country
+#-------data config-------
 only_mainland = 0
 GOAS = 0
 consider_OSM = 0
+EPSG_manual = ''
+#----------------------------
+############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
+country_code='PRT' #PRT  #Städteregion Aachen in level 2 #Porto in level 1
+gadm_level=1
+region_name='Porto'  #needs a name (if country is studied, then use country name)
+##################################################
+
 
 # Record the starting time
 start_time = time.time()
-
-############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
-country_code='DEU' #PRT  #Städteregion Aachen in level 2 #Porto in level 1
-gadm_level=2
-region_name='Städteregion Aachen'  #needs a name (if country is studied, then use country name)
-##################################################
 
 # Get paths to data files
 dirname = os.path.dirname(__file__)
@@ -91,7 +93,8 @@ latitude, longitude = representative_point.y, representative_point.x
 EPSG = int(32700 - round((45 + latitude) / 90, 0) * 100 + round((183 + longitude) / 6, 0))
 
 ###
-EPSG=3035
+if EPSG_manual:
+    EPSG=int(EPSG_manual)
 ###
 
 print(f'region local CRS (UTM): {EPSG}')

@@ -1,4 +1,5 @@
 *
+!envs
 !data_exploration.ipnyb
 !GLAES_Aachen.ipynb
 !GLAES_Aachen_test_data.ipynb
