@@ -23,13 +23,13 @@ The script `spatial_data_prep_JOM.py` performs multiple data preprocessing steps
 The files are saved to a folder within the __"data"__-folder.
 
 In the beginning of the script you can select:
-* `only_mainland = ` 0 (use all polygons of the study region) or 1 (use only the biggest polygon). This comes in handy when looking at countries with Island like Portugal and you only want to study the mainland of Portugal.
-* `GOAS =` 0 (don't change, work in progress)
-* `consider_OSM =` 0 (don't use OSM data in study region) or 1 (clip OSM data to study region). Currently, only railways are considered.
-* `EPSG_manual =` *'EPSG-Code'* (insert EPSG code like 3035 for Europe if you want to set it manually instead of using the calculated UTM zone)
+* `only_mainland = ` __0__ (use all polygons of the study region) or __1__ (use only the biggest polygon). This comes in handy when looking at countries with Island like Portugal and you only want to study the mainland of Portugal.
+* `GOAS =` __0__ (don't change, work in progress)
+* `consider_OSM =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region). Currently, only railways are considered.
+* `EPSG_manual =` __*'EPSG-Code'*__ (insert EPSG code like 3035 for Europe if you want to set it manually instead of using the calculated UTM zone) or keep it an __*empty string*__
 
 Moreover, you have to select your study region. It has to be an official administrative region from GADM.org:
-* `country_code =` *'country_code_as_string'* (3 letters ISO code)
-* `gadm_level =` *int* (administrative level)
-* `region_name =` *'region_name_as_string'* (name of the region)
+* `country_code =` __*'country_code_as_string'*__ (3 letters ISO code)
+* `gadm_level =` __*int*__ (administrative level)
+* `region_name =` __*'region_name_as_string'*__ (name of the region)
 Ideally you download the geopackage of the country you are interested in and load it in QGIS to find the right `gadm_level` and `region_name`.
