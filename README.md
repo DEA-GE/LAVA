@@ -9,7 +9,7 @@ To do so, multiple steps need to be caried out including a detailed land analysi
 ## 0. Files setup
 __a) clone the repository:__
 
-`% git clonehttps://github.com/jome1/land-analysis-and-eligibility.git`
+`% git clone https://github.com/jome1/land-analysis-and-eligibility.git`
 
 After cloning, navigate to the top-level folder of the repo.
 
@@ -30,8 +30,8 @@ You are now ready to run the scripts in this repository.
 Create a folder named __"Raw_Spatial_Data"__. Inside that folder create two more folder named __"gebco"__ and __"OSM"__.
 
 Following data must be downloaded:
-* [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) using the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"gebco"__ and name it *gebco_study_region.tif*. This data provides the elevation in each pixel.
-* [CORINE land cover global dataset](https://zenodo.org/records/3939050) from zenodo the file named *PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif*. Leave the name as it is and put it in the __"Raw_Spatial_Data"__ folder.
+* [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) using the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"gebco"__ and name it *gebco_cutout.tif*. This data provides the elevation in each pixel.
+* [CORINE land cover global dataset](https://zenodo.org/records/3939050) from zenodo the file named *PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif*. Leave the name as it is and put it in the __"Raw_Spatial_Data"__ folder. Attention: the file size is 1.7 GB
 * [OpenStreetMap Shapefile](https://download.geofabrik.de/) of the country where your study region is located. Click on the relevant continent and then country to download the ´.shp.zip´. Unzip and put the country folder inside the __"OSM"__-folder.
 
 
