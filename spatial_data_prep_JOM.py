@@ -38,7 +38,8 @@ consider_OSM_roads = 1
 EPSG_manual = ''
 #----------------------------
 ############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
-country_code='DEU' #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2
+country_code='DEU' #    #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2
+OSM_folder_name = 'BerlinBrandenburg' #usually same as country_code
 gadm_level=2
 region_name='Elbe-Elster'  #needs a name (if country is studied, then use country name)
 ##################################################
@@ -54,7 +55,7 @@ landcoverRasterPath = os.path.join(data_path, "PROBAV_LC100_global_v3.0.1_2019-n
 demRasterPath = os.path.join(data_path, 'gebco','gebco_cutout.tif')
 
 ###############################################################
-OSM_country_path = os.path.join(data_path, 'OSM', 'BerlinBrandenburg') #country_code)
+OSM_country_path = os.path.join(data_path, 'OSM', OSM_folder_name) #country_code)
 ###############################################################
 
 # Read shapefile of region
