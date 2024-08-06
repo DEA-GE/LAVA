@@ -35,7 +35,7 @@ only_mainland = 0
 GOAS = 0 
 consider_OSM_railways = 1
 consider_OSM_roads = 0
-EPSG_manual = '3035'
+EPSG_manual = ''
 #----------------------------
 ############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
 country_code='DEU' #    #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2
