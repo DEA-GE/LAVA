@@ -49,11 +49,13 @@ The files are saved to a folder within the __"data"__-folder named according to 
 In the beginning of the script you can select:
 * `only_mainland = ` __0__ (use all polygons of the study region) or __1__ (use only the biggest polygon). This comes in handy when looking at countries with Island like Portugal and you only want to study the mainland of Portugal.
 * `GOAS =` __0__ (don't change, work in progress)
-* `consider_OSM =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region). Currently, only railways are considered. 
+* `consider_OSM_railways =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region)
+* `consider_OSM_roads =` __0__  or __1__  Be careful with roads. The file size can quickly become big and the proessing takes more time. 
 * `EPSG_manual =` __*'EPSG-Code'*__ (insert EPSG code like 3035 for Europe if you want to set it manually instead of using the calculated UTM zone) or keep it an __*empty string*__
 
 Moreover, you have to select your study region. It has to be an official administrative region from GADM.org:
 * `country_code =` __*'country_code_as_string'*__ (3 letters ISO code)
+* `OSM_folder_name =` __*'name_as_string'*__ (#usually same as country_code)
 * `gadm_level =` __*int*__ (administrative level)
 * `region_name =` __*'region_name_as_string'*__ (name of the region)
 Ideally you download the geopackage of the country you are interested in and load it in QGIS to find the right `gadm_level` and `region_name`.
