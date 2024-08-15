@@ -43,15 +43,15 @@ The script `spatial_data_prep_JOM.py` performs multiple data preprocessing steps
 * calculate the local UTM zone
 * clip and reproject to local UTM zone OSM railways and roads (roads are also filtered to only consider main roads)
 * clip and reproject land cover data and elevation data. Elevation data is also co-registered to the land cover data using bilinear resampling. More on working with multiple raster files (resampling and registering): [here](https://pygis.io/docs/e_raster_resample.html)
+* create a slope map from the elevation data (calculated internally using `richdem`)
 
 The files are saved to a folder within the __"data"__-folder named according to the study region.
 
 In the beginning of the script you can select:
-* `only_mainland = ` __0__ (use all polygons of the study region) or __1__ (use only the biggest polygon). This comes in handy when looking at countries with Island like Portugal and you only want to study the mainland of Portugal.
-* `GOAS =` __0__ (don't change, work in progress)
 * `consider_OSM_railways =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region)
 * `consider_OSM_roads =` __0__  or __1__  Be careful with roads. The file size can quickly become big and the proessing takes more time. 
 * `EPSG_manual =` __*'EPSG-Code'*__ (insert EPSG code like 3035 for Europe if you want to set it manually instead of using the calculated UTM zone) or keep it an __*empty string*__
+* `custom_polygon_filename =` __*'filename'*__ or keep it an __*empty string*__. The custom polygon must be in .geojson format lying in a folder named "custom_polygon" within the folder "Raw_Spatial_Data"
 
 Moreover, you have to select your study region. It has to be an official administrative region from GADM.org:
 * `country_code =` __*'country_code_as_string'*__ (3 letters ISO code)
