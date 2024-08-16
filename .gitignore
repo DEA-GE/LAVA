@@ -7,7 +7,9 @@
 !utils/legends.py
 !utils/data_preprocessing.py
 !Raw_Spatial_Data
+!Raw_Spatial_Data/DEM
 !Raw_Spatial_Data/DEM/.gitkeep
+!Raw_Spatial_Data/OSM
 !Raw_Spatial_Data/OSM/.gitkeep
 !spatial_data_prep_JOM.py
 !data_exploration.ipynb
