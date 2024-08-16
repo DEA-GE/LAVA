@@ -11,6 +11,8 @@
 !Raw_Spatial_Data/DEM/.gitkeep
 !Raw_Spatial_Data/OSM
 !Raw_Spatial_Data/OSM/.gitkeep
+!Raw_Spatial_Data/custom_polygon
+!Raw_Spatial_Data/custom_polygon/.gitkeep
 !spatial_data_prep_JOM.py
 !data_exploration.ipynb
 !GLAES_Aachen.ipynb
