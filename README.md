@@ -51,7 +51,7 @@ The script `spatial_data_prep_JOM.py` performs multiple data preprocessing steps
 * clip and reproject to local UTM zone OSM railways, roads and airports (roads are also filtered to only consider main roads)
 * clip and reproject land cover data and elevation data. Elevation data is also co-registered to the land cover data using bilinear resampling. More on working with multiple raster files (resampling and registering): [here](https://pygis.io/docs/e_raster_resample.html)
 * create a slope map from the elevation data (calculated internally using `richdem`)
-If you want to estimate the available land for solar PV, then the orientation of the land is also important:
+If you want to estimate the available land for solar PV, then the orientation of the pixels is also important:
 * create an aspects map from the elevation data (calculated internally using `richdem`)
 * create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
 
