@@ -69,7 +69,7 @@ If you want to estimate the available land for solar PV, then the orientation of
 * create an aspects map from the elevation data (calculated internally using `richdem`)
 * create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
 
-For the preprocessing, some functions are used which are defined in the file __*data_preprocessing.py*__ in the folder "utils".
+For the preprocessing, some functions are used which are defined in the file `data_preprocessing.py` in the folder "utils".
 
 The files are saved to a folder within the __"data"__-folder named according to the study region. The GIS-files will be saved in the coordinate reference system of the local UTM zone or in the user defined CRS. Some files are also stored in EPSG 4326 as well. 
 
