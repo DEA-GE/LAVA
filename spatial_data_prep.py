@@ -29,19 +29,28 @@ from unidecode import unidecode
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 import richdem
 from utils.data_preprocessing import *
+import logging
 
+logging.basicConfig(handlers=[
+        logging.FileHandler("data-prep.log", mode='w'),
+        logging.StreamHandler()
+        ], level=logging.INFO) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
 
 with open("config.yaml", "r") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 #-------data config------- 
 landcover_source = config['landcover_source']
+consider_coastlines = config['consider_coastlines']
 consider_railways = config['consider_railways']
 consider_roads = config['consider_roads']
 consider_airports = config['consider_airports']
 consider_waterbodies = config['consider_waterbodies'] 
 consider_additional_exclusion_polygons = config['consider_additional_exclusion_polygons']
 EPSG_manual = config['EPSG_manual']  #if None use empty string
+consider_WDPA = config['consider_WDPA']
+wdpa_url = config['wdpa_url']
+
 #----------------------------
 ############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
 region_name = config['region_name'] #always needed (if country is studied, then use country name)
@@ -68,6 +77,7 @@ data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 landcoverRasterPath = os.path.join(data_path, "PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif")
 demRasterPath = os.path.join(data_path, 'DEM','gebco_cutout.tif')
 coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
+wdpa_folder = os.path.join(data_path, 'WDPA')
 if consider_railways == 1 or consider_roads == 1 or consider_airports == 1 or consider_waterbodies == 1:
     OSM_country_path = os.path.join(data_path, 'OSM', OSM_folder_name) 
 
@@ -84,22 +94,24 @@ output_dir = os.path.join(dirname, 'data', f'{region_name_clean}')
 os.makedirs(output_dir, exist_ok=True)
 
 
-print("Prepping " + region_name + "...")
-
+logging.info(f'Prepping {region_name}...')
 
 #get region boundary
 if custom_polygon_filename:
     custom_polygon_filepath = os.path.join('Raw_Spatial_Data','custom_polygon', custom_polygon_filename)
     region = gpd.read_file(custom_polygon_filepath)
+    logging.info('using custom polygon for study area')
 elif gadm_level==0:
     gadm_data = pygadm.Items(admin=country_code)
     region = gadm_data
     region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
+    logging.info('using whole country as study area')
 else:
     gadm_data = pygadm.Items(admin=country_code, content_level=gadm_level)
     region = gadm_data.loc[gadm_data[f'NAME_{gadm_level}']==region_name]
     region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
-print(f'region geojson loaded CRS: {region.crs}')
+    logging.info('using admin area within country as study area')
+logging.info(f'region geojson loaded CRS: {region.crs}')
 region.to_file(os.path.join(output_dir, f'{region_name_clean}_4326.geojson'), driver='GeoJSON', encoding='utf-8')
 
 
@@ -110,14 +122,15 @@ EPSG = int(32700 - round((45 + latitude) / 90, 0) * 100 + round((183 + longitude
 #if EPSG was set manual in the beginning then use that one
 if EPSG_manual:
     EPSG=int(EPSG_manual)
+    logging.info(f'using manual set CRS with EPSG code {EPSG}')
 
-print(f'CRS to be used: {EPSG}')
+logging.info(f'CRS to be used: {EPSG}')
 with open(os.path.join(output_dir, f'{region_name_clean}_EPSG.pkl'), 'wb') as file:
     pickle.dump(EPSG, file)
 
 # reproject country to defined projected CRS
 region.to_crs(epsg=EPSG, inplace=True) 
-print(f'region projected to defined CRS: {region.crs}')
+logging.info(f'region projected to defined CRS: {region.crs}')
 region.to_file(os.path.join(output_dir, f'{region_name_clean}_{EPSG}.geojson'), driver='GeoJSON', encoding='utf-8')
 
 
@@ -127,21 +140,23 @@ region_copy['buffered']=region_copy.buffer(1000)
 # Convert buffered region back to EPSC 4326 to get bounding box latitude and longitude 
 region_buffered_4326 = region_copy.set_geometry('buffered').to_crs(epsg=4326)
 bounding_box = region_buffered_4326['buffered'].total_bounds 
-print(f"Bounding box in EPSG 4326: \nminx: {bounding_box[0]}, miny: {bounding_box[1]}, maxx: {bounding_box[2]}, maxy: {bounding_box[3]}")
+logging.info(f"Bounding box in EPSG 4326: \nminx: {bounding_box[0]}, miny: {bounding_box[1]}, maxx: {bounding_box[2]}, maxy: {bounding_box[3]}")
 
 
 #clip global oceans and seas file to study region for coastlines
-try:
-    coastlines = gpd.read_file(coastlinesFilePath)
-    coastlines_region = coastlines.clip(bounding_box)
-    if not coastlines_region.empty:
-        coastlines_region.to_file(os.path.join(output_dir, f'goas_{region_name_clean}_4326.geojson'), driver='GeoJSON', encoding='utf-8')
-        coastlines_region.to_crs(epsg=EPSG, inplace=True)
-        coastlines_region.to_file(os.path.join(output_dir, f'goas_{region_name_clean}_{EPSG}.geojson'), driver='GeoJSON', encoding='utf-8')
-    else:
-        print('no coastline in study region')
-except:
-    print('error with global oceans and seas (coastlines)')
+if consider_coastlines == 1:
+    try:
+        print('processing coastlines')
+        coastlines = gpd.read_file(coastlinesFilePath)
+        coastlines_region = coastlines.clip(bounding_box)
+        if not coastlines_region.empty:
+            coastlines_region.to_file(os.path.join(output_dir, f'goas_{region_name_clean}_4326.geojson'), driver='GeoJSON', encoding='utf-8')
+            coastlines_region.to_crs(epsg=EPSG, inplace=True)
+            coastlines_region.to_file(os.path.join(output_dir, f'goas_{region_name_clean}_{EPSG}.geojson'), driver='GeoJSON', encoding='utf-8')
+        else:
+            logging.info('no coastline in study region')
+    except:
+        logging.warning('error with global oceans and seas (coastlines)')
 
 
 # Convert region back to EPSC 4326 to trim raster files and clip polygons
@@ -156,7 +171,7 @@ if consider_railways == 1:
     if not OSM_railways.empty:
         OSM_railways.to_file(os.path.join(output_dir, f'OSM_railways_{region_name_clean}_{EPSG}.geojson'), driver='GeoJSON', encoding='utf-8')
     else:
-        print("No railways found in the region. File not saved.")
+        logging.info("No railways found in the region. File not saved.")
 
 if consider_roads == 1:
     print('processing roads')
@@ -179,7 +194,7 @@ if consider_airports == 1:
     if not OSM_airports.empty:
         OSM_airports.to_file(os.path.join(output_dir, f'OSM_airports_{region_name_clean}_{EPSG}.geojson'), driver='GeoJSON', encoding='utf-8')
     else:
-        print("No airports found in the region. File not saved.")
+        logging.info("No airports found in the region. File not saved.")
 
 if consider_waterbodies == 1:
     print('processing waterbodies')
@@ -190,12 +205,12 @@ if consider_waterbodies == 1:
     if not OSM_waterbodies_filtered.empty:
         OSM_waterbodies_filtered.to_file(os.path.join(output_dir, f'OSM_waterbodies_{region_name_clean}_{EPSG}.geojson'), driver='GeoJSON', encoding='utf-8')
     else:
-        print("No waterbodies found in the region. File not saved.")
+        logging.info("No waterbodies found in the region. File not saved.")
 
 
 #clip and reproject additional exclusion polygons
-print('processing additional exclusion polygons')
 if consider_additional_exclusion_polygons == 1:
+    print('processing additional exclusion polygons')
     count = 1
     # Loop through all files in the directory
     for filename in os.listdir(os.path.join(data_path, 'additional_exclusion_polygons')):
@@ -211,7 +226,7 @@ if consider_additional_exclusion_polygons == 1:
 
 
 
-print('landcover')
+print('processing landcover')
 if landcover_source == 'openeo':
     connection = openeo.connect(url="openeo.dataspace.copernicus.eu").authenticate_oidc()
 
@@ -237,7 +252,7 @@ if landcover_source == 'file':
     clip_reproject_raster(landcoverRasterPath, region_name_clean, region, 'landcover', EPSG, 'nearest', output_dir)
 
 
-print('DEM') #block comment: SHIFT+ALT+A, multiple line comment: STRG+#
+print('processing DEM') #block comment: SHIFT+ALT+A, multiple line comment: STRG+#
 try:
     # test to use DEM data via openeo, only works when land cover is also fetched from openEO because DEM is co-registered on the back-end to the landcover 
     # (current implementation: use GEBCO DTM file)
@@ -256,27 +271,29 @@ try:
     #     dem_registered = masked_datacube.resample_cube_spatial(landcover, method = 'bilinear')
     #     #download
     #     dem_registered.download(output_path)
-    
+     
     # if landcover_source == 'file':
 
     clip_reproject_raster(demRasterPath, region_name_clean, region, 'DEM', EPSG, 'bilinear', output_dir)
 
-    #reproject and match resolution of DEM to landcover data
-    infile=os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}.tif')
+    #reproject and match resolution of DEM to landcover data (co-registration)
+    dem_orig=os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}.tif')
     match=os.path.join(output_dir, f'landcover_{region_name_clean}_EPSG{EPSG}.tif')
-    outfile=os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}_resampled.tif')
-    reproj_match(infile, match, 'bilinear', outfile)
+    dem_resampled=os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}_resampled.tif')
+    reproj_match(dem_orig, match, 'bilinear', dem_resampled)
 
 
     #create slope map (https://www.earthdatascience.org/tutorials/get-slope-aspect-from-digital-elevation-model/)
     dem_file = richdem.LoadGDAL(os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}_resampled.tif'))
     slope = richdem.TerrainAttribute(dem_file, attrib='slope_degrees')
-    richdem.SaveGDAL(os.path.join(output_dir, f'slope_{region_name_clean}_EPSG{EPSG}_resampled.tif'), slope)
+    save_richdem_file(slope, dem_resampled, os.path.join(output_dir, f'slope_{region_name_clean}_EPSG{EPSG}_resampled.tif'))
+    #richdem.SaveGDAL(os.path.join(output_dir, f'slope_{region_name_clean}_EPSG{EPSG}_resampled.tif'), slope)
 
     #create aspect map (https://www.earthdatascience.org/tutorials/get-slope-aspect-from-digital-elevation-model/)
     dem_file = richdem.LoadGDAL(os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}_resampled.tif'))
     aspect = richdem.TerrainAttribute(dem_file, attrib='aspect')
-    richdem.SaveGDAL(os.path.join(output_dir, f'aspect_{region_name_clean}_EPSG{EPSG}_resampled.tif'), aspect)
+    save_richdem_file(aspect, dem_resampled, os.path.join(output_dir, f'aspect_{region_name_clean}_EPSG{EPSG}_resampled.tif'))
+    #richdem.SaveGDAL(os.path.join(output_dir, f'aspect_{region_name_clean}_EPSG{EPSG}_resampled.tif'), aspect)
 
     #create map showing pixels with slope bigger X and aspect between Y and Z (north facing with slope where you would not build PV)
     condition = (slope > X) & ((aspect >= Y) | (aspect <= Z))
@@ -284,21 +301,48 @@ try:
     with rasterio.open(os.path.join(output_dir, f'slope_{region_name_clean}_EPSG{EPSG}_resampled.tif')) as src:
         slope = src.read(1)
         profile = src.profile
-    profile.update(dtype=rasterio.float32, count=1, nodata=0) # Update the profile for the output raster
+    profile.update(dtype=rasterio.int16, count=1, nodata=0, compress='lzw') # Update the profile for the output raster
     
     if result.sum() > 0:
         # Write the result to a new raster file
         with rasterio.open(os.path.join(output_dir, f'north_facing_{region_name_clean}_EPSG{EPSG}_resampled.tif'), 'w', **profile) as dst:
-            dst.write(result.astype(rasterio.float32), 1)
+            dst.write(result.astype(rasterio.int16), 1)
     if result.sum() == 0:
-        print('no north-facing pixel exceeding threshold slope')
+        logging.info('no north-facing pixel exceeding threshold slope')
 
 except Exception as e:
     print(e)
-    print('Something went wrong with DEM')
+    logging.warning('Something went wrong with DEM')
 
 
-#save all files also into one geopackage
+#download WDPA (WDPA is country specific, so the protected areas for a custom polygon spanning over multiple countries cannot be obtained)
+if consider_WDPA == 1:
+    print('processing protected areas')
+    if find_folder(wdpa_folder, string_in_name=country_code) is None:
+        # if there is no folder already existing then create one and download the WDPA
+        WDPA_country_folder = os.path.join(wdpa_folder, f'WDPA_{country_code}')
+        os.makedirs(WDPA_country_folder, exist_ok=True)
+        if country_code in wdpa_url: #check if provided URL matches with country of study region
+            #donwload and convert to geopackage
+            download_unpack_zip(wdpa_url, WDPA_country_folder)
+            gdb_folder = find_folder(WDPA_country_folder, file_ending='.gdb') #gdb means geodatabase
+            convert_gdb_to_gpkg(gdb_folder, WDPA_country_folder, f'{country_code}_WDPA.gpkg')
+        else:
+            logging.warning('No WDPA downloaded. URL and country code do not match')
+    else:
+        logging.info('folder with protected areas of country of study region already exists')
+        WDPA_country_folder = os.path.join(wdpa_folder, f'WDPA_{country_code}')
+
+    #clip WDPA to study region
+    wdpaFilePath = os.path.join(WDPA_country_folder, f'{country_code}_WDPA.gpkg')
+    wdpa_file = gpd.read_file(wdpaFilePath)
+    wdpa_file = geopandas_clip_reproject(wdpa_file, region, EPSG)
+    if not wdpa_file.empty:
+        wdpa_file.to_file(os.path.join(output_dir, f'protected_areas_{region_name_clean}_{EPSG}.gpkg'), driver='GPKG', encoding='utf-8')
+    else:
+        logging.info("No protected areas found in the region. File not saved.")
+
+
 
 
 

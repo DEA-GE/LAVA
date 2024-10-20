@@ -1,21 +1,28 @@
 #data config 
 landcover_source: 'openeo'   #'file' or 'openeo'
+consider_coastlines: 0
 consider_railways: 0
 consider_roads: 0
 consider_airports: 0
 consider_waterbodies: 0
 consider_additional_exclusion_polygons: 0 
+
+consider_WDPA: 1
+wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Oct2024_Public_ALB.zip'
+#montenegro: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Oct2024_Public_MNE.zip
+#albania: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Oct2024_Public_ALB.zip
+
 EPSG_manual: ''  #if None use empty string
 
 
 #Define study region (use geopackage from gadm.org to inspect in QGIS)
-region_name: Elbe-Elster #always needed, same name as in gadm.org (if country is studied, then use country name)
+region_name: Albania #always needed, same name as in gadm.org (if country is studied, then use country name)
 OSM_folder_name: BerlinBrandenburg #usually same as country_code, only needed if OSM is to be considered
 
 
 #use GADM boundary
-country_code: DEU #    #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
-gadm_level: 2
+country_code: ALB #    #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
+gadm_level: 0
 #or use custom region
 custom_polygon_filename: '' #if None use empty string           'Aceh_single.geojson'
 
@@ -24,3 +31,7 @@ custom_polygon_filename: '' #if None use empty string           'Aceh_single.geo
 X: 10
 Y: 310
 Z: 50
+
+
+#world database of protected areas
+wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"

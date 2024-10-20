@@ -7,11 +7,78 @@ from shapely.geometry import mapping
 from unidecode import unidecode
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
+import zipfile
+import requests
+import io
+import fiona
+
+import logging
+
+
+#download WDPA functions
+def download_unpack_zip(url, output_dir):
+    response = requests.get(url)
+    # Check if the download was successful
+    if response.status_code == 200:
+        # Open the downloaded content as a zipfile
+        logging.info("Download complete, extracting files...")
+        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+            z.extractall(path=output_dir)
+        logging.info(f"Files extracted to {os.path.abspath(output_dir)}")
+    else:
+        logging.warning(f"Failed to download the file, status code: {response.status_code}")
+
+# Function to find the geodatabase folder
+def find_folder(directory, file_ending=None, string_in_name=None):
+    for root, dirs, files in os.walk(directory):
+        for folder in dirs:
+            if file_ending is not None:
+                if folder.endswith(file_ending):
+                    return os.path.join(root, folder)
+                    logging.info('Found folder with geodatabase')
+            if string_in_name is not None:
+                if string_in_name in folder:
+                    return os.path.join(root, folder)
+                    logging.info('WDPA folder of country already existed')
+    return None
+    logging.warning('no existing WDPA country folder found')
+
+def convert_gdb_to_gpkg(gdb_folder, output_dir, filename):
+    layers = fiona.listlayers(gdb_folder) #list all layers
+    poly_layer = next((layer for layer in layers if 'poly' in layer.lower()), None) #find the layer containing the word "poly" for the polygon layer
+    if poly_layer:
+        gdf = gpd.read_file(gdb_folder, layer=poly_layer)
+        gdf.to_file(os.path.join(output_dir, filename), driver='GPKG', encoding='utf-8')
+        logging.info(f'WDPA saved as gpkg to {output_dir}')
+    else:
+        logging.warning("No layer containing 'poly' in its name was found. No WDPA saved.")
+
+
+
+
+
+
+#geodata functions
+
+def save_richdem_file(richdem_file, base_dem_FilePath, outFilePath):
+    with rasterio.open(base_dem_FilePath) as src:
+        file_profile = src.profile
+    # For the new file's profile, we start with the profile of the source
+    profile = file_profile
+
+    profile.update(
+        dtype=rasterio.int16,
+        count=1,
+        compress='lzw',
+        nodata=richdem_file.no_data) 
+    #save raster file
+    with rasterio.open(outFilePath, 'w', **profile) as dst:
+        dst.write(richdem_file.astype(rasterio.int16), 1)  
 
 
 def geopandas_clip_reproject(geopandas_file, gdf, target_crs):
     """
-    Clips OSM file to the extent of a GeoPandas DataFrame and reprojects it to a given CRS.
+    Clips vector file to the extent of a GeoPandas DataFrame and reprojects it to a given CRS.
 
     
     :param gdf: The GeoPandas DataFrame to use for clipping the shapefile.
@@ -78,7 +145,8 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, landcover_e
             'crs': target_crs,
             'transform': transform, 
             'width': width,
-            'height': height
+            'height': height,
+            'dtype': rasterio.int16
         })
 
         # Create the output file path
@@ -86,7 +154,7 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, landcover_e
 
 
         # Reproject and save the raster
-        with rasterio.open(output_path, 'w', **kwargs) as dst:
+        with rasterio.open(output_path, 'w', **kwargs, compress='lzw') as dst:
             for i in range(1, src.count + 1):
                 reproject(
                     source=rasterio.band(src, i),
@@ -103,7 +171,7 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, landcover_e
 
 
 def reproj_match(infile, match, resampling_method, outfile): #source: https://pygis.io/docs/e_raster_resample.html
-    """Reproject a file to match the shape and projection of existing raster. 
+    """Reproject a file to match the shape and projection of existing raster. (co-registration)
     
     Parameters
     ----------
@@ -135,15 +203,29 @@ def reproj_match(infile, match, resampling_method, outfile): #source: https://py
             )
 
         # set properties for output
-        dst_kwargs = src.meta.copy()
-        dst_kwargs.update({"crs": dst_crs,
-                           "transform": dst_transform,
-                           "width": dst_width,
-                           "height": dst_height,
-                           "nodata": 0})
+        dst_profile = src.profile.copy()
+        
+        #dst_kwargs.update({"crs": dst_crs,
+        #                   "transform": dst_transform,
+        #                   "width": dst_width,
+        #                   "height": dst_height,
+        #                   "nodata": -9999,
+        #                   "dtype": rasterio.int16})
+        
+        dst_profile.update(
+            crs=dst_crs,
+            transform=dst_transform,
+            width=dst_width,
+            height=dst_height,
+            dtype=rasterio.int16,
+            count=1,
+            nodata=-9999,
+            compress='lzw') 
+        
+
         print("Coregistered to shape:", dst_height,dst_width,'\n Affine',dst_transform)
         # open output
-        with rasterio.open(outfile, "w", **dst_kwargs, compress='lzw') as dst:
+        with rasterio.open(outfile, "w", **dst_profile) as dst:
             # iterate through bands and write using reproject function
             for i in range(1, src.count + 1):
                 reproject(
