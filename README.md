@@ -37,7 +37,7 @@ You are now ready to run the scripts in this repository.
 The folders for the data input are already created in this repo. Download the need data to the correct place within the folder __"Raw_Spatial_Data"__. 
 
 Following data must be downloaded:
-* [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) is a continuous, global terrain model for ocean and land with a spatial resolution of 15 arc seconds. Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel.
+* [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) is a continuous, global terrain model for ocean and land with a spatial resolution of 15 arc seconds (ca. 450m). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel.
 
 * [CORINE land cover global dataset](https://zenodo.org/records/3939050) covers the whole globe with a resolution of ~100m. Download the file from zenodo named __*PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif*__. Leave the name as it is and put it in the __"Raw_Spatial_Data"__ folder. :warning: Attention: the file size is 1.7 GB
 You can also use landcover data from a different data source (then the coloring needs to be adjusted). Instead of using the CORINE global land cover dataset you can also setup a connection vie `openEO` to use the ESAworldcover data with a resolution of ~10m.
@@ -85,7 +85,7 @@ In the beginning of the script you can select:
 * `consider_OSM_airports =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region)
 * `EPSG_manual =` __*'EPSG-Code'*__ (insert EPSG code like 3035 for Europe if you want to set it manually instead of using the calculated UTM zone) or keep it an __*empty string*__
 
-Moreover, you have to select your study region:
+Moreover, you have to select your study region. When using the automatic download from gadm.org, you have to specify the name of the region (region_name) and the GADM level as it is used by gadm.org. You can just browse the [gadm-pages](https://gadm.org/maps.html) by clicking on the respective country and click through the "sub-divisions" until you found your study region.
 * `region_name =` __*'region_name_as_string'*__ (name of the region, also the name of the output folder)
 * `OSM_folder_name =` __*'name_as_string'*__
 * `country_code =` __*'country_code_as_string'*__ (3 letters ISO code)
