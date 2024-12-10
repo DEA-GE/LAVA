@@ -50,7 +50,7 @@ The OSM data is used to extract railways, roads and airports. Be aware, that the
 
 * [Global Oceans and Seas](https://marineregions.org/downloads.php) contains all oceans and seas. It is used to buffer the coastlines. This file is only needed, when the study region has a coastline. Click on "Global Oceans and Seas" and download the geopackage. Unzip, name the file __*"goas.gpkg"*__ and put it into the folder __"GOAS"__ in the __"Raw_Spatial_Data"__ folder.
 
-*  [World Database of Protected Areas]([https://www.protectedplanet.net/en/thematic-areas/wdpa?tab=WDPA](https://www.protectedplanet.net/en/search-areas?filters%5Bdb_type%5D%5B%5D=wdpa&geo_type=country)) is a global database on protected areas. Search the country your study area is located in. Click on "Download" > "File Geodatabase" > "Continue" under Non Commercial Use, then right click on the download button and copy the link address behind the download button. Paste this link in the `config.yaml` behind "WDPA_link". This will automatically download, clip and reproject the protected areas within your study area.
+*  [World Database of Protected Areas](https://www.protectedplanet.net/en/search-areas?filters%5Bdb_type%5D%5B%5D=wdpa&geo_type=country) is a global database on protected areas. Search the country your study area is located in. Click on "Download" > "File Geodatabase" > "Continue" under Non Commercial Use, then right click on the download button and copy the link address behind the download button. Paste this link in the `config.yaml` behind "WDPA_link". This will automatically download, clip and reproject the protected areas within your study area.
 
 > [!NOTE]
 __DEM__ (digital elevation model) is just a generic term. To be more precise, one can distinguish between Digital Surface Models (DSM) and Digital Terrain Models (DTM). DSMs also include vegetation like forests and buildings. Since ground-mounted PV and wind turbines are built on the ground and not on trees, a DTM is much better suited. When deriving the slope map from a high resolution DSM, then it can happen that you get pixels with high slopes at the edge of forests and fields or at the edge of buildings. This is unnecessary and for the tools purpose false data. Unfortunately, many easily accessible DEMs are just DSMs but not DTMs. The above mentioned GEBCO dataset is in fact a DTM but with a rather low resolution. There may be local DTMs with a higher resolution, which can also be used in the tool.\
@@ -61,9 +61,6 @@ Be aware with __land cover data__: This type of data is good to estimate the pot
 
 > [!NOTE]
 Take additional care when using a study region with a __coastline__. Coastlines can be very difficult and complex. Always cross check the results.
-
-> [!NOTE] 
-For a sophisticated potential analysis __additional data__ is needed like specific local exclusion zones or protected areas. This depends on the study region and data research as well as engagement with local authorities is needed. A good global dataset for protected areas is [protected planet](https://www.protectedplanet.net/en/thematic-areas/wdpa?tab=WDPA). Moreover, waterways and water areas could be used from OSM Data, because land cover data does not always recognize waterbodies.
 
 
 
