@@ -70,26 +70,9 @@ Take additional care when using a study region with a __coastline__. Coastlines 
 
 
 ## 2. Configuration
+In the `config.yaml` file you can configure the data preprocessing. So, nothing needs to be changed in the `spatial_data_prep.py` script.
 
 
-## 3. Spatial data preparation
-The script `spatial_data_prep_JOM.py` performs multiple data preprocessing steps to facilitate the land analysis and land eligibility study:
-* download administrative boundary of the study region from [gadm.org](gadm.org) using the package pygadm
-* use a custom polygon instead if wished
-* calculate the local UTM zone
-* clip and reproject to local UTM zone OSM railways, roads and airports (roads are also filtered to only consider main roads)
-* clip and reproject landcover data and elevation data. Elevation data is also co-registered to the landcover data using bilinear resampling. More on working with multiple raster files (resampling and registering): [here](https://pygis.io/docs/e_raster_resample.html)
-* create a slope map from the elevation data (calculated internally using `richdem`)
-
-If you want to estimate the available land for solar PV, then the orientation of the pixels is also important:
-* create an aspects map from the elevation data (calculated internally using `richdem`)
-* create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
-
-For the preprocessing, some functions are used which are defined in the file `data_preprocessing.py` in the folder "utils".
-
-The files are saved to a folder within the __"data"__-folder named according to the study region. The GIS-files will be saved in the coordinate reference system of the local UTM zone or in the user defined CRS. Some files are also stored in EPSG 4326 as well. 
-
-In the beginning of the script you can select:
 * `consider_OSM_railways =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region)
 * `consider_OSM_roads =` __0__  or __1__  Be careful with roads. The file size can quickly become big and the proessing takes more time.
 * `consider_OSM_airports =` __0__ (don't use OSM data in study region) or __1__ (clip OSM data to study region)
@@ -105,6 +88,25 @@ Moreover, you have to select your study region. When using the automatic downloa
 
 Ideally you download the geopackage from [gadm.org](gadm.org) of the country you are interested in and load it in QGIS to find the right `gadm_level` and `region_name`.
 
+
+
+
+## 3. Spatial data preparation
+The script `spatial_data_prep.py` performs multiple data preprocessing steps to facilitate the land analysis and land eligibility study:
+* download administrative boundary of the study region from [gadm.org](gadm.org) using the package pygadm or use a custom polygon instead if wished (custom polygon needs to be put to the right folder wihtin __"Raw_Spatial_Data"__ folder
+* calculate the local UTM zone
+* clip and reproject to local UTM zone OSM railways, roads, airports and waterways (roads are also filtered to only consider main roads; hard-coded in the script)
+* clip and reproject landcover data and elevation data. 
+* create a slope map from the elevation data (calculated internally using `richdem`)
+* Elevation, slope and aspect are the also co-registered to the landcover data using nearest resampling. More on working with multiple raster files (resampling and registering): [here](https://pygis.io/docs/e_raster_resample.html)
+
+If you want to estimate the available land for solar PV, then the orientation of the pixels is also important:
+* create an aspects map from the elevation data (calculated internally using `richdem`)
+* create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
+
+For the preprocessing, some functions are used which are defined in the file `data_preprocessing.py` in the folder "utils".
+
+The files are saved to a folder within the __"data"__-folder named according to the study region. The GIS-files will be saved in the coordinate reference system of the local UTM zone or in the user defined CRS. Some files are also stored in EPSG 4326 as well. 
 
 
 ## 4. Land analysis
