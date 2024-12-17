@@ -46,12 +46,12 @@ The OSM data is used to extract railways, roads and airports. Be aware, that the
 
 
 > [!NOTE]
-> Landcover data can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/):  
-> This powerful API can connect to multiple back-ends. Data processing can be done on the back-end if wanted.  
+> Landcover data can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/).  
+> This powerful API can connect to multiple back-ends. Data processing can be done on the back-end if wanted. Here is some general information about openEO:  
 > * [API documentation](https://open-eo.github.io/openeo-python-client/)
 > * [openEO recorded Webinar](https://terrascope.be/en/news-events/joint-openeo-terrascope-webinar), [another webinar](https://www.youtube.com/watch?v=A35JHj8LM2k&list=PLNxdHvTE74Jy18qTecMcNruUjODMCiEf_&index=3)  
 > 
-> In order to use ESAworldcover data via openEO, one needs to connect to the copernicus dataspace as the backend. Every user gets [10000 credits per months](https://dataspace.copernicus.eu/analyse/openeo) to carry out processes on this backend. In your [copernicus dataspace account](https://marketplace-portal.dataspace.copernicus.eu/billing) you can see your credits balance and how many credits your copernicus jobs costed.  
+> In the LAVA-tool, the openEO-connection to ESAworldcover data is implemented. In order to use it, one needs to connect to the Copernicus dataspace as the backend. Every user gets [10000 credits per months](https://dataspace.copernicus.eu/analyse/openeo) to carry out processes on this backend. In your [copernicus dataspace account](https://marketplace-portal.dataspace.copernicus.eu/billing) you can see your credits balance and how many credits your copernicus jobs costed.  
 > * [Copernicus Dataspace Forum](https://forum.dataspace.copernicus.eu/)  
 > * [General limitations openEO](https://documentation.dataspace.copernicus.eu/APIs/openEO/openEO.html): tested up to 100x100km at 10m resolution, free tier synchronous requests and batch jobs limited to 2 concurrent requests/jobs.  
 > * [openeo Web Editor](https://editor.openeo.org/?server=openeo.dataspace.copernicus.eu) where you can see all your batch jobs.
