@@ -46,7 +46,7 @@ The OSM data is used to extract railways, roads and airports. Be aware, that the
 
 
 > [!NOTE]
-> Landcover data can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/).  
+> __Landcover data__ can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/).  
 > This powerful API can connect to multiple back-ends. Data processing can be done on the back-end if wanted. Here is some general information about openEO:  
 > * [API documentation](https://open-eo.github.io/openeo-python-client/)
 > * [openEO recorded Webinar](https://terrascope.be/en/news-events/joint-openeo-terrascope-webinar), [another webinar](https://www.youtube.com/watch?v=A35JHj8LM2k&list=PLNxdHvTE74Jy18qTecMcNruUjODMCiEf_&index=3)  
