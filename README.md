@@ -28,7 +28,7 @@ You are now ready to run the scripts in this repository.
 
 
 ## 1. Download the necessary raw spatial data
-The folders for the data input are already created in this repo. Download the need data to the correct place within the folder __"Raw_Spatial_Data"__. 
+The folders for the data input are already created in this repo. Download the needed data to the correct place within the folder __"Raw_Spatial_Data"__. 
 
 Following data must be downloaded:
 * __DEM__: [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) is a continuous, global terrain model for ocean and land with a spatial resolution of 15 arc seconds (ca. 450m). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel. It is also possible to use a different dataset.
