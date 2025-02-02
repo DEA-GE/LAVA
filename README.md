@@ -115,6 +115,12 @@ The code automatically recognizes if a file does not exist and thus does not tak
 The script `create_qgis_project.py` puts all files together into a QGIS project to easily display them. This script needs to be used in the 'QGIS environment'. You can install it from the `requirements_qgis.yaml`. Additionally, you have to install the QGIS python package with the same version as your current QGIS installation in that environment.
 
 
-## 7. More info
-* Terrascope API: not implemented because of limited functionalities (e.g. only downloads tiles, data cannot be clipped to area of interest). [API documentation](https://vitobelgium.github.io/terracatalogueclient/api.html), [ESAworldvcover Product](https://docs.terrascope.be/#/DataProducts/WorldCover/WorldCover), 
+## 7. More info / notes
+* Terrascope API: not implemented because of limited functionalities (e.g. only downloads tiles, data cannot be clipped to area of interest). [API documentation](https://vitobelgium.github.io/terracatalogueclient/api.html), [ESAworldvcover Product](https://docs.terrascope.be/#/DataProducts/WorldCover/WorldCover),
+
+* (adding basemaps to QGIS)[https://gis.stackexchange.com/questions/20191/adding-basemaps-in-qgis]
+* (Download DEMs in QGIS for a Specified Extent with the OpenTopography DEM Downloader Plugin)[https://www.youtube.com/watch?v=EMwPT7tABCg]
+* (Quick Review FABDEM with QGIS)[https://www.youtube.com/watch?v=E3zKe81UOl8&t=3s]
+* (Meadows et al.)[https://doi.org/10.1080/17538947.2024.2308734] conclude: "In conclusion, we found FABDEM to be the most accurate DEM overall (especially for forests and low-slope terrain), suggesting that its error correction methodology is effective at reducing large positive errors in particular and that it generalises well to new application sites. Where FABDEM is not an option (given licensing costs for commercial applications), GLO-30 DGED is the clear runner-up under most conditions, with the exception of forests, where NASADEM (re-processed SRTM data) is more accurate."
+For a more nuanced assessment read the articel (for some applications FABDEM might not be the most accurate one).
 
