@@ -65,7 +65,7 @@ landcover_filename = config['landcover_filename']
 
 #use GADM boundary
 region_name = config['region_name'] #if country is studied, then use country name
-country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
+country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2 - to be adapted for china
 gadm_level = config['gadm_level']
 #or use custom region
 custom_polygon_filename = config['custom_polygon_filename'] #if None use empty string           'Aceh_single.geojson'
@@ -259,10 +259,10 @@ if landcover_source == 'openeo':
     output_path = os.path.join(output_dir, f'landcover_{region_name_clean}_EPSG{EPSG}.tif')
 
     if custom_polygon_filename:
-        with open(custom_polygon_filepath, 'r') as file: #use region file in EPSG 4326 because openeo default file is in 4326
+        with open(custom_polygon_filepath, 'r',encoding='utf8') as file: #use region file in EPSG 4326 because openeo default file is in 4326
             aoi = json.load(file) #load polygon for clipping with openeo            
     else:
-        with open(os.path.join(output_dir, f'{region_name_clean}_4326.geojson'), 'r') as file: #use region file in EPSG 4326 because openeo default file is in 4326
+        with open(os.path.join(output_dir, f'{region_name_clean}_4326.geojson'), 'r',encoding='utf8') as file: #use region file in EPSG 4326 because openeo default file is in 4326
             aoi = json.load(file)
 
     datacube_landcover = connection.load_collection("ESA_WORLDCOVER_10M_2021_V2")

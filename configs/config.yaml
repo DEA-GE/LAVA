@@ -10,15 +10,16 @@ consider_military: 0
 consider_additional_exclusion_polygons: 0 
 
 consider_WDPA: 0
-wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Nov2024_Public_DEU.zip'
+wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Feb2025_Public_CHN.zip'
+
 
 
 EPSG_manual: ''  #if None use empty string
 
 
 #name folders and files
-region_folder_name: Elbe-Elster #always needed, same name as in gadm.org (if country is studied, then use country name)
-OSM_folder_name: BerlinBrandenburg #usually same as country_code, only needed if OSM is to be considered
+region_folder_name: Beijing #always needed, same name as in gadm.org (if country is studied, then use country name)
+OSM_folder_name: CHN #usually same as country_code, only needed if OSM is to be considered
 
 DEM_filename: gebco_cutout.tif 
 landcover_filename: PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
@@ -26,11 +27,11 @@ landcover_filename: PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-
 
 #Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
 #use GADM boundary (https://gadm.org/maps.html)
-region_name: Elbe-Elster
-country_code: DEU 
-gadm_level: 2
+region_name: Beijing #name of region in GADM
+country_code: CHN #ISO country code
+gadm_level: 1
 #or use custom region (if file is passed, then this is used as default over the GADM definitions above)
-custom_polygon_filename: '' #if None use empty string
+custom_polygon_filename: 'gadm41_CHN_1_Beijing.json' #if None use empty string
 
 
 #north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
