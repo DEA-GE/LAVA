@@ -116,6 +116,8 @@ The code automatically recognizes if a file does not exist and thus does not tak
 ## 6. Bring all files in a QGIS project together
 The script `create_qgis_project.py` puts all files together into a QGIS project to easily display them. This script needs to be used in the 'QGIS environment'. You can install it from the `requirements_qgis.yaml`. Additionally, you have to install the QGIS python package with the same version as your current QGIS installation in that environment.
 
+`conda install -c conda-forge qgis=VERSIONNUMBER`
+
 
 ## 7. More info / notes
 * Terrascope API: not implemented because of limited functionalities (e.g. only downloads tiles, data cannot be clipped to area of interest). [API documentation](https://vitobelgium.github.io/terracatalogueclient/api.html), [ESAworldvcover Product](https://docs.terrascope.be/#/DataProducts/WorldCover/WorldCover),
