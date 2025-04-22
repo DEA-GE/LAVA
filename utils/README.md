@@ -4,6 +4,8 @@ this is the readme for landuse codes
 
 [ESA World Cover 2021](https://worldcover2021.esa.int/documentation)
 
+[product user manual](https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/docs/WorldCover_PUM_V2.0.pdf) for ESAworldcover2021 with Land cover classification on page 15.
+
 | Code | Land Cover Type             |
 |------|-----------------------------|
 | 10   | Tree cover                  |
