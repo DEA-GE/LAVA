@@ -74,6 +74,7 @@ Take additional care when using a study region with a __coastline__. Coastlines 
 
 
 ## 2. Configuration
+In the __"configs"__-folder copy the file `config_template.yaml` and rename it to `config.yaml`.
 In the `config.yaml` file you can configure the data preprocessing and the land exclusion. You can also copy and rename the `config.yaml` if you want to test multiple settings. Be aware that the name of the `config.yaml` file needs to be the same in the scripts.
 
 In the `config.yaml` file you can choose which data you want to consider in the preprocessing.
