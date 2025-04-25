@@ -30,7 +30,7 @@ You are now ready to run the scripts in this repository.
 ## 1. Download the necessary raw spatial data
 The folders for the data input are already created in this repo. Download the needed data to the correct place within the folder __"Raw_Spatial_Data"__. 
 
-Following data must be downloaded:
+Following data must be downloaded (partly manually, partly automatically by the script):
 * __DEM__: [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) is a continuous, global terrain model for ocean and land with a spatial resolution of 15 arc seconds (ca. 450m). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel. It is also possible to use a different dataset.
 
 * __landcover__: The user can decide to automatically fetch ESAworldcover data (resolution of ~10m) via the openEO-API (see instructions later on this page) or to use a local file. This needs to be specified in the config.yaml file. 
@@ -44,6 +44,9 @@ The OSM data is used to extract railways, roads and airports. Be aware, that the
 
 *  __Protected Areas__: [World Database of Protected Areas](https://www.protectedplanet.net/en/search-areas?filters%5Bdb_type%5D%5B%5D=wdpa&geo_type=country) is a global database on protected areas. Search the country your study area is located in. Click on "Download" > "File Geodatabase" > "Continue" under Non Commercial Use, then right click on the download button and copy the link address behind the download button. Paste this link in the `config.yaml` behind "WDPA_url". This will automatically download, clip and reproject the protected areas within your study area. You can also use your own, locally stored file with protected areas by setting the right options in `config.yaml`.
 
+* __Mean wind speeds__: [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) has data on mean wind speeds with high-spatial resolution. The data is automatically downloaded and processed by the script. If it is not working, try checking if the 3-letter country code used in the config.yaml and in the Global Wind Atlas match.
+
+* __Solar radiation__: [Global Solar Atlas](https://globalsolaratlas.info/download) has data on longterm yearly average of potential photovoltaic electricity production (PVOUT) in kWh/kWp with high-spatial resolution. The data is automatically downloaded and processed by the script. 
 
 > [!NOTE]
 > __Landcover data__ can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/).  
@@ -94,6 +97,11 @@ The script `spatial_data_prep.py` performs multiple data preprocessing steps to 
 If you want to estimate the available land for solar PV, then the orientation of the pixels is also important:
 * create an aspects map from the elevation data (calculated internally using `richdem`)
 * create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
+
+* download and clip protected areas from WDPA or use your own local file
+* download, clip and co-register mean wind speed data to landcover (used to exclude areas with low wind speeds)
+* download, clip and co-register potential solar PV generation data to landcover (used to exclude areas with low solar PV production potential)
+
 
 For the preprocessing, some functions are used which are defined in the file `data_preprocessing.py` in the folder "utils".
 
