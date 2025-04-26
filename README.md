@@ -46,7 +46,8 @@ The OSM data is used to extract railways, roads and airports. Be aware, that the
 
 * __Mean wind speeds__ :robot:: [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) has data on mean wind speeds with high-spatial resolution. The data is automatically downloaded and processed by the script. If it is not working, try checking if the 3-letter country code used in the config.yaml and in the Global Wind Atlas match.
 
-* __Solar radiation__ :robot:: [Global Solar Atlas](https://globalsolaratlas.info/download) has data on longterm yearly average of potential photovoltaic electricity production (PVOUT) in kWh/kWp with high-spatial resolution. The data is automatically downloaded and processed by the script. Be aware that for some areas there is no data, especially for many areas north of 60°N (e.g. Greenland, Iceland, parts of Sweden, Norway, Finnland, Russia). 
+* __Solar radiation__ :robot:: [Global Solar Atlas](https://globalsolaratlas.info/download) has data on longterm yearly average of potential photovoltaic electricity production (PVOUT) in kWh/kWp with high-spatial resolution. The data is automatically downloaded and processed by the script.
+⚠️ Be aware that for some areas there is no data, especially for many areas north of 60°N (e.g. Greenland, Iceland, parts of Sweden, Norway, Finnland, Russia). 
 
 > [!NOTE]
 > __Landcover data__ can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/).  
