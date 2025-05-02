@@ -8,6 +8,8 @@
 !utils/legends.py
 !utils/data_preprocessing.py
 !utils/README.md
+!utils/osm2shp.py
+!utils/proximity_calc.py
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
 !Raw_Spatial_Data/landcover/.gitkeep
@@ -39,4 +41,5 @@
 !other/earthOSM_test.ipynb
 !other/color_raster_file.ipynb
 !other/resampling_reprojecting.ipynb
-configs/config_template.yaml
+!Exclusion.py
+!
