@@ -49,7 +49,9 @@ consider_railways = config['consider_railways']
 consider_roads = config['consider_roads']
 consider_airports = config['consider_airports']
 consider_waterbodies = config['consider_waterbodies']
-consider_military = config['consider_military']  
+consider_military = config['consider_military']   
+consider_wind_atlas = config['consider_wind_atlas']
+consider_solar_atlas = config['consider_solar_atlas']  
 consider_additional_exclusion_polygons = config['consider_additional_exclusion_polygons']
 EPSG_manual = config['EPSG_manual']  #if None use empty string
 consider_protected_areas = config['consider_protected_areas']
@@ -82,19 +84,21 @@ start_time = time.time()
 # Get paths to data files or folders
 dirname = os.path.dirname(__file__)
 data_path = os.path.join(dirname, 'Raw_Spatial_Data')
-landcoverRasterPath = os.path.join(data_path, landcover_filename)
+landcoverRasterPath = os.path.join(data_path, 'landcover', landcover_filename)
 demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
 coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
 protected_areas_folder = os.path.join(data_path, 'protected_areas')
+wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
 if consider_railways == 1 or consider_roads == 1 or consider_airports == 1 or consider_waterbodies == 1:
     OSM_country_path = os.path.join(data_path, 'OSM', OSM_folder_name) 
 
 
 # Get region name without accents, spaces, apostrophes, or periods for saving files
-region_name_clean = unidecode(region_name)
-region_name_clean = region_name_clean.replace(" ", "")
-region_name_clean = region_name_clean.replace(".", "")
-region_name_clean = region_name_clean.replace("'", "") 
+region_name_clean = clean_region_name(region_name)
+# region_name_clean = unidecode(region_name)
+# region_name_clean = region_name_clean.replace(" ", "")
+# region_name_clean = region_name_clean.replace(".", "")
+# region_name_clean = region_name_clean.replace("'", "") 
 
 
 # Define output directories
@@ -327,7 +331,7 @@ try:
     dem_localCRS_Path=os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}.tif')
     matchPath=os.path.join(output_dir, f'landcover_{region_name_clean}_EPSG{EPSG}.tif')
     dem_resampled_Path=os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG{EPSG}_resampled.tif') 
-    co_register(dem_localCRS_Path, matchPath, 'nearest', dem_resampled_Path)
+    co_register(dem_localCRS_Path, matchPath, 'nearest', dem_resampled_Path, dtype='int16')
 
     #slope and aspect map
     # Define output directories
@@ -341,7 +345,7 @@ try:
     slopeFilePathLocalCRS = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_EPSG{EPSG}.tif')
     save_richdem_file(slope, dem_localCRS_Path, slopeFilePathLocalCRS)
     slope_co_registered_FilePath = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_EPSG{EPSG}_resampled.tif')
-    co_register(slopeFilePathLocalCRS, matchPath, 'nearest', slope_co_registered_FilePath)
+    co_register(slopeFilePathLocalCRS, matchPath, 'nearest', slope_co_registered_FilePath, dtype='int16')
     #save in 4326: slope cannot be calculated from EPSG4326 because units get confused (https://github.com/r-barnes/richdem/issues/34)
     slopeFilePath4326 = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_EPSG4326.tif')
     reproject_raster(slopeFilePathLocalCRS, region_name_clean, 4326, 'nearest', slopeFilePath4326)
@@ -353,7 +357,7 @@ try:
     aspectFilePathLocalCRS = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_EPSG{EPSG}.tif')
     save_richdem_file(aspect, dem_localCRS_Path, aspectFilePathLocalCRS)
     aspect_co_registered_FilePath = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_EPSG{EPSG}_resampled.tif')
-    co_register(aspectFilePathLocalCRS, matchPath, 'nearest', aspect_co_registered_FilePath)
+    co_register(aspectFilePathLocalCRS, matchPath, 'nearest', aspect_co_registered_FilePath, dtype='int16')
     #save in 4326: not sure if aspect is calculated correctly in EPSG4326 because units might get confused (https://github.com/r-barnes/richdem/issues/34)
     aspectFilePath4326 = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_EPSG4326.tif')
     reproject_raster(aspectFilePathLocalCRS, region_name_clean, 4326, 'nearest', aspectFilePath4326)
@@ -405,6 +409,41 @@ if consider_protected_areas == 'WDPA' or consider_protected_areas == 'file':
         protected_areas_file.to_file(os.path.join(output_dir, f'protected_areas_{region_name_clean}_{EPSG}.gpkg'), driver='GPKG', encoding='utf-8')
     else:
         logging.info("No protected areas found in the region. File not saved.")
+
+
+#global wind atlas
+if consider_wind_atlas == 1:
+    wind_raster_filePath = os.path.join(wind_solar_atlas_folder, f'{country_code}_wind_speed_100.tif')
+
+    if not os.path.exists(wind_raster_filePath):
+        print('processing global wind atlas')
+        download_global_wind_atlas(country_code=country_code, height=100, data_path=data_path) #global wind atlas apparently uses 3 letter ISO code
+    else:
+        print(f"Global wind atlas data already downloaded: {wind_raster_filePath}")
+        
+    #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
+    clip_reproject_raster(wind_raster_filePath, region_name_clean, region, 'wind', EPSG, 'nearest', 'float32', output_dir)
+    #co-register raster to land cover
+    wind_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_EPSG{EPSG}.tif')
+    matchPath=os.path.join(output_dir, f'landcover_{region_name_clean}_EPSG{EPSG}.tif')
+    wind_raster_co_registered_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_EPSG{EPSG}_resampled.tif')
+    co_register(wind_raster_clipped_reprojected_filePath, matchPath, 'nearest', wind_raster_co_registered_filePath, dtype='float32')
+
+
+
+#global solar atlas (no check whether file already exists)
+if consider_solar_atlas == 1:
+    country_name_solar_atlas = config['country_name_solar_atlas']
+    solar_atlas_measure = config['measure']  
+    solar_atlas_folder_path = download_global_solar_atlas(country_name=country_name_solar_atlas, data_path=data_path, measure = solar_atlas_measure)
+    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, 'PVOUT.tif')
+    #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
+    clip_reproject_raster(solar_raster_filePath, region_name_clean, region, 'solar', EPSG, 'nearest', 'float32', output_dir)
+    #co-register raster to land cover
+    solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_EPSG{EPSG}.tif')
+    matchPath=os.path.join(output_dir, f'landcover_{region_name_clean}_EPSG{EPSG}.tif')
+    solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_EPSG{EPSG}_resampled.tif')
+    co_register(solar_raster_clipped_reprojected_filePath, matchPath, 'nearest', solar_raster_co_registered_filePath, dtype='float32')
 
 
 

@@ -1,4 +1,4 @@
-# LAVA - *L*and *A*nalysis and a*VA*ilability
+# LAVA - *LA*nd a*VA*ilability for Renewable Energies
 
 LAVA is a tool to calculate the available area in a user defined study region for building renewable energy generators like utility-scale solar PV and wind onshore.
 First, all needed data is preprocessed to bring it into the right format. This data can be analyzed to get a better understanding of the study region. Finally, the land eligibility analysis is done with [`atlite`](https://github.com/PyPSA/atlite) or [`GLAES`](https://github.com/FZJ-IEK3-VSA/glaes) (GLAES does not work fully yet).
@@ -30,20 +30,25 @@ You are now ready to run the scripts in this repository.
 ## 1. Download the necessary raw spatial data
 The folders for the data input are already created in this repo. Download the needed data to the correct place within the folder __"Raw_Spatial_Data"__. 
 
-Following data must be downloaded:
-* __DEM__: [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) is a continuous, global terrain model for ocean and land with a spatial resolution of 15 arc seconds (ca. 450m). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel. It is also possible to use a different dataset.
+Following data must be downloaded (partly manually :wrench:, partly automatically :robot: by the script):
+* __DEM__ :wrench:: [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) is a continuous, global terrain model for ocean and land with a spatial resolution of 15 arc seconds (ca. 450m). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel. It is also possible to use a different dataset.
 
-* __landcover__: The user can decide to automatically fetch ESAworldcover data (resolution of ~10m) via the openEO-API (see instructions later on this page) or to use a local file. This needs to be specified in the config.yaml file. 
+* __landcover__ :wrench: :robot:: The user can decide to automatically fetch ESAworldcover data (resolution of ~10m) via the openEO-API (see instructions later on this page) or to use a local file. This needs to be specified in the config.yaml file. 
 [CORINE landcover global dataset](https://zenodo.org/records/3939050) is a recommended file with global landcover data. But it only has a resolution of ~100m. If you want to use it, you need to download the file from zenodo named __*PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif*__. Leave the name as it is and put it in the __"Raw_Spatial_Data"__ folder. :warning: Attention: the file size is 1.7 GB
 You can also use landcover data from a different data source (then the coloring needs to be adjusted). 
 
-* __OSM__: [OpenStreetMap Shapefile](https://download.geofabrik.de/) contains tons of geodata. Download the file of the country or region where your study region is located. Click on the relevant continent and then country to download the ´.shp.zip´. Somtimes you can go even more granular by clicking on the country. The best is, to use the smallest available area where your study region is still inside to save storage space. Be aware of the files naming. Unzip and put the downloaded OSM data folder inside the __"OSM"__-folder.  
+* __OSM__ :wrench:: [OpenStreetMap Shapefile](https://download.geofabrik.de/) contains tons of geodata. Download the file of the country or region where your study region is located. Click on the relevant continent and then country to download the ´.shp.zip´. Somtimes you can go even more granular by clicking on the country. The best is, to use the smallest available area where your study region is still inside to save storage space. Be aware of the files naming. Unzip and put the downloaded OSM data folder inside the __"OSM"__-folder.  
 The OSM data is used to extract railways, roads and airports. Be aware, that these files can quickly become big making the calculations slow. Handle roads with caution. Often there are many roads which leads to big files.
 
-* __Coastlines__: [Global Oceans and Seas](https://marineregions.org/downloads.php) contains all oceans and seas. It is used to buffer the coastlines. This file is only needed, when the study region has a coastline. Click on "Global Oceans and Seas" and download the geopackage. Unzip, name the file __*"goas.gpkg"*__ and put it into the folder __"GOAS"__ in the __"Raw_Spatial_Data"__ folder.
+* __Coastlines__ :wrench:: [Global Oceans and Seas](https://marineregions.org/downloads.php) contains all oceans and seas. It is used to buffer the coastlines. This file is only needed, when the study region has a coastline. Click on "Global Oceans and Seas" and download the geopackage. Unzip, name the file __*"goas.gpkg"*__ and put it into the folder __"GOAS"__ in the __"Raw_Spatial_Data"__ folder.
 
-*  __Protected Areas__: [World Database of Protected Areas](https://www.protectedplanet.net/en/search-areas?filters%5Bdb_type%5D%5B%5D=wdpa&geo_type=country) is a global database on protected areas. Search the country your study area is located in. Click on "Download" > "File Geodatabase" > "Continue" under Non Commercial Use, then right click on the download button and copy the link address behind the download button. Paste this link in the `config.yaml` behind "WDPA_url". This will automatically download, clip and reproject the protected areas within your study area. You can also use your own, locally stored file with protected areas by setting the right options in `config.yaml`.
+*  __Protected Areas__ :wrench: :robot:: [World Database of Protected Areas](https://www.protectedplanet.net/en/search-areas?filters%5Bdb_type%5D%5B%5D=wdpa&geo_type=country) is a global database on protected areas. Search the country your study area is located in. Click on "Download" > "File Geodatabase" > "Continue" under Non Commercial Use, then right click on the download button and copy the link address behind the download button. Paste this link in the `config.yaml` behind "WDPA_url". This will automatically download, clip and reproject the protected areas within your study area. You can also use your own, locally stored file with protected areas by setting the right options in `config.yaml`.
 
+* __Mean wind speeds__ :robot:: [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) has data on mean wind speeds with high-spatial resolution. The data is automatically downloaded and processed by the script. If it is not working, try checking if the 3-letter country code used in the config.yaml and in the Global Wind Atlas match.
+
+* __Solar radiation__ :robot:: [Global Solar Atlas](https://globalsolaratlas.info/download) has data on longterm yearly average of potential photovoltaic electricity production (PVOUT) in kWh/kWp with high-spatial resolution. The data is automatically downloaded and processed by the script.<br>
+⚠️ For some areas there is no data, especially for many areas north of 60°N (e.g. Greenland, Iceland, parts of Sweden, Norway, Finnland, Russia).<br>
+⚠️ For some countries you cannot download the default measure "LTAym_YearlyMonthlyTotals" which lets the script fail. Check the used measure directly in the download area of Global Solar Atlas and replace it in config.yaml under "advanced details" (e.g. "LTAy_YearlySum" instead of "LTAym_YearlyMonthlyTotals").
 
 > [!NOTE]
 > __Landcover data__ can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/).  
@@ -74,6 +79,7 @@ Take additional care when using a study region with a __coastline__. Coastlines 
 
 
 ## 2. Configuration
+In the __"configs"__-folder copy the file `config_template.yaml` and rename it to `config.yaml`.
 In the `config.yaml` file you can configure the data preprocessing and the land exclusion. You can also copy and rename the `config.yaml` if you want to test multiple settings. Be aware that the name of the `config.yaml` file needs to be the same in the scripts.
 
 In the `config.yaml` file you can choose which data you want to consider in the preprocessing.
@@ -93,6 +99,11 @@ The script `spatial_data_prep.py` performs multiple data preprocessing steps to 
 If you want to estimate the available land for solar PV, then the orientation of the pixels is also important:
 * create an aspects map from the elevation data (calculated internally using `richdem`)
 * create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
+
+* download and clip protected areas from WDPA or use your own local file
+* download, clip and co-register mean wind speed data to landcover (used to exclude areas with low wind speeds)
+* download, clip and co-register potential solar PV generation data to landcover (used to exclude areas with low solar PV production potential)
+
 
 For the preprocessing, some functions are used which are defined in the file `data_preprocessing.py` in the folder "utils".
 
@@ -127,4 +138,5 @@ The script `create_qgis_project.py` puts all files together into a QGIS project 
 * [Quick Review FABDEM with QGIS](https://www.youtube.com/watch?v=E3zKe81UOl8&t=3s)
 * [Meadows et al.](https://doi.org/10.1080/17538947.2024.2308734) conclude: "In conclusion, we found FABDEM to be the most accurate DEM overall (especially for forests and low-slope terrain), suggesting that its error correction methodology is effective at reducing large positive errors in particular and that it generalises well to new application sites. Where FABDEM is not an option (given licensing costs for commercial applications), GLO-30 DGED is the clear runner-up under most conditions, with the exception of forests, where NASADEM (re-processed SRTM data) is more accurate."
 For a more nuanced assessment read the articel (for some applications FABDEM might not be the most accurate one).
+* [GEDTM30](https://github.com/openlandmap/GEDTM30): GEDTM30 is a global 1-arc-second (~30m) Digital Terrain Model (DTM) built using a machine-learning-based data fusion approach. It can be used as an alternative to the GEBCO DEM. GEDTM30 will hopefully integrated with openeo soon. 
 

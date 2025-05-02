@@ -9,6 +9,8 @@
 !utils/data_preprocessing.py
 !utils/README.md
 !Raw_Spatial_Data
+!Raw_Spatial_Data/landcover
+!Raw_Spatial_Data/landcover/.gitkeep
 !Raw_Spatial_Data/DEM
 !Raw_Spatial_Data/DEM/.gitkeep
 !Raw_Spatial_Data/protected_areas
@@ -21,8 +23,10 @@
 !Raw_Spatial_Data/custom_study_area/.gitkeep
 !Raw_Spatial_Data/additional_exclusion_polygons
 !Raw_Spatial_Data/additional_exclusion_polygons/.gitkeep
+!Raw_Spatial_Data/global_solar_wind_atlas
+!Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !configs
-!configs/config.yaml
+!configs/config_template.yaml
 !spatial_data_prep.py
 !data_exploration.ipynb
 !GLAES_Aachen.ipynb

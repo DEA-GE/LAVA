@@ -6,6 +6,9 @@ consider_roads: 1
 consider_airports: 1
 consider_waterbodies: 1
 consider_military: 1
+consider_wind_atlas: 1
+consider_solar_atlas: 1
+country_name_solar_atlas: Germany # name of country or "world" if you want to download the whole world 
 
 consider_additional_exclusion_polygons: 0 
 
@@ -27,9 +30,15 @@ landcover_filename: CLDC_v01_2023_EPSG4326.tif
 
 #Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
 #use GADM boundary (https://gadm.org/maps.html)
+<<<<<<< HEAD:configs/config.yaml
 region_name: China  #name of region in GADM
 country_code: CHN #ISO country code
 gadm_level: 0
+=======
+region_name: Elbe-Elster
+country_code: DEU       #always needed (also for global wind atlas)
+gadm_level: 2
+>>>>>>> b8d8669017e02623a869f0311043953d0d8a600c:configs/config_template.yaml
 #or use custom region (if file is passed, then this is used as default over the GADM definitions above)
 custom_study_area_filename: 'Elbe-Elster_4326.geojson' #if None use empty string
 
@@ -64,3 +73,11 @@ protectedAreas_buffer: 0
 min_pixels_connected: 100
 min_pixels_x: 5
 min_pixels_y: 5
+
+
+
+
+
+#--advanced details--------------------------------------------------------------------------------------------------------------------------------
+# solar data
+measure: LTAym_YearlyMonthlyTotals
