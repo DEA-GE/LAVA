@@ -87,7 +87,7 @@ data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 landcoverRasterPath = os.path.join(data_path, 'landcover', landcover_filename)
 demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
 coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
-protected_areas_folder = os.path.join(data_path, 'protected_areas')
+protected_areas_folder = os.path.join(data_path, 'Protected_areas')
 wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
 if consider_railways == 1 or consider_roads == 1 or consider_airports == 1 or consider_waterbodies == 1:
     OSM_country_path = os.path.join(data_path, 'OSM', OSM_folder_name) 
