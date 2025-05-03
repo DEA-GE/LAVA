@@ -12,29 +12,35 @@ country_name_solar_atlas: Germany # name of country or "world" if you want to do
 
 consider_additional_exclusion_polygons: 0 
 
-consider_protected_areas: WDPA #WDPA or file or 0
-wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip'
-protected_areas_filename: '' #include file ending (.gpkg or .geojson), needs to be in EPSG4326
+consider_protected_areas: file #WDPA or file or 0
+wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_CHN.zip'
+protected_areas_filename: 'China_Nature_reserve'
 
 
 EPSG_manual: ''  #if None use empty string
 
 
 #name folders and files
-region_folder_name: Elbe-Elster #always needed, same name as in gadm.org (if country is studied, then use country name)
-OSM_folder_name: BerlinBrandenburg #usually same as country_code, only needed if OSM is to be considered
+region_folder_name: China #NeiMongol #always needed, same name as in gadm.org (if country is studied, then use country name)
+OSM_folder_name: China #NeiMongol #usually same as country_code, only needed if OSM is to be considered
 
 DEM_filename: gebco_cutout.tif 
-landcover_filename: PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
+landcover_filename: CLDC_v01_2023_EPSG4326.tif
 
 
 #Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
 #use GADM boundary (https://gadm.org/maps.html)
+<<<<<<< HEAD:configs/config.yaml
+region_name: China  #name of region in GADM
+country_code: CHN #ISO country code
+gadm_level: 0
+=======
 region_name: Elbe-Elster
 country_code: DEU       #always needed (also for global wind atlas)
 gadm_level: 2
+>>>>>>> b8d8669017e02623a869f0311043953d0d8a600c:configs/config_template.yaml
 #or use custom region (if file is passed, then this is used as default over the GADM definitions above)
-custom_study_area_filename: '' #if None use empty string
+custom_study_area_filename: 'Elbe-Elster_4326.geojson' #if None use empty string
 
 
 #north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
@@ -48,7 +54,7 @@ wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #exclusions (buffer in meters) (here landcover codes for openeo as default example)
-landcover_without_buffer: [10,40,50] #list of landcover codes
+landcover_without_buffer: [10,40,80] #list of landcover codes
 landcover_with_buffer: #dictionary of landcover code with corresponding buffer
   #50: 500
 

@@ -2,6 +2,7 @@ import os
 import geopandas as gpd
 import json
 import rasterio
+from rasterio.crs import CRS
 from rasterio.mask import mask
 from shapely.geometry import mapping
 from unidecode import unidecode
@@ -163,7 +164,9 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
         'float32': rasterio.float32
     }
 
-    with rasterio.open(input_raster_path) as src:
+    with rasterio.open(input_raster_path, 'r+') as src:
+        #manually set crs 4326
+        #src.crs = CRS.from_epsg(4326)
         # Mask the raster using the vector file's geometry
         out_image, out_transform = mask(src, gdf.geometry.apply(mapping), crop=True)
         # Copy the metadata from the source raster

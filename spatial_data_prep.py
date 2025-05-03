@@ -67,7 +67,7 @@ landcover_filename = config['landcover_filename']
 
 #use GADM boundary
 region_name = config['region_name'] #if country is studied, then use country name
-country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
+country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2 - to be adapted for china
 gadm_level = config['gadm_level']
 #or use custom region
 custom_study_area_filename = config['custom_study_area_filename'] #if None use empty string           'Aceh_single.geojson'
@@ -87,7 +87,7 @@ data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 landcoverRasterPath = os.path.join(data_path, 'landcover', landcover_filename)
 demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
 coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
-protected_areas_folder = os.path.join(data_path, 'protected_areas')
+protected_areas_folder = os.path.join(data_path, 'Protected_areas')
 wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
 if consider_railways == 1 or consider_roads == 1 or consider_airports == 1 or consider_waterbodies == 1:
     OSM_country_path = os.path.join(data_path, 'OSM', OSM_folder_name) 
@@ -155,7 +155,7 @@ region_copy['buffered']=region_copy.buffer(1000)
 # Convert buffered region back to EPSC 4326 to get bounding box latitude and longitude 
 region_buffered_4326 = region_copy.set_geometry('buffered').to_crs(epsg=4326)
 bounding_box = region_buffered_4326['buffered'].total_bounds 
-logging.info(f"Bounding box in EPSG 4326: \nminx: {bounding_box[0]}, miny: {bounding_box[1]}, maxx: {bounding_box[2]}, maxy: {bounding_box[3]}")
+logging.info(f"Bounding box in EPSG 4326:\nminx: {bounding_box[0]}, miny: {bounding_box[1]}, maxx: {bounding_box[2]}, maxy: {bounding_box[3]}")
 
 
 #clip global oceans and seas file to study region for coastlines

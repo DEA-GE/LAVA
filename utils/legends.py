@@ -1,4 +1,40 @@
+#https://doi.org/10.5281/zenodo.4417809 https://zenodo.org/records/12779975/files/CLCD_classificationsystem.xlsx?download=1 
+colors_dict_clcd_v01_2023_int= {
+ #   0: (0, 0, 0, 0),  # No data 
+    1: (250, 227, 156),  # Cropland
+    2: (68, 111, 51),    # Forest
+    3: (51, 160, 44),    # Shrub
+    4: (171, 211, 123),  # Grassland
+    5: (30, 105, 180),   # Water
+    6: (166, 206, 227),  # Snow/Ice
+    7: (207, 189, 163),  # Barren
+    8: (226, 66, 144),   # Impervious (urban)
+    9: (40, 155, 232)    # Wetland
+}
 
+legend_dict_clcd_v01_2023 = {
+    1: "Cropland",
+    2: "Forest",
+    3: "Shrub",
+    4: "Grassland",
+    5: "Water",
+    6: "Snow/Ice",
+    7: "Barren",
+    8: "Impervious",
+    9: "Wetland"
+}
+
+colors_dict_clcd_v01_2023 = {
+    1: (250/255, 227/255, 156/255),  # Cropland
+    2: (68/255, 111/255, 51/255),    # Forest
+    3: (51/255, 160/255, 44/255),    # Shrub
+    4: (171/255, 211/255, 123/255),  # Grassland
+    5: (30/255, 105/255, 180/255),   # Water
+    6: (166/255, 206/255, 227/255),  # Snow/Ice
+    7: (207/255, 189/255, 163/255),  # Barren
+    8: (226/255, 66/255, 144/255),   # Impervious
+    9: (40/255, 155/255, 232/255)    # Wetland
+}
 
 #https://worldcover2021.esa.int/data/docs/WorldCover_PUM_V2.0.pdf p15
 colors_dict_esa_worldcover2021_int = {
