@@ -7,6 +7,7 @@
 !utils
 !utils/legends.py
 !utils/data_preprocessing.py
+!utils/fetch_OSM.py
 !utils/README.md
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
