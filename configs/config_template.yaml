@@ -61,9 +61,6 @@ coastlines_buffer: 0
 protectedAreas_buffer: 0
 
 #solar and wind resources
-wind_speed: 1
-solar_production: 1
-
 min_wind_speed: 0
 max_wind_speed: null
 
