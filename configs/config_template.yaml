@@ -75,3 +75,6 @@ min_pixels_y: 5
 #--advanced details--------------------------------------------------------------------------------------------------------------------------------
 # solar data
 measure: LTAym_YearlyMonthlyTotals
+
+# landcover data
+resolution_landcover: 0
