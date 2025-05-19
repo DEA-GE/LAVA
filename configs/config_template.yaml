@@ -83,6 +83,7 @@ measure: LTAym_YearlyMonthlyTotals
 resolution_landcover: 0
 
 #north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
+north_facing_pixels: null
 X: 10
 Y: 310
 Z: 50
