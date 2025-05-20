@@ -159,12 +159,13 @@ LAVA/
         ├── *EPSG*
         ├── *landuses*
         ├── *pixel_size*
-        ├── *OSM_files*
+        ├── ![image](https://github.com/user-attachments/assets/5bb5d7e3-63bb-4d82-93f7-86792c62541b) *OSM_files*
         ├── 📁 derived_from_DEM/
         │   ├── *slope*
         │   └── *aspect*
         └── 📁 additional_exclusion_polygons/
 ```
+<a href="https://www.flaticon.com/free-icons/polygonal" title="polygonal icons">Polygonal icons created by Voysla - Flaticon</a>
         
 
 ## 9. More info / notes
