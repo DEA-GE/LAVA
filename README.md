@@ -1,7 +1,7 @@
 ```
 .
 └── Edit me to generate/
-    ├── a/
+    ├── :file_folder: a/
     │   └── nice/
     │       └── tree/
     │           ├── diagram!
