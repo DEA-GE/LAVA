@@ -165,7 +165,7 @@ LAVA/
         ├── 📁 derived_from_DEM/
         │   ├── *slope*
         │   └── *aspect*
-        └── 📁 additional_exclusion_polygons/
+        ├── 📁 additional_exclusion_polygons/
         └── 📁 available_land/
 ```
         
