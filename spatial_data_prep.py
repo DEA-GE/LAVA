@@ -52,7 +52,7 @@ consider_waterbodies = config['consider_waterbodies']
 consider_military = config['consider_military']   
 consider_wind_atlas = config['consider_wind_atlas']
 consider_solar_atlas = config['consider_solar_atlas']  
-consider_additional_exclusion_polygons = config['consider_additional_exclusion_polygons']
+consider_additional_exclusion_polygons = config['additional_exclusion_polygons_folder_name']
 EPSG_manual = config['EPSG_manual']  #if None use empty string
 consider_protected_areas = config['consider_protected_areas']
 wdpa_url = config['wdpa_url']
@@ -259,23 +259,22 @@ if consider_military == 1:
 
 
 #clip and reproject additional exclusion polygons
-if consider_additional_exclusion_polygons == 1:
+if consider_additional_exclusion_polygons:
     print('processing additional exclusion polygons')
     # Define output directory for additional exclusion polygons
     add_excl_polygons_dir = os.path.join(output_dir,'additional_exclusion_polygons')
     os.makedirs(add_excl_polygons_dir, exist_ok=True)
-    count = 1
+    source_dir = os.path.join(data_path, 'additional_exclusion_polygons', config['additional_exclusion_polygons_folder_name'])
     # Loop through all files in the directory
-    for filename in os.listdir(os.path.join(data_path, 'additional_exclusion_polygons')):
-        filepath = os.path.join(data_path, 'additional_exclusion_polygons', filename)    # Construct the full file path
-
+    for filename in os.listdir(source_dir):
+        filepath = os.path.join(source_dir, filename)    # Construct the full file path
         # Check if the file is either a GeoJSON or GeoPackage
         if filename.endswith(".geojson") or filename.endswith(".gpkg"):
             gdf = gpd.read_file(filepath) # Read the file into a GeoDataFrame
             gdf_clipped_reprojected = geopandas_clip_reproject(gdf, region, EPSG)
+            filename_base = os.path.splitext(filename)[0]  # Remove file extension
             if not gdf_clipped_reprojected.empty:
-                gdf_clipped_reprojected.to_file(os.path.join(add_excl_polygons_dir, f'additional_exclusion_{count}_{region_name_clean}_{EPSG}.gpkg'), driver='GPKG')
-                count = count + 1
+                gdf_clipped_reprojected.to_file(os.path.join(add_excl_polygons_dir, f'{filename_base}_{region_name_clean}_{EPSG}.gpkg'), driver='GPKG')
 
 
 
