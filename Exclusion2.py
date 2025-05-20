@@ -80,7 +80,9 @@ waterbodies=0 if not os.path.isfile(waterbodiesPath) and print('no waterbodies f
 militaryPath = os.path.join(data_path, f'OSM_military_{region_name}_{EPSG}.gpkg')
 military=0 if not os.path.isfile(militaryPath) and print('no military file') is None else 1
 
-
+#additional exclusion polygons
+additional_exclusion_polygons_Path = os.path.join(data_path, 'additional_exclusion_polygons')
+additional_exclusion_polygons=0 if not os.listdir(additional_exclusion_polygons_Path) and print('no additional exclusion polygon files') is None else 1
 
 #load unique land use codes
 with open(os.path.join(data_path, f'landuses_{region_name}.json'), 'r') as fp:
@@ -191,6 +193,18 @@ if protectedAreas==1 and config['protectedAreas_buffer'] is not None:
     excluder.add_geometry(protectedAreasPath, buffer=config['protectedAreas_buffer'])
     info_list_exclusion.append(f'protected areas buffer: {config['railways_buffer']}')
 else: print('Protected Areas file not found or not selected in config.')
+
+
+#add additional exclusion polygons
+if additional_exclusion_polygons==1 and config['additional_exclusion_polygons_buffer']:   
+    for i, (buffer_value, filename) in enumerate(zip(config['additional_exclusion_polygons_buffer'], os.listdir(additional_exclusion_polygons_Path))):
+        filepath = os.path.join(additional_exclusion_polygons_Path, filename)    # Construct the full file path
+        excluder.add_geometry(filepath, buffer=buffer_value)
+        info_list_exclusion.append(f'additional exclusion polygon file {i+1}: {buffer_value}')
+else: print('additional exclusion polygon files not found or not selected in config.')
+
+
+
 
 #calculate available areas
 masked, transform = shape_availability(region.geometry, excluder)

@@ -265,6 +265,7 @@ if consider_additional_exclusion_polygons:
     add_excl_polygons_dir = os.path.join(output_dir,'additional_exclusion_polygons')
     os.makedirs(add_excl_polygons_dir, exist_ok=True)
     source_dir = os.path.join(data_path, 'additional_exclusion_polygons', config['additional_exclusion_polygons_folder_name'])
+    counter = 1
     # Loop through all files in the directory
     for filename in os.listdir(source_dir):
         filepath = os.path.join(source_dir, filename)    # Construct the full file path
@@ -274,7 +275,8 @@ if consider_additional_exclusion_polygons:
             gdf_clipped_reprojected = geopandas_clip_reproject(gdf, region, EPSG)
             filename_base = os.path.splitext(filename)[0]  # Remove file extension
             if not gdf_clipped_reprojected.empty:
-                gdf_clipped_reprojected.to_file(os.path.join(add_excl_polygons_dir, f'{filename_base}_{region_name_clean}_{EPSG}.gpkg'), driver='GPKG')
+                gdf_clipped_reprojected.to_file(os.path.join(add_excl_polygons_dir, f'{counter}_{filename_base}_{region_name_clean}_{EPSG}.gpkg'), driver='GPKG')
+                counter = counter + 1
 
 
 
