@@ -89,7 +89,7 @@ Finally, you have to specify the land exclusions and buffer zones.
 
 ## 3. Spatial data preparation
 The script `spatial_data_prep.py` performs multiple data preprocessing steps to facilitate the land analysis and land eligibility study:
-* download administrative boundary of the study region from [gadm.org](gadm.org) using the package pygadm or use a custom polygon instead if wished (custom polygon needs to be put to the right folder wihtin __"Raw_Spatial_Data"__ folder) (alternative sources for administrative boundaries [here](https://x.com/yohaniddawela/status/1828026372968603788); nice tool with online visualization and download [here](https://mapscaping.com/country-boundary-viewer/))
+* download administrative boundary of the study region from [gadm.org](https://gadm.org/) using the package pygadm or use a custom polygon instead if wished (custom polygon needs to be put to the right folder wihtin __"Raw_Spatial_Data"__ folder) (alternative sources for administrative boundaries [here](https://x.com/yohaniddawela/status/1828026372968603788); nice tool with online visualization and download [here](https://mapscaping.com/country-boundary-viewer/))
 * calculate the local UTM zone (you can also set the projected CRS manually)
 * clip and reproject to local UTM zone OSM railways, roads, airports and waterways (roads are also filtered to only consider main roads; hard-coded in the script)
 * clip and reproject landcover data and elevation data. 
