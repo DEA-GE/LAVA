@@ -10,7 +10,7 @@ consider_wind_atlas: 1
 consider_solar_atlas: 1
 country_name_solar_atlas: Germany # name of country or "world" if you want to download the whole world 
 
-consider_additional_exclusion_polygons: 0 
+consider_additional_exclusion_polygons: '' #empty string or name of folder within "Raw_Spatial_Data\additional_exclusion_polygons\"
 
 consider_protected_areas: WDPA #WDPA or file or 0
 wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip'
@@ -37,37 +37,43 @@ gadm_level: 2
 custom_study_area_filename: '' #if None use empty string
 
 
-#north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
-X: 10
-Y: 310
-Z: 50
 
+#------exclusions-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#world database of protected areas
-wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#exclusions (buffer in meters) (here landcover codes for openeo as default example)
-landcover_without_buffer: [10,40,50] #list of landcover codes
-landcover_with_buffer: #dictionary of landcover code with corresponding buffer
+#landcover codes (buffer in meters) (here landcover codes for openeo as default example)
+landcover_without_buffer: [50] #list of landcover codes
+landcover_with_buffer: #dictionary of landcover code with corresponding buffer in meters
   #50: 500
 
-max_elevation: 2000 #meters
-max_slope: 20 #degrees
+# If you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
+#DEM
+max_elevation: 1500 #meters
+max_slope: 10 #degrees
+
+#spatial elements (buffer in meters)
 railways_buffer: 0
-roads_buffer: 0 
+roads_buffer: 0
 airports_buffer: 0
 waterbodies_buffer: 0
 military_buffer: 0
 coastlines_buffer: 0
 protectedAreas_buffer: 0
 
+#additional exclusion polygons
+additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
+
+#solar and wind resources
+min_wind_speed: 0
+max_wind_speed: null
+
+min_solar_production: 0
+max_solar_production: null
+
 #area filter
-min_pixels_connected: 100
+min_pixels_connected: 0
 min_pixels_x: 5
 min_pixels_y: 5
-
 
 
 
@@ -75,3 +81,15 @@ min_pixels_y: 5
 #--advanced details--------------------------------------------------------------------------------------------------------------------------------
 # solar data
 measure: LTAym_YearlyMonthlyTotals
+
+# landcover data
+resolution_landcover: 0
+
+#north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
+north_facing_pixels: null
+X: 10
+Y: 310
+Z: 50
+
+#world database of protected areas
+wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"

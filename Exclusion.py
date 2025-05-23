@@ -7,12 +7,10 @@ The output is a series of raster files stored in the "processed input data" fold
 
 """
 TODO:
-- Add the option to include global wind and solar atlases
 - EPSG is loaded from the file, which one should be used?
 - store the output in the "processed input data" folder
 - read from the folder input data
 - include looping for all regions
-
 """
 
 
@@ -27,7 +25,8 @@ import math
 import numpy as np
 import json 
 import pickle
-import os  
+import os
+import sys
 import geopandas as gpd
 from rasterio.plot import show  
 from atlite.gis import shape_availability
@@ -74,9 +73,14 @@ nfacing = 0 if not os.path.isfile(northfacingRasterPath) else 1
 
 
 # Load additional input files and set flags
+globalWindPath = os.path.join(data_path, f'wind_{region_name}_EPSG{EPSG}_resampled.tif')
+wind = 0 if not os.path.isfile(globalWindPath) else 1
+globalSolarPath = os.path.join(data_path, f'solar_{region_name}_EPSG{EPSG}_resampled.tif')
+solar = 0 if not os.path.isfile(globalSolarPath) else 1
+
 coastlinesPath = os.path.join(data_path, f'goas_{region_name}_{EPSG}.gpkg')
 coastlines = 0 if not os.path.isfile(coastlinesPath) else 1
-protectedAreasPath = os.path.join(data_path, f'protected_areas_{region_name}_{EPSG}.gpkg')
+protectedAreasPath = os.path.join(data_path, f'protected_areas_{config['consider_protected_areas']}_{region_name}_{EPSG}.gpkg')
 protectedAreas = 0 if not os.path.isfile(protectedAreasPath) else 1
 roadsPath = os.path.join(data_path, f'OSM_roads_{region_name}_{EPSG}.gpkg')
 roads = 0 if not os.path.isfile(roadsPath) else 1
@@ -99,6 +103,17 @@ else:
     # this resolution is quite high. 0.001 degrees is 100m, using 1km is more reasonable
     res = 0.0009920634920634887558  # Default resolution for EPSG:4326
 
+
+# Set wind threshold based on execution context
+# If running in an IDE or notebook, set a default threshold
+# If running from command line, use the provided argument or default to 7.0
+
+if hasattr(sys, 'ps1') or 'pydevd' in sys.modules:
+    wind_threshold = 6.0  # IDE or notebook mode
+else:
+    wind_threshold = float(sys.argv[1]) if len(sys.argv) > 1 else 7.0
+
+
 # Initialize Atlite ExclusionContainer
 excluder = atlite.ExclusionContainer(crs=EPSG, res=res)
 
@@ -114,9 +129,16 @@ if slope:
     excluder.add_raster(slopeRasterPath, codes=range(config['max_slope'], 90), crs=EPSG)
 if nfacing:
     excluder.add_raster(northfacingRasterPath, codes=1, crs=EPSG)
+if wind:
+    # Add wind speed filter
 
-#include global wind atlas
-#include global solar atlas
+    def code_filter(mask):
+        return mask  < wind_threshold   #min desired windspeed 
+    excluder.add_raster(globalWindPath, codes=code_filter, invert=False, crs=EPSG)
+
+if solar:
+     #excluder.add_raster(globalSolarPath, codes=np.arange(1300, 1800, 0.001).tolist(),invert=False, crs=EPSG)
+    pass
 
 # Add vector-based exclusions
 if railways:
@@ -172,6 +194,8 @@ metadata = {
     'transform': transform,
     'compress': 'LZW'
 }
-output_filename = f'available_land_filtered-min{min_pixels_connected}_{region_name}_EPSG{EPSG}.tif'
+#output_filename = f'available_land_filtered-min{min_pixels_connected}_{region_name}_EPSG{EPSG}.tif'
+output_filename = f'available_land_filtered-min{min_pixels_connected}_thresh{wind_threshold}_{region_name}_EPSG{EPSG}.tif'
 with rasterio.open(os.path.join(data_path, output_filename), 'w', **metadata) as dst:
     dst.write(array, 1)
+

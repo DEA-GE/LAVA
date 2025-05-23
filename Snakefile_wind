@@ -1,0 +1,33 @@
+import yaml
+import os
+
+# Load config
+with open("configs/config.yaml") as f:
+    config = yaml.safe_load(f)
+
+region = config["region_name"]
+region_folder = config["region_folder_name"]
+epsg = 32650 #config["EPSG_manual"]
+min_pixels_connected = config["min_pixels_connected"]
+
+thresholds = [4,6,8]
+
+rule all:
+    input:
+        expand(
+            "data/{region}/available_land_filtered-min{min_pixels}_thresh{t}_{region}_EPSG{epsg}.tif",
+            t=thresholds,
+            region=region,
+            min_pixels=min_pixels_connected,
+            epsg=epsg,
+        )
+
+rule run_exclusion:
+    input:
+        script="Exclusion.py"
+    output:
+        "data/{region}/available_land_filtered-min{min_pixels}-thresh{t}_{region}_EPSG{epsg}.tif"
+    params:
+        threshold="{t}"
+    shell:
+        "python {input.script} {params.threshold}"

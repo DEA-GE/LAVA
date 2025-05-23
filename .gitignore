@@ -7,6 +7,7 @@
 !utils
 !utils/legends.py
 !utils/data_preprocessing.py
+!utils/proximity_calc.py
 !utils/fetch_OSM.py
 !utils/README.md
 !Raw_Spatial_Data
@@ -30,6 +31,8 @@
 !configs/config_template.yaml
 !spatial_data_prep.py
 !data_exploration.ipynb
+!Exclusion.py
+!Exclusion2.py
 !GLAES_Aachen.ipynb
 !GLAES_Aachen_test_data.ipynb
 !Atlite_custom_region.ipynb
@@ -41,3 +44,4 @@
 !other/color_raster_file.ipynb
 !other/resampling_reprojecting.ipynb
 !utils/fetch_OSM_v2.py
+!snakefile_wind
