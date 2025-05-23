@@ -43,5 +43,5 @@
 !other/earthOSM_test.ipynb
 !other/color_raster_file.ipynb
 !other/resampling_reprojecting.ipynb
+!utils/fetch_OSM_v2.py
 !snakefile_wind
-
