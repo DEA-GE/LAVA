@@ -36,7 +36,7 @@ logging.basicConfig(handlers=[
         logging.StreamHandler()
         ], level=logging.INFO) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
 
-with open("configs/config_DE.yaml", "r", encoding="utf-8") as f:
+with open("configs/config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 #-------data config------- 
@@ -306,7 +306,6 @@ if consider_additional_exclusion_rasters:
     # Loop through all files in the directory
     for filename in os.listdir(source_dir):
         filepath = os.path.join(source_dir, filename)    # Construct the full file path
-        print(filepath)
         # Check if the file is either a GeoJSON or GeoPackage
         if filename.endswith(".tif"):
             clip_reproject_raster(filepath, region_name_clean, region_mollweide, f'{counter}', global_crs_obj, 'nearest', 'float64', add_excl_rasters_dir)
@@ -348,9 +347,6 @@ if landcover_source == 'openeo':
         job.start_and_wait()
         job.get_results().download_file(openeo_landcover_filePath) 
 
-        # save pixel size and unique land cover codes
-        #landcover_information(output_path, output_dir, region_name, EPSG)
-
         # color openeo landcover file
         try:
             from utils import legends 
@@ -371,11 +367,14 @@ if landcover_source == 'openeo':
 
         # reproject landcover to local CRS
         # grayscale (for DEM calculations below)
-        output_path_reprojected = os.path.join(output_dir, f'landcover_openeo_{region_name_clean}_{local_crs_tag}.tif')
-        reproject_raster(openeo_landcover_filePath, region_name_clean, local_crs_obj, 'nearest', 'uint8', output_path_reprojected)
+        landcover_openeo_local_CRS = os.path.join(output_dir, f'landcover_openeo_{region_name_clean}_{local_crs_tag}.tif')
+        reproject_raster(openeo_landcover_filePath, region_name_clean, local_crs_obj, 'nearest', 'uint8', landcover_openeo_local_CRS)
         # colored
-        output_path_reprojected_colored = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{local_crs_tag}.tif')
-        reproject_raster(openeo_landcover_colored_filePath, region_name_clean, local_crs_obj, 'nearest', 'uint8', output_path_reprojected_colored)
+        landcover_openeo_local_CRS_colored = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{local_crs_tag}.tif')
+        reproject_raster(openeo_landcover_colored_filePath, region_name_clean, local_crs_obj, 'nearest', 'uint8', landcover_openeo_local_CRS_colored)
+
+        # save pixel size and unique land cover codes
+        landcover_information(landcover_openeo_local_CRS, output_dir, region_name, local_crs_tag)
 
 
     elif os.path.exists(openeo_landcover_filePath):
@@ -390,7 +389,7 @@ if landcover_source == 'file':
         print('processing landcover')
         logging.info('using local file to get landcover')
         clip_reproject_raster(landcoverRasterPath, region_name_clean, region, 'landcover_local', local_crs_obj, 'nearest', 'int16', output_dir)
-        #landcover_information(local_landcover_filePath, output_dir, region_name, EPSG)
+        landcover_information(local_landcover_filePath, output_dir, region_name, local_crs_tag)
 
     else:
         print(f"Local landcover already processed to region.")

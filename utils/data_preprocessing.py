@@ -361,14 +361,14 @@ def co_register(infile, match, resampling_method, outfile, dtype): #source: http
                 
 
 
-def landcover_information(landcoverRasterPath, data_path, region_name, global_crs_tag):
+def landcover_information(landcoverRasterPath, data_path, region_name, crs_tag):
     # Open the raster using a context manager
     with rasterio.open(landcoverRasterPath) as landcover:
         band = landcover.read(1, masked=True) # Read the first band, masked=True is masking no data values
         
         res = landcover.transform[0] #pixel size
         #save pixel size local CRS
-        with open(os.path.join(data_path, f'pixel_size_{region_name}_{global_crs_tag}.json'), 'w') as fp:
+        with open(os.path.join(data_path, f'pixel_size_{region_name}_{crs_tag}.json'), 'w') as fp:
             json.dump(res, fp)
 
         #Available land cover codes
