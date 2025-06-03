@@ -1,73 +1,95 @@
-#data config 
-landcover_source: 'openeo'   #'file' or 'openeo' or leave empty to not download (DEM data depends on landcover data due to co-registering)
-consider_coastlines: 1
-consider_railways: 1
-consider_roads: 1
-consider_airports: 1
-consider_waterbodies: 1
-consider_military: 1
-consider_wind_atlas: 1
-consider_solar_atlas: 1
+#--data retrieval----------------------------------------------------------------------
+# landcover
+landcover_source: openeo   #'file' or 'openeo' or leave empty to not download (DEM data depends on landcover data due to co-registering)
+
+# OSM data
+OSM_source: geofabrik #'geofabrik' or 'overpass'
+railways: 1
+roads: 1
+airports: 1
+waterbodies: 1
+military: 1
+
+substations: 1
+transmission_lines: 1
+generators: 1
+plants: 1
+
+# coastlines 
+coastlines: 1
+
+# wind and solar resources
+wind_atlas: 1
+solar_atlas: 1
 country_name_solar_atlas: Germany # name of country or "world" if you want to download the whole world 
 
-consider_additional_exclusion_polygons: '' #empty string or name of folder within "Raw_Spatial_Data\additional_exclusion_polygons\"
+# additional polygons and rasters
+additional_exclusion_polygons_folder_name:   
+additional_exclusion_rasters_folder_name: 
 
-consider_protected_areas: WDPA #WDPA or file or 0
-wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip'
+# protected areas
+protected_areas_source: WDPA #WDPA or file or 0
+wdpa_url: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip
 protected_areas_filename: '' #include file ending (.gpkg or .geojson), needs to be in EPSG4326
 
 
-EPSG_manual: ''  #if None use empty string
+CRS_manual:  #if None use empty string
 
 
-#name folders and files
+
+# name of folders and files with raw data
 region_folder_name: Elbe-Elster #always needed, same name as in gadm.org (if country is studied, then use country name)
-OSM_folder_name: BerlinBrandenburg #usually same as country_code, only needed if OSM is to be considered
+OSM_folder_name: BerlinBrandenburg #name of the folder with all raw OSM shapefiles from Geofabrik; needed if Geofabrik used as OSM source
 
 DEM_filename: gebco_cutout.tif 
 landcover_filename: PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
 
 
-#Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
-#use GADM boundary (https://gadm.org/maps.html)
+# Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
+# use GADM boundary (https://gadm.org/maps.html)
 region_name: Elbe-Elster
 country_code: DEU       #always needed (also for global wind atlas)
 gadm_level: 2
-#or use custom region (if file is passed, then this is used as default over the GADM definitions above)
+# or use custom region (if file is passed, then this is used as default over the GADM definitions above)
 custom_study_area_filename: '' #if None use empty string
 
 
 
-#------exclusions-------------------------------------------------------------------------------------------------------------------------------------------------------
+#--exclusions----------------------------------------------------------------------
+# scenario name (written in available area filename)
+scenario: 'ref'
+
+# resolution manual
+resolution_manual: null
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_without_buffer: [50] #list of landcover codes
 landcover_with_buffer: #dictionary of landcover code with corresponding buffer in meters
-  #50: 500
+  50: 50
 
-# If you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
+# Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 #DEM
-max_elevation: 1500 #meters
+max_elevation: null #meters
 max_slope: 10 #degrees
 
 #spatial elements (buffer in meters)
-railways_buffer: 0
-roads_buffer: 0
-airports_buffer: 0
-waterbodies_buffer: 0
-military_buffer: 0
-coastlines_buffer: 0
-protectedAreas_buffer: 0
+railways_buffer: 50
+roads_buffer: 50
+airports_buffer: 2000
+waterbodies_buffer: 20
+military_buffer: null
+coastlines_buffer: 200
+protectedAreas_buffer: null
 
 #additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
 #solar and wind resources
-min_wind_speed: 0
+min_wind_speed: 7
 max_wind_speed: null
 
-min_solar_production: 0
+min_solar_production: null
 max_solar_production: null
 
 #area filter
@@ -78,18 +100,42 @@ min_pixels_y: 5
 
 
 
-#--advanced details--------------------------------------------------------------------------------------------------------------------------------
+#--advanced details----------------------------------------------------------------------
 # solar data
 measure: LTAym_YearlyMonthlyTotals
+
+# OSM feature classes (fclass names need to be in a list!)
+fclass: 
+  railways: null # null means nothing is filtered
+  roads: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link']
+  airports: ['airport', 'airfield']
+  waterbodies: ['water', 'reservoir', 'river', 'riverbank']
+  military: ['military']
+
+# Define OSM features to fetch from Overpass API
+# the name before "_" should match the binary filtering above. 
+osm_features_config:
+  substations: ["power", "substation", "way"]
+  plants: ["power", "plant", "way"]
+  transmission_lines: ["power","line", "way"]
+  generators: ["power", "generator", "node"]
+  roads: ["highway", "primary", "way"]
+  railways: ["railway", "rail", "way"]
+  airports: ["aeroway", "aerodrome", "way"]
+  waterbodies: ["natural", "water", "way"]
+  military: ["landuse", "military", "way"]
 
 # landcover data
 resolution_landcover: 0
 
-#north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
+# north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
 north_facing_pixels: null
 X: 10
 Y: 310
 Z: 50
 
-#world database of protected areas
+# world database of protected areas
 wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
+
+
+

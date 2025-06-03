@@ -25,24 +25,19 @@ region_name = config['region_name'] #if country is studied, then use country nam
 region_name = clean_region_name(region_name)
 print(region_name)
 
-
-region_folder_name = config['region_folder_name']
-
 resampled = '_resampled' 
 
-EPSG_custom = config['EPSG_manual']
-
-
+# construct folder paths
 dirname = os.getcwd() 
-data_path = os.path.join(dirname, 'data', region_folder_name)
+data_path = os.path.join(dirname, 'data', config['region_folder_name'])
 data_from_DEM = os.path.join(data_path, 'derived_from_DEM')
 
 # Load the json EPSG code for the country
 with open(os.path.join(data_path, region_name+'_EPSG.pkl'), 'rb') as file:
         EPSG = pickle.load(file)
 #use custom EPSG instead of local UTM zone if wanted
-if EPSG_custom:
-    EPSG=int(EPSG_custom)
+if config['EPSG_manual']:
+    EPSG=int(config['EPSG_manual'])
 
 print(f'EPSG {EPSG}')
 
@@ -89,7 +84,9 @@ with open(os.path.join(data_path, f'landuses_{region_name}.json'), 'r') as fp:
     landuses = json.load(fp)
 
 #load pixel size
-if not EPSG==4326:
+if config['resolution_manual'] is not None:
+    res = config['resolution_manual']
+elif not EPSG==4326:
     with open(os.path.join(data_path, f'pixel_size_{region_name}_{EPSG}.json'), 'r') as fp:
         res = json.load(fp)
 else:
@@ -143,20 +140,38 @@ else: print('North-facing file not found or not selected in config.')
 
 #add wind exclusions
 def wind_filter(mask):
-    #return (mask < config['min_wind_speed']) | (mask > config['max_wind_speed'])
-    return mask < config['min_wind_speed']
-if wind==1 and config['min_wind_speed'] is not None: 
+    if config['min_wind_speed'] is not None and config['max_wind_speed'] is not None:
+        return (mask < config['min_wind_speed']) | (mask > config['max_wind_speed'])
+    elif config['min_wind_speed'] is not None:
+        return mask < config['min_wind_speed']
+    elif config['max_wind_speed'] is not None:
+        return mask > config['max_wind_speed']
+    
+if wind==1 and (config['min_wind_speed'] is not None or config['max_wind_speed'] is not None): 
     excluder.add_raster(windRasterPath, codes=wind_filter, crs=EPSG)
-    info_list_exclusion.append(f'min wind speed: {config['min_wind_speed']}')
+    if config['min_wind_speed'] is not None and config['max_wind_speed'] is not None: info=f'min wind speed: {config['min_wind_speed']}, max wind speed: {config['max_wind_speed']}'
+    elif config['min_wind_speed'] is not None: info=f'min wind speed: {config['min_wind_speed']}'
+    elif config['max_wind_speed'] is not None: info=f'max wind speed: {config['max_wind_speed']}'
+    info_list_exclusion.append(f'{info}')
 else: print('Wind file not found or not selected in config.')
 
 #add solar exclusions
-def solar_filter(mask):
-    return mask < config['min_solar_production'] #min desired yearly, specific solar production (kWh/kW) 
-if solar==1 and config['min_solar_production'] is not None: 
+def solar_filter(mask): #desired yearly, specific solar production (kWh/kW) 
+    if config['min_solar_production'] is not None and config['max_solar_production'] is not None:
+        return (mask < config['min_solar_production']) | (mask > config['max_solar_production'])
+    elif config['min_solar_production'] is not None:
+        return mask < config['min_solar_production']
+    elif config['max_solar_production'] is not None:
+        return mask > config['max_solar_production']
+    
+if solar==1 and (config['min_solar_production'] is not None or config['max_solar_production'] is not None): 
     excluder.add_raster(solarRasterPath, codes=solar_filter, crs=EPSG)
-    info_list_exclusion.append(f'min solar production: {config['min_solar_production']}')
+    if config['min_solar_production'] is not None and config['max_solar_production'] is not None: info=f'min_solar_production: {config['min_solar_production']}, max_solar_production: {config['max_solar_production']}'
+    elif config['min_solar_production'] is not None: info=f'min_solar_production: {config['min_solar_production']}'
+    elif config['max_solar_production'] is not None: info=f'max_solar_production: {config['max_solar_production']}'
+    info_list_exclusion.append(f'{info}')
 else: print('Solar file not found or not selected in config.')
+
 
 #add exclusions from vector data
 if railways==1 and config['railways_buffer'] is not None: 
@@ -270,10 +285,14 @@ metadata = {
     'compress': 'LZW' 
 }
 
+# Define output directory
+output_dir = os.path.join(data_path, 'available_land')
+os.makedirs(output_dir, exist_ok=True)
+
 # Write the array to a new .tif file
 if masked_area_filtered in array:
-    with rasterio.open(os.path.join(data_path, f'available_land_filtered-min{min_pixels_connected}_{region_name}_EPSG{EPSG}.tif'), 'w', **metadata) as dst:
+    with rasterio.open(os.path.join(output_dir, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_EPSG{EPSG}.tif'), 'w', **metadata) as dst:
         dst.write(array, 1)
 else:
-    with rasterio.open(os.path.join(data_path, f'available_land_total_{region_name}_EPSG{EPSG}.tif'), 'w', **metadata) as dst:
+    with rasterio.open(os.path.join(output_dir, f'{config['scenario']}_available_land_total_{region_name}_EPSG{EPSG}.tif'), 'w', **metadata) as dst:
         dst.write(array, 1)    

@@ -13,6 +13,7 @@ import requests
 import io
 import fiona
 import urllib.parse
+from pyproj import CRS
 
 import logging
 
@@ -78,7 +79,7 @@ def save_richdem_file(richdem_file, base_dem_FilePath, outFilePath):
         dst.write(richdem_file, 1)  #richdem_file.astype(rasterio.int16)
 
 
-def geopandas_clip_reproject(geopandas_file, gdf, target_crs):
+def geopandas_clip_reproject(geopandas_file, gdf, target_crs_obj):
     """
     Clips vector file to the extent of a GeoPandas DataFrame and reprojects it to a given CRS.
 
@@ -90,7 +91,7 @@ def geopandas_clip_reproject(geopandas_file, gdf, target_crs):
     #clip files 
     geopandas_clipped = gpd.clip(geopandas_file, gdf)
     #reproject and save files
-    geopandas_clipped.to_crs(epsg=target_crs, inplace=True)
+    geopandas_clipped.to_crs(target_crs_obj, inplace=True)
     
     return geopandas_clipped
 
@@ -149,6 +150,10 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
         :param output_dir: output directory (defined in main script)
         """
     
+    # get CRS tag as clean string
+    auth = target_crs.to_authority()
+    crs_tag = ''.join(auth) if auth else target_crs.to_string().replace(":", "_")
+    
     resampling_options = {
         'nearest': Resampling.nearest,
         'bilinear': Resampling.bilinear,
@@ -160,7 +165,8 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
         'uint8': rasterio.uint8,
         'int16': rasterio.int16,
         'uint16': rasterio.uint16,
-        'float32': rasterio.float32
+        'float32': rasterio.float32,
+        'float64': rasterio.float64
     }
 
     with rasterio.open(input_raster_path) as src:
@@ -196,8 +202,9 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
             'dtype': dtype_options[dtype]
         })
 
+        
         # Create the output file path
-        output_path = os.path.join(output_dir, f'{data_name}_{region_name_clean}_EPSG{target_crs}.tif')
+        output_path = os.path.join(output_dir, f'{data_name}_{region_name_clean}_{crs_tag}.tif')
 
 
         # Reproject and save the raster
@@ -217,12 +224,21 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
 
 
 
-def reproject_raster(input_raster_path, region_name_clean, target_crs, resampling_method, outputFilePath):
+def reproject_raster(input_raster_path, region_name_clean, target_crs, resampling_method, dtype, outputFilePath):
        
     resampling_options = {
         'nearest': Resampling.nearest,
         'bilinear': Resampling.bilinear,
         'cubic': Resampling.cubic
+    }
+
+    dtype_options = {
+        'int8': rasterio.int8,
+        'uint8': rasterio.uint8,
+        'int16': rasterio.int16,
+        'uint16': rasterio.uint16,
+        'float32': rasterio.float32,
+        'float64': rasterio.float64
     }
 
     # reproject landcover raster to local UTM CRS
@@ -236,7 +252,7 @@ def reproject_raster(input_raster_path, region_name_clean, target_crs, resamplin
             'transform': transform, 
             'width': width,
             'height': height,
-            'dtype': rasterio.int16
+            'dtype': dtype_options[dtype]
         })
 
         # Create the output file path
@@ -254,6 +270,15 @@ def reproject_raster(input_raster_path, region_name_clean, target_crs, resamplin
                     dst_transform=transform,
                     dst_crs=target_crs,
                     resampling=resampling_options[resampling_method])
+                
+            # Preserve colormap if present
+            if src.count == 1:
+                try:
+                    colormap = src.colormap(1)
+                    if colormap:
+                        dst.write_colormap(1, colormap)
+                except (ValueError, KeyError):
+                    pass  # No colormap present or band index invalid
                 
             print(f'reprojected raster CRS: {dst.crs}')
 
@@ -278,7 +303,8 @@ def co_register(infile, match, resampling_method, outfile, dtype): #source: http
         'uint8': rasterio.uint8,
         'int16': rasterio.int16,
         'uint16': rasterio.uint16,
-        'float32': rasterio.float32
+        'float32': rasterio.float32,
+        'float64': rasterio.float64
     }
 
     # open input
@@ -335,14 +361,14 @@ def co_register(infile, match, resampling_method, outfile, dtype): #source: http
                 
 
 
-def landcover_information(landcoverRasterPath, data_path, region_name, EPSG):
+def landcover_information(landcoverRasterPath, data_path, region_name, crs_tag):
     # Open the raster using a context manager
     with rasterio.open(landcoverRasterPath) as landcover:
         band = landcover.read(1, masked=True) # Read the first band, masked=True is masking no data values
         
         res = landcover.transform[0] #pixel size
         #save pixel size local CRS
-        with open(os.path.join(data_path, f'pixel_size_{region_name}_{EPSG}.json'), 'w') as fp:
+        with open(os.path.join(data_path, f'pixel_size_{region_name}_{crs_tag}.json'), 'w') as fp:
             json.dump(res, fp)
 
         #Available land cover codes
