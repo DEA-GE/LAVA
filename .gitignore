@@ -9,6 +9,7 @@
 !utils/data_preprocessing.py
 !utils/proximity_calc.py
 !utils/fetch_OSM.py
+!utils/local_OSM_shp_files.py
 !utils/README.md
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
