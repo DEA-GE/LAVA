@@ -82,7 +82,7 @@ def generate_distance_raster(shapefile_path, region_path, output_path, pixel_siz
 
 if __name__ == "__main__":
     generate_distance_raster(
-        shapefile_path="Raw_Spatial_Data/Power_Infrastructure_v2/inner_mongolia_substation_polygons.shp",
-        region_path="Raw_Spatial_Data/custom_polygon/gadm41_CHN_1_NeiMongol.json",
-        output_path="Raw_Spatial_Data/proximity/substation_distance_raster_3.tif"
+        shapefile_path="data/NeiMongol/OSM_Infrastructure/substations.gpkg",
+        region_path="Raw_Spatial_Data/custom_study_area/gadm41_CHN_1_NeiMongol.geojson",
+        output_path="data/NeiMongol/proximity/substation_distance_raster.tif"
     )
