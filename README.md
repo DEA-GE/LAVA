@@ -1,7 +1,7 @@
-# LAVA - *LA*nd a*VA*ilability for Renewable Energies
+# LAVA - *LA*nd a*V*ailability *A*nalysis 
 
 LAVA is a tool to calculate the available area in a user defined study region for building renewable energy generators like utility-scale solar PV and wind onshore.
-First, all needed data is preprocessed to bring it into the right format. This data can be analyzed to get a better understanding of the study region. Finally, the land eligibility analysis is done with [`atlite`](https://github.com/PyPSA/atlite) or [`GLAES`](https://github.com/FZJ-IEK3-VSA/glaes) (GLAES does not work fully yet).
+First, all needed data is preprocessed to bring it into the right format. This data can be analyzed to get a better understanding of the study region. Finally, the land eligibility analysis is done with the help of [`atlite`](https://github.com/PyPSA/atlite) or [`GLAES`](https://github.com/FZJ-IEK3-VSA/glaes) (GLAES does not work fully yet).
 
 
 # :construction: :warning: Work in progress! :construction_worker:
@@ -83,31 +83,31 @@ In the __"configs"__-folder copy the file `config_template.yaml` and rename it t
 In the `config.yaml` file you can configure the data preprocessing and the land exclusion. You can also copy and rename the `config.yaml` if you want to test multiple settings. Be aware that the name of the `config.yaml` file needs to be the same in the scripts.
 
 In the `config.yaml` file you can choose which data you want to consider in the preprocessing.
-You also have to select your study region. When using the automatic download from gadm.org, you have to specify the name of the region (region_name) and the GADM level as it is used by gadm.org. Ideally you download the geopackage of the country you are interested in from [gadm.org](gadm.org) and load it into QGIS to find the right `gadm_level` and `region_name`. For some countries there are troubles downloading administrative boundaries from gadm.org. Then you must use your own custom study area file.
+You also have to select your study region. When using the automatic download from [gadm.org](https://gadm.org/), you have to specify the name of the region (region_name) and the GADM level as it is used by gadm.org. Ideally you download the geopackage of the country you are interested in from [gadm.org](gadm.org) and load it into QGIS to find the right `gadm_level` and `region_name`. For some countries there are troubles downloading administrative boundaries from gadm.org. Then you must use your own custom study area file instead.
 Finally, you have to specify the land exclusions and buffer zones.
+At the bottom of the `config.yaml` file you can find the settings for advanced details. 
 
 
 ## 3. Spatial data preparation
 The script `spatial_data_prep.py` performs multiple data preprocessing steps to facilitate the land analysis and land eligibility study:
 * download administrative boundary of the study region from [gadm.org](https://gadm.org/) using the package pygadm or use a custom polygon instead if wished (custom polygon needs to be put to the right folder wihtin __"Raw_Spatial_Data"__ folder) (alternative sources for administrative boundaries [here](https://x.com/yohaniddawela/status/1828026372968603788); nice tool with online visualization and download [here](https://mapscaping.com/country-boundary-viewer/))
 * calculate the local UTM zone (you can also set the projected CRS manually)
-* clip and reproject to local UTM zone OSM railways, roads, airports and waterways (roads are also filtered to only consider main roads; hard-coded in the script)
+* clip coastlines
+* process OSM data either from overpass or from geofabrik (clipping to study region)
+* clipp additional exclusion vector and raster data
 * clip and reproject landcover data and elevation data. 
 * create a slope map from the elevation data (calculated internally using `richdem`)
-* Elevation, slope and aspect are the also co-registered to the landcover data using nearest resampling. More on working with multiple raster files (resampling and registering): [here](https://pygis.io/docs/e_raster_resample.html)
-
-If you want to estimate the available land for solar PV, then the orientation of the pixels is also important:
 * create an aspects map from the elevation data (calculated internally using `richdem`)
+* Elevation, slope and aspect are the also co-registered to the landcover data using nearest resampling. More on working with multiple raster files (resampling and registering): [here](https://pygis.io/docs/e_raster_resample.html)
 * create map showing pixels with slope bigger X and aspect between Y and Z (north facing pixels with slope where you would not build PV) (default: X=10°, Y=310°, Z=50°)
-
 * download and clip protected areas from WDPA or use your own local file
 * download, clip and co-register mean wind speed data to landcover (used to exclude areas with low wind speeds)
 * download, clip and co-register potential solar PV generation data to landcover (used to exclude areas with low solar PV production potential)
 
 
-For the preprocessing, some functions are used which are defined in the file `data_preprocessing.py` in the folder "utils".
+For the preprocessing, some functions are used which are defined in the files in the folder "utils".
 
-The files are saved to a folder within the __"data"__-folder named according to the study region. The GIS-files will be saved in the coordinate reference system of the local UTM zone or in the user defined CRS. Some files are also stored in EPSG 4326 as well. 
+The processed data is saved to a folder within the __"data"__-folder named according to the study region. 
 
 
 ## 4. Land analysis
@@ -120,11 +120,12 @@ You need to run this notebook also to get the land use codes and the pixel size 
 
 
 ## 5. Land eligibility
-With the JupyterNotebook `Atlite_custom_region.ipynb` you can finally derive the available area of your study region. You can use the predefined exclusions or customize it yourself. 
+With the script `Exclusion.py` you can finally derive the available area of your study region. You can use the predefined exclusions in the `config.yaml` or customize it yourself. 
 The code automatically recognizes if a file does not exist and thus does not take into account the respective file for the exclusion (e.g. there is no coastlines files when having a study region without a coast).
 
 
 ## 6. Bring all files in a QGIS project together
+:warning: not working due to QGIS python package troubles
 The script `create_qgis_project.py` puts all files together into a QGIS project to easily display them. This script needs to be used in the 'QGIS environment'. You can install it from the `requirements_qgis.yaml`. Additionally, you have to install the QGIS python package with the same version as your current QGIS installation in that environment. Sometimes you need to uninstall the python version in your environment and then install the QGIS python package inside in order to avoid trouble with package dependencies.
 
 `conda install -c conda-forge qgis=VERSIONNUMBER`
