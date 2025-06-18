@@ -1,12 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+@author: Matteo D'Andrea
+@date: 18-06-2025
+
+@description:
+Script to generate proximity (distance) rasters from OpenStreetMap (OSM) features using the 
+DistanceRaster tool from the distancerasters library.
+
+The script rasterizes vector features (e.g., substations), calculates the
+approximate geodesic distance from those features, and outputs the result as a GeoTIFF 
+distance raster.
+
+The region of interest is specified by a vector file (e.g., a GeoJSON polygon). The 
+distance raster is clipped after calculation to match the region shape.
+"""
+
 
 import os
+import time
 import fiona
 from shapely.geometry import shape
 import distancerasters as dr
 import rasterio
 from rasterio.mask import mask
+import numpy as np
 
 def raster_conditional(rarray):
     """
@@ -27,6 +45,7 @@ def generate_distance_raster(shapefile_path, region_path, output_path, pixel_siz
         no_data_value (int): NoData value to use in the raster.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    t0 = time.time()
 
     print("Loading input data...")
     with fiona.open(shapefile_path, "r") as shp, fiona.open(region_path, "r") as region:
@@ -39,6 +58,7 @@ def generate_distance_raster(shapefile_path, region_path, output_path, pixel_siz
         temp_raster_path = os.path.join(os.path.dirname(output_path), "temp_rasterized.tif")
 
         print("Rasterizing shapefile...")
+        t1 = time.time()
         rv_array, affine = dr.rasterize(
             shp,
             pixel_size=pixel_size,
@@ -47,47 +67,40 @@ def generate_distance_raster(shapefile_path, region_path, output_path, pixel_siz
             nodata=no_data_value,
             output=temp_raster_path
         )
+        print(f"✔ Rasterization completed in {time.time() - t1:.2f} seconds")
 
-    print("Clipping raster to region...")
-    with rasterio.open(temp_raster_path) as src:
-        clipped_array, clipped_transform = mask(src, region_geometries, crop=True)
-        out_meta = src.meta.copy()
-
-    out_meta.update({
-        "height": clipped_array.shape[1],
-        "width": clipped_array.shape[2],
-        "transform": clipped_transform,
-        "nodata": no_data_value
-    })
-
+ 
     print("Calculating distance raster...")
+    t2 = time.time()
     dr_obj = dr.DistanceRaster(
-        clipped_array[0],
-        affine=clipped_transform,
+        rv_array,
+        affine=affine,
         output_path=output_path,
         conditional=raster_conditional
     )
+    print(f"✔ Distance calculation completed in {time.time() - t2:.2f} seconds")
 
-    print("Masking distance raster to region...")
+    print("Clipping raster to region...")
+    t3 = time.time()
     with rasterio.open(output_path) as src:
-        dist_data, dist_transform = mask(src, region_geometries, crop=True)
-        dist_meta = src.meta.copy()
+        out_image, out_transform = mask(src, region_geometries, crop=True)
+        out_meta = src.meta.copy()
 
-    dist_meta.update({
-        "height": dist_data.shape[1],
-        "width": dist_data.shape[2],
-        "transform": dist_transform,
-        "nodata": no_data_value,
+    out_meta.update({
+        "height": out_image.shape[1],
+        "width": out_image.shape[2],
+        "transform": out_transform,
+        "nodata": src.nodata
     })
 
-    with rasterio.open(output_path, "w", **dist_meta) as dest:
-        dest.write(dist_data)
+    print("Saving clipped raster...")
+    with rasterio.open(output_path, 'w', **out_meta) as dest:
+        dest.write(out_image)
+    print(f"✔ Clipping and saving completed in {time.time() - t3:.2f} seconds")
 
-    print("Distance raster generation complete.")
-
+    print(f"✅ Distance raster generation complete in {time.time() - t0:.2f} seconds.")
 
 # Example usage
-
 if __name__ == "__main__":
     generate_distance_raster(
         shapefile_path="data/NeiMongol/OSM_Infrastructure/substations.gpkg",
