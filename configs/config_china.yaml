@@ -1,0 +1,141 @@
+#data config 
+landcover_source: 'openeo'   #'file' or 'openeo' or leave empty to not download (DEM data depends on landcover data due to co-registering)
+
+coastlines: 1
+
+#osm data
+OSM_source: 'overpass' #overpass or geofabrik
+  #consider_osm: 1 #if you want to use OSM data, set this to 1
+
+#land data
+railways: 1
+roads: 1
+airports: 1
+waterbodies: 1
+military: 1
+
+# power infrastructure
+substations: 1
+transmission_lines: 1
+generators: 1
+plants: 1
+
+# proximity data
+compute_substation_proximity: 1
+compute_road_proximity: 1
+compute_terrain_ruggedness: 1
+
+#weather data
+wind_atlas: 1
+solar_atlas: 1
+country_name_solar_atlas: China # name of country or "world" if you want to download the whole world 
+
+# additional polygons and rasters
+additional_exclusion_polygons_folder_name:    '' #empty string or name of folder within "Raw_Spatial_Data\additional_exclusion_polygons\"
+additional_exclusion_rasters_folder_name:  '' #empty string or name of folder within "Raw_Spatial_Data\additional_exclusion_polygons\"
+
+
+
+
+protected_areas_source: file #WDPA or file or 0
+wdpa_url: 'https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_CHN.zip'
+protected_areas_filename: 'China_Nature_reserve.gpkg'
+
+
+CRS_manual:  #if None use empty string
+
+
+
+#name folders and files
+region_folder_name: NeiMongol #always needed, same name as in gadm.org (if country is studied, then use country name)
+OSM_folder_name: NeiMongol #NeiMongol #usually same as country_code, only needed if OSM is to be considered
+
+DEM_filename: gebco_cutout.tif 
+landcover_filename:    #if landcover_source is 'file', then this file is used, otherwise it is downloaded from openeo
+
+
+#Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
+#use GADM boundary (https://gadm.org/maps.html)
+region_name: NeiMongol  #name of region in GADM
+country_code: CHN #ISO country code
+gadm_level: 1
+#or use custom region (if file is passed, then this is used as default over the GADM definitions above)
+custom_study_area_filename: 'gadm41_CHN_1_NeiMongol.geojson' #if None use empty string
+
+
+#north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
+X: 10
+Y: 310
+Z: 50
+
+
+#world database of protected areas
+wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# landcover data
+resolution_landcover: 0.008999280057498208 # in degress, since EPSG4326; 0.008999280057498208 degrees is ca. 1000m at equator
+
+#exclusions (buffer in meters) (here landcover codes for openeo as default example)
+landcover_without_buffer: [10,40,70,80,90] #list of landcover codes
+landcover_with_buffer: 
+  50: 2000 # dictionary of landcover code with corresponding buffer
+
+max_elevation: 2000 #meters
+max_slope: 20 #degrees
+
+railways_buffer: 0
+roads_buffer: 0 
+airports_buffer: 0
+waterbodies_buffer: 0
+military_buffer: 0
+coastlines_buffer: 0
+protectedAreas_buffer: 0
+
+#area filter
+min_pixels_connected: 100
+min_pixels_x: 5
+min_pixels_y: 5
+
+#wind
+min_wind_speed: 3 #m/s
+max_wind_speed: 25 #m/s
+
+#solar
+min_solar_irradiation: 100 #W/m2  
+
+
+
+
+#--advanced details--------------------------------------------------------------------------------------------------------------------------------
+# solar data
+measure: LTAym_YearlyMonthlyTotals
+
+force_osm_download: 1 #if set to 1, OSM data will be downloaded even if it is already present in the folder
+
+# OSM feature classes (fclass names need to be in a list!)
+fclass: 
+  railways: null # null means nothing is filtered
+  roads: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link']
+  airports: ['airport', 'airfield']
+  waterbodies: ['water', 'reservoir', 'river', 'riverbank']
+  military: ['military']
+
+
+# Define OSM features to fetch from Overpass API
+#the name before "_" should match the binary filtering above. 
+osm_features_config:
+  substations: ["power", "substation", "way"]
+  plants: ["power", "plant", "way"]
+  transmission_lines: ["power","line", "way"]
+  generators: ["power", "generator", "node"]
+  roads: ["highway", "primary", "way"]
+  railways: ["railway", "rail", "way"]
+  airports: ["aeroway", "aerodrome", "way"]
+  waterbodies: ["natural", "water", "way"]
+  military: ["landuse", "military", "way"]
+
+# shape simplification for OSM
+target_vertices:  360
+tolerance_min: 0.0  # Minimum simplification tolerance
+tolerance_max: 0.5  # Maximum simplification tolerance, 

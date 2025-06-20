@@ -30,6 +30,7 @@
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !configs
 !configs/config_template.yaml
+!configs/config_china.yaml
 !spatial_data_prep.py
 !data_exploration.ipynb
 !Exclusion_old.py
