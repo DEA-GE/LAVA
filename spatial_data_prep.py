@@ -84,7 +84,6 @@ if landcover_source == 'file' and landcover_filename is not None:
     landcoverRasterPath = os.path.join(data_path, 'landcover', landcover_filename)
 else:
     print('No landcover raster file provided. Using openEO to get landcover data or provide file.')
-
 demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
 coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
 protected_areas_folder = os.path.join(data_path, 'protected_areas')
