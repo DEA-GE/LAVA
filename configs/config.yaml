@@ -49,7 +49,7 @@ region_folder_name: NeiMongol #always needed, same name as in gadm.org (if count
 OSM_folder_name: NeiMongol #name of the folder with all raw OSM shapefiles from Geofabrik; needed if Geofabrik used as OSM source
 
 DEM_filename: gebco_cutout.tif 
-landcover_filename: # PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
+landcover_filename: "" # PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
 
 
 # Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
@@ -127,7 +127,7 @@ study_area:
   tolerance: 0.0005
 
 # shape simplification for overpass
-target_vertices:  360
+target_vertices:  500
 tolerance_min: 0.0  # Minimum simplification tolerance
 tolerance_max: 0.5  # Maximum simplification tolerance, 
 

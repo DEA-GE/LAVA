@@ -31,6 +31,7 @@
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
+!configs/config.yaml
 !spatial_data_prep.py
 !data_exploration.ipynb
 !Exclusion_old.py
