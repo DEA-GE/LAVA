@@ -11,6 +11,9 @@ waterbodies: 1
 military: 1
 
 substations: 1
+compute_substation_proximity: 1
+compute_road_proximity: 1
+compute_terrain_ruggedness: 1
 transmission_lines: 1
 generators: 1
 plants: 1
