@@ -23,6 +23,7 @@ dependencies:
   - requests
   - pyrosm
   - openpyxl
+  - xdem
   - pip            # ← ensure pip is installed so we can point at Git
   - pip:
     - git+https://github.com/m-dandrea/osm-python-tools.git@main#egg=osmpythontools
