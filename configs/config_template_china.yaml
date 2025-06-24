@@ -21,44 +21,44 @@ plants: 1
 # coastlines 
 coastlines: 1
 
-# compute helper datasets
-compute_substation_proximity: 0
-compute_road_proximity: 0
-compute_terrain_ruggedness: 0
-
 # wind and solar resources
 wind_atlas: 1
 solar_atlas: 1
-country_name_solar_atlas: Germany # name of country or "world" if you want to download the whole world 
+country_name_solar_atlas: China # name of country or "world" if you want to download the whole world 
 
 # additional polygons and rasters
 additional_exclusion_polygons_folder_name: 
 additional_exclusion_rasters_folder_name: 
 
 # protected areas
-protected_areas_source: WDPA #WDPA or file or 0
-wdpa_url: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip
-protected_areas_filename: '' #include file ending (.gpkg or .geojson), needs to be in EPSG4326
+protected_areas_source: file #WDPA or file or 0
+wdpa_url: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_CHN.zip
+protected_areas_filename: 'China_Nature_reserve.gpkg' #include file ending (.gpkg or .geojson), needs to be in EPSG4326
 
 
 CRS_manual:  #if None use empty string
 
+# proximity data
+compute_substation_proximity: 1
+compute_road_proximity: 1
+compute_terrain_ruggedness: 1
+
 
 # name of folders and files with raw data
-region_folder_name: Elbe-Elster #always needed, same name as in gadm.org (if country is studied, then use country name)
-OSM_folder_name: BerlinBrandenburg #name of the folder with all raw OSM shapefiles from Geofabrik; needed if Geofabrik used as OSM source
+region_folder_name: NeiMongol #always needed, same name as in gadm.org (if country is studied, then use country name)
+OSM_folder_name: NeiMongol #name of the folder with all raw OSM shapefiles from Geofabrik; needed if Geofabrik used as OSM source
 
 DEM_filename: gebco_cutout.tif 
-landcover_filename: PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
+landcover_filename: # PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
 
 
 # Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
 # use GADM boundary (https://gadm.org/maps.html)
-region_name: Elbe-Elster
-country_code: DEU       #always needed (also for global wind atlas)
-gadm_level: 2
+region_name: NeiMongol
+country_code: CHN       #always needed (also for global wind atlas)
+gadm_level: 1  # needed when downloading data from GADM - 1 for country, 2 for state, 3 for district, etc. (see gadm.org)
 # or use custom region (if file is passed, then this is used as default over the GADM definitions above)
-custom_study_area_filename: '' #if None use empty string
+custom_study_area_filename: 'gadm41_CHN_1_NeiMongol.geojson' #if None use empty string
 
 
 
@@ -70,18 +70,18 @@ scenario: 'ref'
 deployment_density: 50 # MW/km²
 
 # resolution manual
-resolution_manual: null
+resolution_manual: 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
-landcover_without_buffer: [50] #list of landcover codes
+landcover_without_buffer: [10,40,70,80,90] #list of landcover codes
 landcover_with_buffer: #dictionary of landcover code with corresponding buffer in meters
-  50: 50
+  50: 2000 #built-up land with 2000m buffer 
 
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 # DEM
-max_elevation: null #meters
-max_slope: 10 #degrees
+max_elevation: 2000 #meters
+max_slope: 20 #degrees
 
 # spatial elements (buffer in meters)
 railways_buffer: 50
@@ -108,9 +108,9 @@ substations_inclusion_buffer: null
 transmission_inclusion_buffer: null
 
 # area filter
-min_pixels_connected: 0
-min_pixels_x: 5
-min_pixels_y: 5
+min_pixels_connected: 5
+min_pixels_x: # currently not working, use min_pixels_connected instead
+min_pixels_y: # currently not working, use min_pixels_connected instead
 
 # model areas 
 model_areas_filename:
@@ -166,7 +166,7 @@ osm_features_config:
 
 
 # landcover data
-resolution_landcover: null # in degress, since EPSG4326; 0.008999280057498208 degrees is ca. 1000m at equator
+resolution_landcover: 0.008999280057498208 # in degress, since EPSG4326; 0.008999280057498208 degrees is ca. 1000m at equator
 
 # north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
 north_facing_pixels: null
