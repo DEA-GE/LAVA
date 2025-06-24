@@ -36,14 +36,13 @@
 !Exclusion.py
 !GLAES_Aachen.ipynb
 !GLAES_Aachen_test_data.ipynb
-!Atlite_custom_region.ipynb
-!create_qgis_project.py
 !other
 !other/pyrosm_test.ipynb
 !other/OSMnx.ipynb
 !other/earthOSM_test.ipynb
 !other/color_raster_file.ipynb
 !other/resampling_reprojecting.ipynb
+!other/Atlite_custom_region.ipynb
 !snakefile_wind
 !utils/simplify.py
 !utils/extact_china_provinces.py
