@@ -410,20 +410,21 @@ if config['landcover_source'] == 'openeo':
 
 if config['landcover_source'] == 'file':
     print('processing landcover')
-    landcover_filename = config['landcover_filename']
-    landcoverRasterPath = os.path.join(data_path, 'landcover', landcover_filename)
-
-    local_landcover_filePath = os.path.join(output_dir, f'landcover_local_{region_name_clean}_{global_crs_tag}.tif')
-    if not os.path.exists(local_landcover_filePath): #process data if file not exists in output folder
-        print('processing landcover')
-        logging.info('using local file to get landcover')
-        clip_reproject_raster(landcoverRasterPath, region_name_clean, region, 'landcover_local', local_crs_obj, 'nearest', 'int16', output_dir)
-        landcover_information(local_landcover_filePath, output_dir, region_name_clean, local_crs_tag)
-
-    else:
-        print(f"Local landcover already processed to region.")
-    
-    processed_landcover_filePath = os.path.join(output_dir, f'landcover_local_{region_name_clean}_{local_crs_tag}.tif')
+    try:
+        landcover_filename = config['landcover_filename']
+        landcoverRasterPath = os.path.join(data_path, 'landcover', landcover_filename)
+        local_landcover_filePath = os.path.join(output_dir, f'landcover_local_{region_name_clean}_{global_crs_tag}.tif')
+        if not os.path.exists(local_landcover_filePath): #process data if file not exists in output folder
+            print('processing landcover')
+            logging.info('using local file to get landcover')
+            clip_reproject_raster(landcoverRasterPath, region_name_clean, region, 'landcover_local', local_crs_obj, 'nearest', 'int16', output_dir)
+            landcover_information(local_landcover_filePath, output_dir, region_name_clean, local_crs_tag)
+        else:
+            print(f"Local landcover already processed to region.")
+        processed_landcover_filePath = os.path.join(output_dir, f'landcover_local_{region_name_clean}_{local_crs_tag}.tif')
+    except Exception as e:
+        logging.error(f"Exception occurred: {e}")
+        print(f"Exception occurred: {e}")
 
 
 print('processing DEM') #block comment: SHIFT+ALT+A, multiple line comment: STRG+#
