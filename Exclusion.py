@@ -71,21 +71,21 @@ coastlines=0 if not os.path.isfile(coastlinesPath) and print('no coastlines file
 protectedAreasPath = os.path.join(data_path, f'protected_areas_{config['protected_areas_source']}_{region_name}_{global_crs_tag}.gpkg')
 protectedAreas=0 if not os.path.isfile(protectedAreasPath) and print('no protected areas file') is None else 1
 # OSM
-roadsPath = os.path.join(data_path_OSM, f'{OSM_source}_roads_{region_name}_{global_crs_tag}.gpkg')
+roadsPath = os.path.join(data_path_OSM, f'{OSM_source}_roads.gpkg') #_{region_name}_{global_crs_tag}
 roads=0 if not os.path.isfile(roadsPath) and print('no roads file') is None else 1
-railwaysPath = os.path.join(data_path_OSM, f'{OSM_source}_railways_{region_name}_{global_crs_tag}.gpkg')
+railwaysPath = os.path.join(data_path_OSM, f'{OSM_source}_railways.gpkg')
 railways=0 if not os.path.isfile(railwaysPath) and print('no railways file') is None else 1
-airportsPath = os.path.join(data_path_OSM, f'{OSM_source}_airports_{region_name}_{global_crs_tag}.gpkg')
+airportsPath = os.path.join(data_path_OSM, f'{OSM_source}_airports.gpkg')
 airports=0 if not os.path.isfile(airportsPath) and print('no airports file') is None else 1
-waterbodiesPath = os.path.join(data_path_OSM, f'{OSM_source}_waterbodies_{region_name}_{global_crs_tag}.gpkg')
+waterbodiesPath = os.path.join(data_path_OSM, f'{OSM_source}_waterbodies.gpkg')
 waterbodies=0 if not os.path.isfile(waterbodiesPath) and print('no waterbodies file') is None else 1
-militaryPath = os.path.join(data_path_OSM, f'{OSM_source}_military_{region_name}_{global_crs_tag}.gpkg')
+militaryPath = os.path.join(data_path_OSM, f'{OSM_source}_military.gpkg')
 military=0 if not os.path.isfile(militaryPath) and print('no military file') is None else 1
 
 # OSM overpass
-substationsPath = os.path.join(data_path_OSM, f'{OSM_source}_substations_{region_name}_{global_crs_tag}.gpkg')
+substationsPath = os.path.join(data_path_OSM, f'{OSM_source}_substations.gpkg')
 substations=0 if not os.path.isfile(substationsPath) and print('no substations file') is None else 1
-transmissionPath = os.path.join(data_path_OSM, f'{OSM_source}_transmission_lines_{region_name}_{global_crs_tag}.gpkg')
+transmissionPath = os.path.join(data_path_OSM, f'{OSM_source}_transmission_lines.gpkg')
 transmission=0 if not os.path.isfile(transmissionPath) and print('no transmission file') is None else 1
 
 
