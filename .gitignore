@@ -33,6 +33,7 @@
 !configs/config_template_china.yaml
 !spatial_data_prep.py
 !Exclusion.py
+!data_explore.ipynb
 !GLAES_Aachen.ipynb
 !GLAES_Aachen_test_data.ipynb
 !other
