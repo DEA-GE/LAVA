@@ -224,9 +224,9 @@ if protectedAreas==1 and config['protectedAreas_buffer'] is not None:
     info_list_exclusion.append(f'protected areas buffer: {config['railways_buffer']}')
 else: print('Protected Areas file not found or not selected in config.')
 
-if transmission==1 and config['transmission_inclusion_buffer'] is not None: 
-    excluder.add_geometry(transmissionPath, buffer=config['transmission_buffer'])
-    info_list_exclusion.append(f'transmission buffer: {config['transmission_buffer']}')
+if transmission==1 and config['transmission_lines_buffer'] is not None: 
+    excluder.add_geometry(transmissionPath, buffer=config['transmission_lines_buffer'])
+    info_list_exclusion.append(f'transmission buffer: {config['transmission_lines_buffer']}')
 else: print('Transmission file not found or not selected in config.')
 
 # INCLUSION

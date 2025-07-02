@@ -91,6 +91,7 @@ waterbodies_buffer: 20
 military_buffer: null
 coastlines_buffer: 200
 protectedAreas_buffer: null
+transmission_lines_buffer: null
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
