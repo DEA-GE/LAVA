@@ -89,8 +89,9 @@ def diff(array1, array2):
 
 # Function to filter a raster based on a value raster and a range
 def filter(filter_array, value_array, vmin, vmax):
-
-    filtered_mask = (filter_array > 0) & (value_array >= vmin) & (value_array < vmax)
+    vmin=float(vmin)
+    vmax=float(vmax)
+    filtered_mask = (filter_array > 0) & (value_array >= vmin) & (value_array <= vmax)
 
     return filtered_mask
 
@@ -104,6 +105,7 @@ region_name = config['region_name'] #if country is studied, then use country nam
 region_name = clean_region_name(region_name)
 
 data_path = os.path.join(dirname, 'data', config['region_folder_name'])
+data_path_available_land = os.path.join(data_path, 'available_land')
 data_from_proximity = os.path.join(data_path, 'proximity')
 
 # Load the CRS
@@ -126,8 +128,8 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 # Data paths
 min_pixels_connected = config['min_pixels_connected']
 # TO DO: Change to different paths for solar and wind
-wind_avail_path = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
-solar_avail_path = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
+wind_avail_path = os.path.join(data_path_available_land, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
+solar_avail_path = os.path.join(data_path_available_land, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
 substation_distance_path = os.path.join(data_from_proximity, f'substation_distance.tif')
 road_distance_path = os.path.join(data_from_proximity, f'road_distance.tif')
 terrain_ruggedness_path = os.path.join(data_path, f'TerrainRuggednessIndex_{region_name}_{local_crs_tag}.tif')
@@ -164,7 +166,7 @@ solar_avail_reproj = align_to_reference(solar_avail, ref)
 
 
 # Cost map calculation (TO DO: Adjust cost map)
-costmap = substation_distance_reproj * config["substation_cost_factor"] + road_distance_reproj * config["road_cost_factor"] + terrain_ruggedness_reproj * config["ruggedness_cost_factor"]
+costmap = substation_distance_reproj * config["sub_dist_cost_factor"] + road_distance_reproj * config["road_dist_cost_factor"] + terrain_ruggedness_reproj * config["ruggedness_cost_factor"]
 
 
 SG = config["sg_thr"].keys()
@@ -214,7 +216,12 @@ for sg, wg in SG_WG_comb:
 
 
 # Export potentials to CSV
-df_tier_potentials.to_csv(f'{region_name}_tier_potentials.csv')
+output_path = os.path.join(data_path,"suitability")
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
+tier_potentials_file = os.path.join(output_path, f'{region_name}_tier_potentials.csv')
+print(f'Exporting tier potentials to {output_path}')
+df_tier_potentials.to_csv(tier_potentials_file)
 
 
 # To do: Exporting the overlap/diff rasters as well as a json with the relevant areas
