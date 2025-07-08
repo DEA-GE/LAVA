@@ -223,7 +223,7 @@ tiers: {
 # Substation distance cost factor (Money/km)
 sub_dist_cost_factor: 10
 # Road distance cost factor (Money/km)
-road_cost_factor: 1
+road_dist_cost_factor: 1
 #terrain ruggedness cost factor (Money)
 ruggedness_cost_factor: 1
 
