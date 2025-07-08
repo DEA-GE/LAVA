@@ -10,13 +10,18 @@ from rasterio.plot import show
 from atlite.gis import shape_availability
 import rasterio
 import yaml
+import sys
 from utils.data_preprocessing import clean_region_name
 from rasterstats import zonal_stats
 
 dirname = os.getcwd() 
 #main_dir = os.path.join(dirname, '..')
-with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
-    config = yaml.load(f, Loader=yaml.FullLoader) 
+config_file = os.path.join("configs", "config.yaml")
+if len(sys.argv) > 1:
+    config_file = sys.argv[1]
+
+with open(config_file, "r", encoding="utf-8") as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
 
 
 region_name = config['region_name'] #if country is studied, then use country name
@@ -50,7 +55,7 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 
 
 # path to file and check if it exists and save 1 or 0 for later
-landcoverPath=os.path.join(data_path, f'landcover_{config['landcover_source']}_{region_name}_{local_crs_tag}.tif')
+landcoverPath=os.path.join(data_path, f"landcover_{config['landcover_source']}_{region_name}_{local_crs_tag}.tif")
 landcover=0 if not os.path.isfile(landcoverPath) and print('no landcover file') is None else 1
 demRasterPath = os.path.join(data_path, f'DEM_{region_name}_{global_crs_tag}{resampled}.tif')
 dem=0 if not os.path.isfile(demRasterPath) and print('no DEM file') is None else 1
@@ -68,7 +73,7 @@ northfacingRasterPath = os.path.join(data_from_DEM, f'north_facing_{region_name}
 nfacing=0 if not os.path.isfile(northfacingRasterPath) and print('no north facing pixels file') is None else 1
 coastlinesPath = os.path.join(data_path, f'goas_{region_name}_{global_crs_tag}.gpkg')
 coastlines=0 if not os.path.isfile(coastlinesPath) and print('no coastlines file') is None else 1
-protectedAreasPath = os.path.join(data_path, f'protected_areas_{config['protected_areas_source']}_{region_name}_{global_crs_tag}.gpkg')
+protectedAreasPath = os.path.join(data_path, f"protected_areas_{config['protected_areas_source']}_{region_name}_{global_crs_tag}.gpkg")
 protectedAreas=0 if not os.path.isfile(protectedAreasPath) and print('no protected areas file') is None else 1
 # OSM
 roadsPath = os.path.join(data_path_OSM, f'{OSM_source}_roads.gpkg') #_{region_name}_{global_crs_tag}
@@ -126,25 +131,25 @@ excluder = atlite.ExclusionContainer(crs=local_crs_obj, res=res)
 # add landcover exclusions
 if config['landcover_without_buffer']:
     excluder.add_raster(landcoverPath, codes=config['landcover_without_buffer'],crs=local_crs_obj)
-    info_list_exclusion.append(f'landcover codes without buffer which are excluded: {config['landcover_without_buffer']}')
+    info_list_exclusion.append(f"landcover codes without buffer which are excluded: {config['landcover_without_buffer']}")
 else: print('landcover without buffer not selected in config.')
     
 if config['landcover_with_buffer']:   
     for key, value in config['landcover_with_buffer'].items():
         excluder.add_raster(landcoverPath, codes=key, buffer=value ,crs=local_crs_obj)
-    info_list_exclusion.append(f'landcover codes with buffer which are excluded: {config['landcover_with_buffer']}')
+    info_list_exclusion.append(f"landcover codes with buffer which are excluded: {config['landcover_with_buffer']}")
 else: print('landcover with buffer not selected in config.')
 
 # add elevation exclusions
 if dem==1 and config['max_elevation'] is not None: 
     excluder.add_raster(demRasterPath, codes=range(config['max_elevation'],10000), crs=global_crs_obj)
-    info_list_exclusion.append(f'max elevation: {config['max_elevation']}')
+    info_list_exclusion.append(f"max elevation: {config['max_elevation']}")
 else: print('DEM file not found or not selected in config.')
 
 # add slope exclusions
 if slope==1 and config['max_slope'] is not None: 
     excluder.add_raster(slopeRasterPath, codes=range(config['max_slope'],90), crs=global_crs_obj)
-    info_list_exclusion.append(f'max slope: {config['max_slope']}')
+    info_list_exclusion.append(f"max slope: {config['max_slope']}")
 else: print('Slope file not found or not selected in config.')
 
 # add north facing exclusion
@@ -164,9 +169,9 @@ def wind_filter(mask):
     
 if wind==1 and (config['min_wind_speed'] is not None or config['max_wind_speed'] is not None): 
     excluder.add_raster(windRasterPath, codes=wind_filter, crs=global_crs_obj)
-    if config['min_wind_speed'] is not None and config['max_wind_speed'] is not None: info=f'min wind speed: {config['min_wind_speed']}, max wind speed: {config['max_wind_speed']}'
-    elif config['min_wind_speed'] is not None: info=f'min wind speed: {config['min_wind_speed']}'
-    elif config['max_wind_speed'] is not None: info=f'max wind speed: {config['max_wind_speed']}'
+    if config['min_wind_speed'] is not None and config['max_wind_speed'] is not None: info=f"min wind speed: {config['min_wind_speed']}, max wind speed: {config['max_wind_speed']}"
+    elif config['min_wind_speed'] is not None: info=f"min wind speed: {config['min_wind_speed']}"
+    elif config['max_wind_speed'] is not None: info=f"max wind speed: {config['max_wind_speed']}"
     info_list_exclusion.append(f'{info}')
 else: print('Wind file not found or not selected in config.')
 
@@ -181,9 +186,9 @@ def solar_filter(mask): #desired yearly, specific solar production (kWh/kW)
     
 if solar==1 and (config['min_solar_production'] is not None or config['max_solar_production'] is not None): 
     excluder.add_raster(solarRasterPath, codes=solar_filter, crs=global_crs_obj)
-    if config['min_solar_production'] is not None and config['max_solar_production'] is not None: info=f'min_solar_production: {config['min_solar_production']}, max_solar_production: {config['max_solar_production']}'
-    elif config['min_solar_production'] is not None: info=f'min_solar_production: {config['min_solar_production']}'
-    elif config['max_solar_production'] is not None: info=f'max_solar_production: {config['max_solar_production']}'
+    if config['min_solar_production'] is not None and config['max_solar_production'] is not None: info=f"min_solar_production: {config['min_solar_production']}, max_solar_production: {config['max_solar_production']}"
+    elif config['min_solar_production'] is not None: info=f"min_solar_production: {config['min_solar_production']}"
+    elif config['max_solar_production'] is not None: info=f"max_solar_production: {config['max_solar_production']}"
     info_list_exclusion.append(f'{info}')
 else: print('Solar file not found or not selected in config.')
 
@@ -191,53 +196,53 @@ else: print('Solar file not found or not selected in config.')
 # add exclusions from vector data
 if railways==1 and config['railways_buffer'] is not None: 
     excluder.add_geometry(railwaysPath, buffer=config['railways_buffer'])
-    info_list_exclusion.append(f'railways buffer: {config['railways_buffer']}')
+    info_list_exclusion.append(f"railways buffer: {config['railways_buffer']}")
 else: print('Railways file not found or not selected in config.')
 
 if roads==1 and config['roads_buffer'] is not None: 
     excluder.add_geometry(roadsPath, buffer=config['roads_buffer'])
-    info_list_exclusion.append(f'roads buffer: {config['roads_buffer']}')
+    info_list_exclusion.append(f"roads buffer: {config['roads_buffer']}")
 else: print('Roads file not found or not selected in config.')
 
 if airports==1 and config['airports_buffer'] is not None: 
     excluder.add_geometry(airportsPath, buffer=config['airports_buffer'])
-    info_list_exclusion.append(f'airports buffer: {config['airports_buffer']}')
+    info_list_exclusion.append(f"airports buffer: {config['airports_buffer']}")
 else: print('Airports file not found or not selected in config.')
 
 if waterbodies==1 and config['waterbodies_buffer'] is not None: 
     excluder.add_geometry(waterbodiesPath, buffer=config['waterbodies_buffer'])
-    info_list_exclusion.append(f'waterbodies buffer: {config['waterbodies_buffer']}')
+    info_list_exclusion.append(f"waterbodies buffer: {config['waterbodies_buffer']}")
 else: print('Waterbodies file not found or not selected in config.')
 
 if military==1 and config['military_buffer'] is not None: 
     excluder.add_geometry(militaryPath, buffer=config['military_buffer'])
-    info_list_exclusion.append(f'military buffer: {config['military_buffer']}')
+    info_list_exclusion.append(f"military buffer: {config['military_buffer']}")
 else: print('Military file not found or not selected in config.')
 
 if coastlines==1 and config['coastlines_buffer'] is not None: 
     excluder.add_geometry(coastlinesPath, buffer=config['coastlines_buffer'])
-    info_list_exclusion.append(f'coastlines buffer: {config['coastlines_buffer']}')
+    info_list_exclusion.append(f"coastlines buffer: {config['coastlines_buffer']}")
 else: print('Coastlines file not found or not selected in config.')
 
 if protectedAreas==1 and config['protectedAreas_buffer'] is not None: 
     excluder.add_geometry(protectedAreasPath, buffer=config['protectedAreas_buffer'])
-    info_list_exclusion.append(f'protected areas buffer: {config['railways_buffer']}')
+    info_list_exclusion.append(f"protected areas buffer: {config['railways_buffer']}")
 else: print('Protected Areas file not found or not selected in config.')
 
 if transmission==1 and config['transmission_lines_buffer'] is not None: 
     excluder.add_geometry(transmissionPath, buffer=config['transmission_lines_buffer'])
-    info_list_exclusion.append(f'transmission buffer: {config['transmission_lines_buffer']}')
+    info_list_exclusion.append(f"transmission buffer: {config['transmission_lines_buffer']}")
 else: print('Transmission file not found or not selected in config.')
 
 # INCLUSION
 if substations==1 and config['substations_inclusion_buffer'] is not None: 
     excluder.add_geometry(substationsPath, buffer=config['substations_inclusion_buffer'], invert=True)
-    info_list_exclusion.append(f'substations inclusion buffer: {config['substations_inclusion_buffer']}')
+    info_list_exclusion.append(f"substations inclusion buffer: {config['substations_inclusion_buffer']}")
 else: print('Substations file not found or not selected in config.')
 
 if transmission==1 and config['transmission_inclusion_buffer'] is not None: 
     excluder.add_geometry(transmissionPath, buffer=config['transmission_inclusion_buffer'], invert=True)
-    info_list_exclusion.append(f'transmission inclusion buffer: {config['transmission_inclusion_buffer']}')
+    info_list_exclusion.append(f"transmission inclusion buffer: {config['transmission_inclusion_buffer']}")
 else: print('Transmission file not found or not selected in config.')
 
 
@@ -330,16 +335,16 @@ output_dir = os.path.join(data_path, 'available_land')
 os.makedirs(output_dir, exist_ok=True)
 
 # Write the array to a new .tif file
-with rasterio.open(os.path.join(output_dir, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif'), 'w', **metadata) as dst:
+with rasterio.open(os.path.join(output_dir, f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"), 'w', **metadata) as dst:
     dst.write(array, 1)
  
 
 
 # model area stats
 if config['model_areas_filename']:
-    available_area_raster_filePath = os.path.join(output_dir, f'{config['scenario']}_available_land_filtered-min0_{region_name}_{local_crs_tag}.tif')
+    available_area_raster_filePath = os.path.join(output_dir, f"{config['scenario']}_available_land_filtered-min0_{region_name}_{local_crs_tag}.tif")
 
-    modelAreasPath =os.path.join(dirname, 'Raw_Spatial_Data', 'model_areas', f'{config['model_areas_filename']}')
+    modelAreasPath =os.path.join(dirname, 'Raw_Spatial_Data', 'model_areas', f"{config['model_areas_filename']}")
     model_areas = gpd.read_file(modelAreasPath)
     model_areas.to_crs(local_crs_obj, inplace=True)
     
