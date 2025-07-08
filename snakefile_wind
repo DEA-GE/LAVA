@@ -22,12 +22,14 @@ rule spatial_data_prep:
 rule exclusion_wind:
     input: spatial_done
     output: wind_done
-    shell: 'python Exclusion.py configs/wind.yaml && touch {output}'
+    params: tech='wind'
+    shell: 'python Exclusion.py configs/wind.yaml {params.tech} && touch {output}'
 
 rule exclusion_solar:
     input: spatial_done
     output: solar_done
-    shell: 'python Exclusion.py configs/solar.yaml && touch {output}'
+    params: tech='solar'
+    shell: 'python Exclusion.py configs/solar.yaml {params.tech} && touch {output}'
 
 rule suitability:
     input: wind_done, solar_done

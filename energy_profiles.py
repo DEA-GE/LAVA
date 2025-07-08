@@ -64,7 +64,10 @@ region = gpd.read_file(regionPath)
 # Load potential (currently the available land, but should be changed to the areas from the suitability analysis)
 min_pixels_connected = config['min_pixels_connected']
 # TO DO: Change to different paths for solar and wind
-potentialPath = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
+potentialPath = os.path.join(
+    data_path,
+    f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"
+)
 
 
 # Load weather data cutout
@@ -173,7 +176,7 @@ match config["tech"]:
         )
 
     case _:
-        raise ValueError(f"Unknown technology: {config["tech"]}")
+        raise ValueError(f"Unknown technology: {config['tech']}")
 
 # Convert to DataArray to dataframe
 df_tech = ds_tech.to_pandas()

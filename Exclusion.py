@@ -23,6 +23,20 @@ if len(sys.argv) > 1:
 with open(config_file, "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
+technology = None
+if 'snakemake' in globals() and hasattr(snakemake, 'params'):
+    technology = snakemake.params.get('tech')
+if not technology and len(sys.argv) > 2:
+    technology = sys.argv[2]
+if not technology:
+    technology = config.get('tech')
+    if not technology:
+        filename = os.path.basename(config_file).lower()
+        if 'solar' in filename:
+            technology = 'solar'
+        elif 'wind' in filename:
+            technology = 'wind'
+
 
 region_name = config['region_name'] #if country is studied, then use country name
 region_name = clean_region_name(region_name)

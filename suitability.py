@@ -128,8 +128,14 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 # Data paths
 min_pixels_connected = config['min_pixels_connected']
 # TO DO: Change to different paths for solar and wind
-wind_avail_path = os.path.join(data_path_available_land, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
-solar_avail_path = os.path.join(data_path_available_land, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
+wind_avail_path = os.path.join(
+    data_path_available_land,
+    f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"
+)
+solar_avail_path = os.path.join(
+    data_path_available_land,
+    f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"
+)
 substation_distance_path = os.path.join(data_from_proximity, f'substation_distance.tif')
 road_distance_path = os.path.join(data_from_proximity, f'road_distance.tif')
 terrain_ruggedness_path = os.path.join(data_path, f'TerrainRuggednessIndex_{region_name}_{local_crs_tag}.tif')
