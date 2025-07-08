@@ -47,5 +47,5 @@
 !other/Atlite_custom_region.ipynb
 !snakefile_wind
 !utils/simplify.py
-!utils/extact_china_provinces.py
+!utils/extract_china_provinces.py
 !Snakefile
