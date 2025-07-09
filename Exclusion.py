@@ -5,6 +5,7 @@ import numpy as np
 import json 
 import pickle
 import os  
+import snakemake
 import geopandas as gpd
 from rasterio.plot import show  
 from atlite.gis import shape_availability
@@ -17,37 +18,37 @@ from rasterstats import zonal_stats
 dirname = os.getcwd() 
 #main_dir = os.path.join(dirname, '..')
 config_file = os.path.join("configs", "config.yaml")
-if len(sys.argv) > 1:
-    config_file = sys.argv[1]
-
+#load the configuration file
 with open(config_file, "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-technology = None
-if 'snakemake' in globals() and hasattr(snakemake, 'params'):
-    technology = snakemake.params.get('tech')
-if not technology and len(sys.argv) > 2:
-    technology = sys.argv[2]
-if not technology:
-    technology = config.get('tech')
-    if not technology:
-        filename = os.path.basename(config_file).lower()
-        if 'solar' in filename:
-            technology = 'solar'
-        elif 'wind' in filename:
-            technology = 'wind'
+
 
 
 region_name = config['region_name'] #if country is studied, then use country name
 region_name = clean_region_name(region_name)
-print(region_name)
+region_folder_name = config['region_folder_name'] #folder name for the region, e.g., 'China' or 'Germany'
+
+technology = config.get('tech') #technology, e.g., 'wind' or 'solar'
+scenario= config.get('scenario') #scenario, e.g., 'ref' or 'high'
+print(region_name, scenario, technology)
+
+
+#use snakemake params to override region name and folder name
+# if snakemake is used, then region name and folder name can be set via snakemake params
+if 'snakemake' in globals() and hasattr(snakemake, 'params'):
+    region_folder_name = snakemake.params.get('region')
+    region_name = snakemake.params.get('region')
+    technology = snakemake.params.get('tech')
+    scenario = snakemake.params.get('scenario'):
+
 
 resampled = '' #'_resampled' 
 
 # construct folder paths
 dirname = os.getcwd() 
-data_path = os.path.join(dirname, 'data', config['region_folder_name'])
-data_path_OSM = os.path.join(dirname, 'data', config['region_folder_name'], 'OSM_Infrastructure')
+data_path = os.path.join(dirname, 'data', region_folder_name)
+data_path_OSM = os.path.join(dirname, 'data', region_folder_name, 'OSM_Infrastructure')
 data_from_DEM = os.path.join(data_path, 'derived_from_DEM')
 OSM_source = config['OSM_source']
 
@@ -347,16 +348,16 @@ metadata = {
 # Define output directory
 output_dir = os.path.join(data_path, 'available_land')
 os.makedirs(output_dir, exist_ok=True)
-
+output_file_available_land = os.path.join(output_dir, f"{region_name}_{technology}_{scenario}_available_land_{local_crs_tag}.tif")
 # Write the array to a new .tif file
-with rasterio.open(os.path.join(output_dir, f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"), 'w', **metadata) as dst:
+with rasterio.open(output_file_available_land, 'w', **metadata) as dst:
     dst.write(array, 1)
  
 
 
 # model area stats
 if config['model_areas_filename']:
-    available_area_raster_filePath = os.path.join(output_dir, f"{config['scenario']}_available_land_filtered-min0_{region_name}_{local_crs_tag}.tif")
+    available_area_raster_filePath = os.path.join(output_file_available_land)
 
     modelAreasPath =os.path.join(dirname, 'Raw_Spatial_Data', 'model_areas', f"{config['model_areas_filename']}")
     model_areas = gpd.read_file(modelAreasPath)
@@ -381,7 +382,7 @@ if config['model_areas_filename']:
 
 
 # save info in textfile
-with open(os.path.join(output_dir, f"{config['scenario']}_exclusion_info.txt"), "w") as file:
+with open(os.path.join(output_dir, f"{region}_{scenario}_{technology}_exclusion_info.txt"), "w") as file:
     for item in info_list_exclusion:
         file.write(f"{item}\n")
     file.write(f"\neligibility share: {eligible_share:.2%}")

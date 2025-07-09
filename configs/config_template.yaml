@@ -65,6 +65,7 @@ custom_study_area_filename: '' #if None use empty string
 #--exclusions----------------------------------------------------------------------
 # scenario name (written in available area filename)
 scenario: 'ref'
+technology: 'wind' # or 'solar', used for the filename of the available area
 
 # deployment density
 deployment_density: 50 # MW/km²
