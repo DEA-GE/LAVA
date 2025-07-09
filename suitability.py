@@ -6,6 +6,7 @@ import pickle
 import os
 import yaml
 import rasterio
+import snakemake
 import matplotlib.pyplot as plt
 from rasterio.warp import reproject, Resampling
 from rasterio.io import MemoryFile
@@ -103,6 +104,19 @@ with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
 
 region_name = config['region_name'] #if country is studied, then use country name
 region_name = clean_region_name(region_name)
+scenario = config['scenario']
+
+
+#use snakemake params to override region name and folder name
+# if snakemake is used, then region name and folder name can be set via snakemake params
+if 'snakemake' in globals() and hasattr(snakemake, 'params'):
+    region_folder_name = snakemake.params.get('region')
+    region_name = snakemake.params.get('region')
+    technology = snakemake.params.get('tech')
+    scenario = snakemake.params.get('scenario')
+
+
+
 
 data_path = os.path.join(dirname, 'data', config['region_folder_name'])
 data_path_available_land = os.path.join(data_path, 'available_land')
@@ -127,14 +141,14 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 #--------------------------------------- Data ----------------------------------------
 # Data paths
 min_pixels_connected = config['min_pixels_connected']
-# TO DO: Change to different paths for solar and wind
+
 wind_avail_path = os.path.join(
     data_path_available_land,
-    f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"
+    f"{region_name}_wind_{scenario}_available_land_{local_crs_tag}.tif"
 )
 solar_avail_path = os.path.join(
     data_path_available_land,
-    f"{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif"
+    f"{region_name}_solar_{scenario}_available_land_{local_crs_tag}.tif"
 )
 substation_distance_path = os.path.join(data_from_proximity, f'substation_distance.tif')
 road_distance_path = os.path.join(data_from_proximity, f'road_distance.tif')

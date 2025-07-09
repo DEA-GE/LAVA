@@ -40,7 +40,7 @@ if 'snakemake' in globals() and hasattr(snakemake, 'params'):
     region_folder_name = snakemake.params.get('region')
     region_name = snakemake.params.get('region')
     technology = snakemake.params.get('tech')
-    scenario = snakemake.params.get('scenario'):
+    scenario = snakemake.params.get('scenario')
 
 
 resampled = '' #'_resampled' 
@@ -279,17 +279,14 @@ masked, transform = shape_availability(region.geometry, excluder)
 available_area = masked.sum() * excluder.res**2
 eligible_share = available_area / region.geometry.item().area
 
-print()
-print(f"The eligibility share is: {eligible_share:.2%}")
-print()
+# print results
+print(f"\nThe eligibility share is: {eligible_share:.2%}")
 print(f'The available area is: {available_area:.2}')
-print()
 if config['deployment_density']:
     power_potential = available_area*1e-6 * config['deployment_density']
     print(f'Power potential: {power_potential:.2} MW')
 
-print()
-print('following data was considered during exclusion:')
+print('\nfollowing data was considered during exclusion:')
 for item in info_list_exclusion:
     print('- ', item)
 
