@@ -22,7 +22,7 @@ max_slope: 20 #degrees
 # spatial elements (buffer in meters)
 railways_buffer: 50
 roads_buffer: 50
-airports_buffer: 2000
+airports_buffer: 5000
 waterbodies_buffer: 20
 military_buffer: 100
 coastlines_buffer: 200

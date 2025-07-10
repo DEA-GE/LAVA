@@ -26,22 +26,22 @@ region_name = config['region_name'] #if country is studied, then use country nam
 region_name = clean_region_name(region_name)
 region_folder_name = config['region_folder_name'] #folder name for the region, e.g., 'China' or 'Germany'
 
-technology = config.get('tech') #technology, e.g., 'wind' or 'solar'
+technology = config.get('technology') #technology, e.g., 'wind' or 'solar'
 scenario= config.get('scenario') #scenario, e.g., 'ref' or 'high'
 print(region_name, scenario, technology)
-
-
-tech_config_file = os.path.join("configs", f"{technology}.yaml")
-with open(config_file, "r", encoding="utf-8") as f:
-    tech_config = yaml.load(f, Loader=yaml.FullLoader)
 
 #use snakemake params to override region name and folder name
 # if snakemake is used, then region name and folder name can be set via snakemake params
 if 'snakemake' in globals() and hasattr(snakemake, 'params'):
     region_folder_name = snakemake.params.get('region')
     region_name = snakemake.params.get('region')
-    technology = snakemake.params.get('tech')
+    technology = snakemake.params.get('technology')
     scenario = snakemake.params.get('scenario')
+
+#load the technology specific configuration file
+tech_config_file = os.path.join("configs", f"{technology}.yaml")
+with open(tech_config_file, "r", encoding="utf-8") as f:
+    tech_config = yaml.load(f, Loader=yaml.FullLoader)
 
 
 resampled = '' #'_resampled' 
@@ -127,11 +127,6 @@ else:
     with open(os.path.join(data_path, f'pixel_size_{region_name}_{local_crs_tag}.json'), 'r') as fp:
         res = json.load(fp)
     
-
-print(landuses)
-print(len(landuses))
-print(res)
-
 
 #perform exclusions
 
@@ -221,9 +216,9 @@ if technology == "solar" and (config.get('min_solar_production') is not None or 
     excluder.add_raster(solarRasterPath, codes=solar_filter, crs=global_crs_obj)
     info_parts = []
     if config.get('min_solar_production') is not None:
-        info_parts.append(f"min_solar_production: {config['min_solar_production']}")
+        info_parts.append(f"min_solar_production: {min_solar_production}")
     if config.get('max_solar_production') is not None:
-        info_parts.append(f"max_solar_production: {config['max_solar_production']}")
+        info_parts.append(f"max_solar_production: {max_solar_production}")
 
     info_list_exclusion.append(', '.join(info_parts))
 else:
@@ -232,62 +227,62 @@ else:
 
 
 # add exclusions from vector data
-if railways==1 and config['railways_buffer'] is not None: 
-    excluder.add_geometry(railwaysPath, buffer=config['railways_buffer'])
-    info_list_exclusion.append(f"railways buffer: {config['railways_buffer']}")
+if railways==1 and tech_config['railways_buffer'] is not None: 
+    excluder.add_geometry(railwaysPath, buffer=tech_config['railways_buffer'])
+    info_list_exclusion.append(f"railways buffer: {tech_config['railways_buffer']}")
 else: print('Railways file not found or not selected in config.')
 
-if roads==1 and config['roads_buffer'] is not None: 
-    excluder.add_geometry(roadsPath, buffer=config['roads_buffer'])
-    info_list_exclusion.append(f"roads buffer: {config['roads_buffer']}")
+if roads==1 and tech_config['roads_buffer'] is not None: 
+    excluder.add_geometry(roadsPath, buffer=tech_config['roads_buffer'])
+    info_list_exclusion.append(f"roads buffer: {tech_config['roads_buffer']}")
 else: print('Roads file not found or not selected in config.')
 
-if airports==1 and config['airports_buffer'] is not None: 
-    excluder.add_geometry(airportsPath, buffer=config['airports_buffer'])
-    info_list_exclusion.append(f"airports buffer: {config['airports_buffer']}")
+if airports==1 and tech_config['airports_buffer'] is not None: 
+    excluder.add_geometry(airportsPath, buffer=tech_config['airports_buffer'])
+    info_list_exclusion.append(f"airports buffer: {tech_config['airports_buffer']}")
 else: print('Airports file not found or not selected in config.')
 
-if waterbodies==1 and config['waterbodies_buffer'] is not None: 
-    excluder.add_geometry(waterbodiesPath, buffer=config['waterbodies_buffer'])
-    info_list_exclusion.append(f"waterbodies buffer: {config['waterbodies_buffer']}")
+if waterbodies==1 and tech_config['waterbodies_buffer'] is not None: 
+    excluder.add_geometry(waterbodiesPath, buffer=tech_config['waterbodies_buffer'])
+    info_list_exclusion.append(f"waterbodies buffer: {tech_config['waterbodies_buffer']}")
 else: print('Waterbodies file not found or not selected in config.')
 
-if military==1 and config['military_buffer'] is not None: 
-    excluder.add_geometry(militaryPath, buffer=config['military_buffer'])
-    info_list_exclusion.append(f"military buffer: {config['military_buffer']}")
+if military==1 and tech_config['military_buffer'] is not None: 
+    excluder.add_geometry(militaryPath, buffer=tech_config['military_buffer'])
+    info_list_exclusion.append(f"military buffer: {tech_config['military_buffer']}")
 else: print('Military file not found or not selected in config.')
 
-if coastlines==1 and config['coastlines_buffer'] is not None: 
-    excluder.add_geometry(coastlinesPath, buffer=config['coastlines_buffer'])
-    info_list_exclusion.append(f"coastlines buffer: {config['coastlines_buffer']}")
+if coastlines==1 and tech_config['coastlines_buffer'] is not None: 
+    excluder.add_geometry(coastlinesPath, buffer=tech_config['coastlines_buffer'])
+    info_list_exclusion.append(f"coastlines buffer: {tech_config['coastlines_buffer']}")
 else: print('Coastlines file not found or not selected in config.')
 
-if protectedAreas==1 and config['protectedAreas_buffer'] is not None: 
-    excluder.add_geometry(protectedAreasPath, buffer=config['protectedAreas_buffer'])
-    info_list_exclusion.append(f"protected areas buffer: {config['protectedAreas_buffer']}")
+if protectedAreas==1 and tech_config['protectedAreas_buffer'] is not None: 
+    excluder.add_geometry(protectedAreasPath, buffer=tech_config['protectedAreas_buffer'])
+    info_list_exclusion.append(f"protected areas buffer: {tech_config['protectedAreas_buffer']}")
 else: print('Protected Areas file not found or not selected in config.')
 
-if transmission==1 and config['transmission_lines_buffer'] is not None: 
-    excluder.add_geometry(transmissionPath, buffer=config['transmission_lines_buffer'])
-    info_list_exclusion.append(f"transmission buffer: {config['transmission_lines_buffer']}")
+if transmission==1 and tech_config['transmission_lines_buffer'] is not None: 
+    excluder.add_geometry(transmissionPath, buffer=tech_config['transmission_lines_buffer'])
+    info_list_exclusion.append(f"transmission buffer: {tech_config['transmission_lines_buffer']}")
 else: print('Transmission file not found or not selected in config.')
 
 # INCLUSION
-if substations==1 and config['substations_inclusion_buffer'] is not None: 
-    excluder.add_geometry(substationsPath, buffer=config['substations_inclusion_buffer'], invert=True)
-    info_list_exclusion.append(f"substations inclusion buffer: {config['substations_inclusion_buffer']}")
+if substations==1 and tech_config['substations_inclusion_buffer'] is not None: 
+    excluder.add_geometry(substationsPath, buffer=tech_config['substations_inclusion_buffer'], invert=True)
+    info_list_exclusion.append(f"substations inclusion buffer: {tech_config['substations_inclusion_buffer']}")
 else: print('Substations file not found or not selected in config.')
 
-if transmission==1 and config['transmission_inclusion_buffer'] is not None: 
-    excluder.add_geometry(transmissionPath, buffer=config['transmission_inclusion_buffer'], invert=True)
-    info_list_exclusion.append(f"transmission inclusion buffer: {config['transmission_inclusion_buffer']}")
+if transmission==1 and tech_config['transmission_inclusion_buffer'] is not None: 
+    excluder.add_geometry(transmissionPath, buffer=tech_config['transmission_inclusion_buffer'], invert=True)
+    info_list_exclusion.append(f"transmission inclusion buffer: {tech_config['transmission_inclusion_buffer']}")
 else: print('Transmission file not found or not selected in config.')
 
 
 
 # add additional exclusion polygons
-if additional_exclusion_polygons==1 and config['additional_exclusion_polygons_buffer']:   
-    for i, (buffer_value, filename) in enumerate(zip(config['additional_exclusion_polygons_buffer'], os.listdir(additional_exclusion_polygons_Path))):
+if additional_exclusion_polygons==1 and tech_config['additional_exclusion_polygons_buffer']:   
+    for i, (buffer_value, filename) in enumerate(zip(tech_config['additional_exclusion_polygons_buffer'], os.listdir(additional_exclusion_polygons_Path))):
         filepath = os.path.join(additional_exclusion_polygons_Path, filename)    # Construct the full file path
         excluder.add_geometry(filepath, buffer=buffer_value)
         info_list_exclusion.append(f'additional exclusion polygon file {i+1}: {buffer_value}')
@@ -305,7 +300,7 @@ eligible_share = available_area / region.geometry.item().area
 # print results
 print(f"\nThe eligibility share is: {eligible_share:.2%}")
 print(f'The available area is: {available_area:.2}')
-if config['deployment_density']:
+if tech_config['deployment_density']:
     power_potential = available_area*1e-6 * config['deployment_density']
     print(f'Power potential: {power_potential:.2} MW')
 
@@ -402,7 +397,7 @@ if config['model_areas_filename']:
 
 
 # save info in textfile
-with open(os.path.join(output_dir, f"{region}_{scenario}_{technology}_exclusion_info.txt"), "w") as file:
+with open(os.path.join(output_dir, f"{region_name}_{scenario}_{technology}_exclusion_info.txt"), "w") as file:
     for item in info_list_exclusion:
         file.write(f"{item}\n")
     file.write(f"\neligibility share: {eligible_share:.2%}")
