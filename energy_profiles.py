@@ -15,7 +15,7 @@ import pickle
 
 
 #-----------------------------------Snakemake input to be implemented-----------------------------------#
-weather_year = 2010
+weather_year = 1990
 # region
 # pontential_path
 
@@ -25,8 +25,11 @@ dirname = os.getcwd()
 with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader) 
 
+
 region_name = config['region_name'] #if country is studied, then use country name
 region_name = clean_region_name(region_name)
+technology=config["technology"]
+scenario= config["scenario"]
 
 data_path = os.path.join(dirname, 'data', config['region_folder_name'])
 
@@ -53,8 +56,11 @@ else:
     with open(os.path.join(data_path, f'pixel_size_{region_name}_{local_crs_tag}.json'), 'r') as fp:
         res = json.load(fp)
 
+
+
 # TO DO: The 3 files per weather year should be merge into one file as part of the bias correction process 
 weather_data_path = os.path.join(config['weather_data_path'], f'China_mainland_{weather_year}_2.nc')
+
 
 # Load region geometry
 regionPath = os.path.join(data_path, f'{region_name}_{local_crs_tag}.geojson')
@@ -64,7 +70,10 @@ region = gpd.read_file(regionPath)
 # Load potential (currently the available land, but should be changed to the areas from the suitability analysis)
 min_pixels_connected = config['min_pixels_connected']
 # TO DO: Change to different paths for solar and wind
-potentialPath = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
+potentialPath = os.path.join(
+    data_path, 'available_land', 
+    f"{region_name}_{technology}_{scenario}_available_land_{local_crs_tag}.tif"
+)
 
 
 # Load weather data cutout
@@ -72,10 +81,12 @@ x1, y1, x2, y2 = region.to_crs(global_crs_obj).total_bounds
 offset = 1 # Offset to ensure the cutout includes the entire region
 cutout = atlite.Cutout(path=weather_data_path).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
 
+#to be deleted only for testing purposes
+technology="SolarPV"
 
 #--------------------- Capacity matrix ---------------------
 
-if config['tech'] in ["SolarPV", "SolarPVTracking", "OnshoreWind", "OffshoreWind"]:
+if technology in ["SolarPV", "SolarPVTracking", "OnshoreWind", "OffshoreWind"]:
     # Loading potential
     excluder = ExclusionContainer(crs=local_crs_obj, res=res)
     excluder.add_raster(potentialPath, codes=1, invert=True)
@@ -111,7 +122,7 @@ if config['tech'] == "HeatDemand":
     capacity_matrix = pop_layout.stack(spatial=("y", "x"))
 
 # Simulate the technology profiles based on the configuration
-match config["tech"]:
+match technology:
     case "SolarPV":
         ds_tech = cutout.pv(
             matrix=capacity_matrix,
@@ -173,12 +184,12 @@ match config["tech"]:
         )
 
     case _:
-        raise ValueError(f"Unknown technology: {config["tech"]}")
+        raise ValueError(f"Unknown technology: {technology}")
 
 # Convert to DataArray to dataframe
 df_tech = ds_tech.to_pandas()
 
-if config["tech"] == "HeatDemand":
+if technology == "HeatDemand":
     # Set demand to zero outside of heating season
     start_day = config["heat_demand_start_day"]
     end_day = config["heat_demand_end_day"]
@@ -186,8 +197,11 @@ if config["tech"] == "HeatDemand":
 
 
 # Convert to DataFrame for export
-output_path = os.path.join(data_path, f"/energy_profiles/{config['tech']}_profile_{region_name}.csv")
-ds_tech = ds_tech.to_pandas().to_csv(output_path)
+#output_path = os.path.join(data_path, "energy_profiles")
+#os.makedirs(output_path, exist_ok=True)
+#output_filename=os.path.join(output_path,f"{technology}_profile_{region_name}.csv")
+output_filename=f"{technology}_profile_{region_name}.csv"
+ds_tech = ds_tech.to_pandas().to_csv(output_filename)
 
 
 
@@ -197,7 +211,7 @@ ds_tech = ds_tech.to_pandas().to_csv(output_path)
 
 
 
-
+"""
 
 
 
@@ -241,3 +255,4 @@ capacity_matrix(m, cutout, excluder)
     m.region = m.region[m.region['name'] == m.region_name].geometry.to_crs(EPSG)
 
 
+"""

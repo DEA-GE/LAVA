@@ -31,6 +31,8 @@
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
+!configs/wind.yaml
+!configs/solar.yaml
 !spatial_data_prep.py
 !Exclusion.py
 !data_explore.ipynb
@@ -43,6 +45,6 @@
 !other/color_raster_file.ipynb
 !other/resampling_reprojecting.ipynb
 !other/Atlite_custom_region.ipynb
-!snakefile_wind
+!Snakefile
 !utils/simplify.py
-!utils/extact_china_provinces.py
+!utils/extract_china_provinces.py

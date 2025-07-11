@@ -17,6 +17,7 @@ import openeo
 import richdem
 import xdem
 import logging
+import snakemake
 from pyproj import CRS
 from utils.data_preprocessing import *
 from utils.local_OSM_shp_files import *
@@ -64,7 +65,20 @@ region_name = config['region_name'] #if country is studied, then use country nam
 country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
 gadm_level = config['gadm_level']
 #or use custom region
-custom_study_area_filename = config.get('custom_study_area_filename', None)        
+custom_study_area_filename = config.get('custom_study_area_filename', None)
+
+#use snakemake params to override region name and folder name
+# if snakemake is used, then region name and folder name can be set via snakemake params
+
+try: 
+    region_override = snakemake.params.get('region')
+    if region_override:
+        region_folder_name = region_override
+        region_name = region_override
+        print(f"\nRegion name and folder name overridden from snakemake to: {region_name}")
+except:
+    print("No snakemake params found, using default region name and folder name from config.")
+
 ##################################################
 #north facing pixels
 X = config['X']
@@ -93,9 +107,8 @@ region_name_clean = clean_region_name(region_name)
 output_dir = os.path.join(dirname, 'data', f'{region_folder_name}')
 os.makedirs(output_dir, exist_ok=True)
 
-print()
-print()
-logging.info(f'Prepping {region_name}...')
+# Set up logging
+logging.info(f'\n Prepping {region_name}...')
 
 #get region boundary
 if custom_study_area_filename:
