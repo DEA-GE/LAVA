@@ -55,15 +55,16 @@ def simplify(geom, tol, output_path= None, export_json=False):
     return simplified
 
 def export_overpass_polygon(poly):
-    polygon_coords = poly.exterior.coords
-    poly_str = " ".join(f"{lat} {lon}" for lon, lat in polygon_coords)
-    if not isinstance(poly_str, str):
-        raise TypeError("Output must be of type string")
-    return poly_str
+    """Return polygon coordinates for use with OSMPythonTools."""
+    polygon_coords = list(poly.exterior.coords)
+    coords_list = [[lat, lon] for lon, lat in polygon_coords[:-1]]
+    if not isinstance(coords_list, list):
+        raise TypeError("Output must be a list")
+    return coords_list
 
 
-def generate_overpass_polygon(region_gdf: gpd.GeoDataFrame, target_vertices=360, tol_min=0.0, tol_max=0.5) -> str:
-    """Simplify a region and return an Overpass-compatible polygon string."""
+def generate_overpass_polygon(region_gdf: gpd.GeoDataFrame, target_vertices=360, tol_min=0.0, tol_max=0.5) -> list:
+    """Simplify a region and return an Overpass-compatible polygon coordinate list."""
     raw_geom = region_gdf.unary_union
     geom = prepare_geometry(raw_geom)
     tol, count = find_tolerance_for_vertices(geom, target_vertices, tol_min, tol_max)

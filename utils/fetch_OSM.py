@@ -26,7 +26,7 @@ osm_logger.setLevel(logging.ERROR)
 
 def osm_to_gpkg(
     region_name: str,
-    polygon: str,
+    polygon: list,
     feature_key: str,
     features_dict: dict,
     output_dir: str = "OSM_Infrastructure",
@@ -150,6 +150,7 @@ def osm_to_gpkg(
 
 if __name__ == "__main__":
     import yaml
+    from data_preprocessing import rel_path
 
     config_path = os.path.join("configs", "config.yaml")
     if not os.path.exists(config_path):
@@ -160,7 +161,7 @@ if __name__ == "__main__":
 
     osm_features_config = config.get("osm_features_config", {})
 
-    polygon = "52.5 13.3 52.6 13.3 52.6 13.4 52.5 13.4 52.5 13.3"
+    polygon = [[48.3, 16.3], [48.3, 16.5], [48.2, 16.6], [48.1, 16.5], [48.1, 16.3]]
     region = "Example Region"
     output_base = "data"
 

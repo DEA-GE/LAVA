@@ -221,7 +221,7 @@ elif config['OSM_source'] == 'overpass':
     print('Prepare polygon for overpass query')
     #Use the GDAM polygon to fetch OSM data, first simplify the polygon to avoid too many vertices
     polygon = generate_overpass_polygon(region)
-
+    
     # Filter based on config flags
     selected_osm_features_dict = {
         key: val for key, val in osm_features_config.items()
