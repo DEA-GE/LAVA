@@ -1,11 +1,10 @@
 from pathlib import Path
-'''
+
 regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Guangxi", "Guizhou",
           "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
-          "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Shaanxi", "Shandong", "Shanghai",
-          "Shanxi", "Sichuan", "Tianjin", "Yunnan", "Zhejiang"]
-'''
-regions = ["Xizang", "Qinghai", "XinjiangUygur"]
+          "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
+          "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
+
 
 technologies = ["solar", "onshorewind"]
 scenarios = ["ref"]
@@ -21,8 +20,8 @@ for region in regions:
 rule all:
     input:
         expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenarios)
-        #expand(logpath(region, "suitability.done"), region=regions, scenario=scenarios)
-        #expand(logpath(region, "energy_profiles_{technology}_{weather_year}.done"), region=regions, technology=technologies, scenario=scenarios, weather_year=weather_years)
+        expand(logpath(region, "suitability.done"), region=regions, scenario=scenarios)
+        expand(logpath(region, "energy_profiles_{technology}_{weather_year}.done"), region=regions, technology=technologies, scenario=scenarios, weather_year=weather_years)
 
 rule spatial_data_prep:
     output:
@@ -44,9 +43,6 @@ rule exclusion:
     script:
         "Exclusion.py"
 
-
-
-'''
 rule suitability:
     input:
         expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
@@ -71,4 +67,4 @@ rule energy_profiles:
     script:
         "energy_profiles.py"
 
-'''
+
