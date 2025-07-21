@@ -17,7 +17,7 @@ import openeo
 import richdem
 import xdem
 import logging
-import snakemake
+import argparse
 from pyproj import CRS
 from utils.data_preprocessing import *
 from utils.local_OSM_shp_files import *
@@ -72,17 +72,17 @@ gadm_level = config['gadm_level']
 #or use custom region
 custom_study_area_filename = config.get('custom_study_area_filename', None)
 
-#use snakemake params to override region name and folder name
-# if snakemake is used, then region name and folder name can be set via snakemake params
+# override region via command line argument
+parser = argparse.ArgumentParser()
+parser.add_argument("--region", help="override region name and folder")
+args = parser.parse_args()
 
-try: 
-    region_override = snakemake.params.get('region')
-    if region_override:
-        region_folder_name = region_override
-        region_name = region_override
-        print(f"\nRegion name and folder name overridden from snakemake to: {region_name}")
-except:
-    print("No snakemake params found, using default region name and folder name from config.")
+if args.region:
+    region_folder_name = args.region
+    region_name = args.region
+    print(f"\nRegion name and folder name overridden from command line to: {region_name}")
+else:
+    print("No command line region provided, using values from config.")
 
 ##################################################
 #north facing pixels
