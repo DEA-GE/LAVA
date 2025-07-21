@@ -5,7 +5,7 @@ import numpy as np
 import json 
 import pickle
 import os  
-import snakemake
+import argparse
 import geopandas as gpd
 from rasterio.plot import show  
 from atlite.gis import shape_availability
@@ -30,15 +30,22 @@ technology = config.get('technology') #technology, e.g., 'wind' or 'solar'
 scenario= config.get('scenario') #scenario, e.g., 'ref' or 'high'
 print(region_name, scenario, technology)
 
-#use snakemake params to override region name and folder name
-# if snakemake is used, then region name and folder name can be set via snakemake params
-try:
-    region_folder_name = snakemake.params.get('region')
-    region_name = snakemake.params.get('region')
-    technology = snakemake.params.get('technology')
-    scenario = snakemake.params.get('scenario')
-except :
-    print("No snakemake params found, using default settings from config.")
+# override values via command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--region", help="override region name and folder")
+parser.add_argument("--technology", help="technology type")
+parser.add_argument("--scenario", help="scenario name")
+args = parser.parse_args()
+
+if args.region:
+    region_folder_name = args.region
+    region_name = args.region
+if args.technology:
+    technology = args.technology
+if args.scenario:
+    scenario = args.scenario
+else:
+    print("Using values from config.")
 
 
 #load the technology specific configuration file

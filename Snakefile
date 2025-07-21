@@ -18,28 +18,24 @@ rule all:
 rule spatial_data_prep:
     output:
         touch(logpath("{region}", "spatial_data_prep.done"))
-    params:
-        region=lambda wc: wc.region
-    script:
-        "spatial_data_prep.py"
+    shell:
+        "python spatial_data_prep.py --region {wildcards.region}"
 
 rule exclusion:
     input:
         logpath("{region}", "spatial_data_prep.done")
     output:
         touch(logpath("{region}", "exclusion_{technology}.done"))
-    params:
-        region=lambda wc: wc.region,
-        technology=lambda wc: wc.technology
-    script:
-        "Exclusion.py"
+    shell:
+        (
+            "python Exclusion.py --region {wildcards.region} "
+            "--technology {wildcards.technology}"
+        )
 
 rule suitability:
     input:
         expand(logpath("{{region}}", "exclusion_{technology}.done"), technology=technologies)
     output:
         touch(logpath("{region}", "suitability.done"))
-    params:
-        region=lambda wc: wc.region
-    script:
-        "suitability.py"
+    shell:
+        "python suitability.py --region {wildcards.region}"
