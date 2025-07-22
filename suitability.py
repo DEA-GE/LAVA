@@ -110,20 +110,17 @@ scenario = config['scenario']
 # override values via command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", help="override region name and folder")
-parser.add_argument("--scenario", help="scenario name")
 args = parser.parse_args()
 
 if args.region:
     region_folder_name = args.region
     region_name = args.region
-if args.scenario:
-    scenario = args.scenario
 else:
     print("Using values from config.")
 
 
 
-data_path = os.path.join(dirname, 'data', config['region_folder_name'])
+data_path = os.path.join(dirname, 'data', region_folder_name)
 data_path_available_land = os.path.join(data_path, 'available_land')
 data_from_proximity = os.path.join(data_path, 'proximity')
 

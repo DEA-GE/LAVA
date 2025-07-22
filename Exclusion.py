@@ -11,7 +11,6 @@ from rasterio.plot import show
 from atlite.gis import shape_availability
 import rasterio
 import yaml
-import sys
 from utils.data_preprocessing import clean_region_name
 from rasterstats import zonal_stats
 
@@ -26,31 +25,27 @@ region_name = config['region_name'] #if country is studied, then use country nam
 region_name = clean_region_name(region_name)
 region_folder_name = config['region_folder_name'] #folder name for the region, e.g., 'China' or 'Germany'
 technology = config.get('technology') #technology, e.g., 'wind' or 'solar'
-scenario= config.get('scenario') #scenario, e.g., 'ref' or 'high'
-print(region_name, scenario, technology)
+scenario=   config.get('scenario', 'ref') # scenario, e.g., 'ref' or 'high'
+print(f"Config parameters: region={region_name}, technology={technology}, scenario={scenario}")
 
 
-# override values via command line arguments
+# override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", help="override region name and folder")
+parser.add_argument("--region", help="region and folder name")
 parser.add_argument("--technology", help="technology type")
-parser.add_argument("--scenario", help="scenario name")
 args = parser.parse_args()
 
 # Override values if provided in command line arguments wiht snakemake
 region_name = getattr(args, "region", region_name)
 region_folder_name = getattr(args, "region", region_folder_name)
 technology = getattr(args, "technology", technology)
-scenario = getattr(args, "scenario", scenario)
 
-print(f"Using command line arguments: region={region_name}, technology={technology}, scenario={scenario}")
-
+print(f"Using command line arguments: region={region_name}, technology={technology}")
 
 #load the technology specific configuration file
 tech_config_file = os.path.join("configs", f"{technology}.yaml")
 with open(tech_config_file, "r", encoding="utf-8") as f:
     tech_config = yaml.load(f, Loader=yaml.FullLoader)
-
 
 resampled = '' #'_resampled' 
 

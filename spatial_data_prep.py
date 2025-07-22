@@ -28,14 +28,23 @@ from utils.proximity_calc import generate_distance_raster
 # Record the starting time
 start_time = time.time()
 
-logging.basicConfig(handlers=[
-        logging.FileHandler("data-prep.log", mode='w'),
-        logging.StreamHandler()
-        ], level=logging.INFO) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
+# Create handlers
+file_handler = logging.FileHandler("data-prep.log", mode='w')
+file_handler.setLevel(logging.DEBUG)  # file can record everything
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.WARNING)  # terminal only shows WARNING and above
+
+logging.basicConfig(
+    handlers=[file_handler, stream_handler],
+    level=logging.INFO,  # minimum level for logger; handlers override this
+    format="%(levelname)s:%(name)s:%(message)s"
+    ) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
 
 # Suppress specific noisy INFO logs from openeo
-logging.getLogger("openeo.config").setLevel(logging.WARNING)
-logging.getLogger("openeo.rest.connection").setLevel(logging.WARNING)
+#logging.getLogger("openeo.config").setLevel(logging.WARNING)
+#logging.getLogger("openeo.rest.connection").setLevel(logging.WARNING)
+
 
 with open("configs/config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
