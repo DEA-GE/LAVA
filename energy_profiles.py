@@ -12,10 +12,11 @@ from pathlib import Path
 import yaml
 from utils.data_preprocessing import clean_region_name
 import pickle
+import argparse
 
 
 #-----------------------------------Snakemake input to be implemented-----------------------------------#
-weather_year = 2010
+weather_year = 1990
 # region
 # pontential_path
 
@@ -25,10 +26,37 @@ dirname = os.getcwd()
 with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader) 
 
+region_folder_name = config['region_folder_name']
 region_name = config['region_name'] #if country is studied, then use country name
 region_name = clean_region_name(region_name)
+technology=config["technology"]
+scenario= config["scenario"]
+weather_year = config["weather_year"]
+print(f"Config parameters: region={region_name}, technology={technology}, weather_year={weather_year}")
 
-data_path = os.path.join(dirname, 'data', config['region_folder_name'])
+# override values via command line arguments through snakemake
+parser = argparse.ArgumentParser()
+parser.add_argument("--region", help="region and folder name")
+parser.add_argument("--technology", help="technology type")
+parser.add_argument("--weather_year", help="weather year for the energy profiles") 
+args = parser.parse_args()
+
+# Override values if provided in command line arguments wiht snakemake
+region_name = getattr(args, "region", region_name)
+region_folder_name = getattr(args, "region", region_folder_name)
+technology = getattr(args, "technology", technology)
+weather_year = getattr(args, "weather_year", weather_year)
+print(f"Using command line arguments: region={region_name}, technology={technology}")
+
+#load the technology specific configuration file
+tech_config_file = os.path.join("configs", f"{technology}.yaml")
+with open(tech_config_file, "r", encoding="utf-8") as f:
+    tech_config = yaml.load(f, Loader=yaml.FullLoader)
+
+data_path = os.path.join(dirname, 'data', region_folder_name)
+output_path = os.path.join(data_path,"energy_profiles")
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
 
 # Load the CRS
 # geo CRS
@@ -53,191 +81,143 @@ else:
     with open(os.path.join(data_path, f'pixel_size_{region_name}_{local_crs_tag}.json'), 'r') as fp:
         res = json.load(fp)
 
+
 # TO DO: The 3 files per weather year should be merge into one file as part of the bias correction process 
-weather_data_path = os.path.join(config['weather_data_path'], f'China_mainland_{weather_year}_2.nc')
+weather_data_path = os.path.join(config['weather_data_path'], f'China_mainland_{weather_year}_1.nc')
 
 # Load region geometry
 regionPath = os.path.join(data_path, f'{region_name}_{local_crs_tag}.geojson')
 region = gpd.read_file(regionPath)
 
 
-# Load potential (currently the available land, but should be changed to the areas from the suitability analysis)
-min_pixels_connected = config['min_pixels_connected']
-# TO DO: Change to different paths for solar and wind
-potentialPath = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
-
+# Open json file with resource grades
+resource_grades_file = os.path.join(data_path, 'suitability', f'{region_name}_{scenario}_relevant_resource_grades.json')
+with open(resource_grades_file, 'r') as f:
+    resource_grades = json.load(f) 
 
 # Load weather data cutout
+
+# List all files in the weather data path starting with 'China_mainland' and ending with '.nc'
+cutout_files = glob.glob(os.path.join(config['weather_data_path'], f'*_{weather_year}_*'))
+
+cutout = atlite.Cutout(path=cutout_files[0])
+
+# Regional entent
 x1, y1, x2, y2 = region.to_crs(global_crs_obj).total_bounds 
 offset = 1 # Offset to ensure the cutout includes the entire region
-cutout = atlite.Cutout(path=weather_data_path).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
+
+# Load bias correction data
+ERA5_wnd100m_bias_path = os.path.join(config['weather_data_path'], 'bias_correction_factors', 'ERA5_wnd100m_bias.nc')
+ERA5_wnd100m_bias = xr.open_dataset(ERA5_wnd100m_bias_path).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
 
 
-#--------------------- Capacity matrix ---------------------
+# Preallocate a dataframe for resource grades and time series
+time = pd.date_range(start=f'{weather_year}-01-01', end=f'{weather_year}-12-31 23:00', freq='h')
+df_rg = pd.DataFrame(index=time, columns=resource_grades)
 
-if config['tech'] in ["SolarPV", "SolarPVTracking", "OnshoreWind", "OffshoreWind"]:
-    # Loading potential
-    excluder = ExclusionContainer(crs=local_crs_obj, res=res)
-    excluder.add_raster(potentialPath, codes=1, invert=True)
+for cutout_file in cutout_files:
+    print(f"Processing cutout file: {cutout_file}")
+    cutout = atlite.Cutout(path=cutout_file).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
+    # Apply bias correction to the weather data
+    cutout.data['wnd100m'] = cutout.data['wnd100m'] * ERA5_wnd100m_bias['wnd100m']
 
-    # Availability of the area
-    masked, transform = excluder.compute_shape_availability(region)
-    fig, ax = plt.subplots()
-    excluder.plot_shape_availability(region)
-    available_area = masked.sum(dtype=np.float64) * excluder.res**2
-    eligible_share = available_area / region.geometry.item().area
-    print(f"The eligibility share is: {eligible_share:.2%}")
-
-    # `A` is an DataArray with 3 dimensions (`shape`, `x`, `y`) and very sparse data. 
-    # It indicates the relative overlap of weather cell `(x, y)` with geometry `region` while excluding the area specified by the `excluder`. 
-    A = cutout.availabilitymatrix(region, excluder)
-
-    # Aggregation of potential to weather data cells
-    fig, ax = plt.subplots()
-    region.plot(ax=ax, edgecolor="k", color="None")
-    A.plot(ax=ax, cmap="Greens")
-    #cutout.grid.plot(ax=ax, color="None", edgecolor="grey")
-
-    capacity_matrix = A.stack(spatial=["y", "x"])
-
-if config['tech'] == "HeatDemand":
-    population_path = "E:/CETO 2025 Spatial Analysis data/GIS/Population/China_population_2023.nc"
-    pop_layout = xr.open_dataarray(population_path).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
-    # set nan values to zero
-    pop_layout = pop_layout.fillna(0)
-    # Normalize population layout to the indicator matrix
-    pop_layout = pop_layout / pop_layout.max()
-
-    capacity_matrix = pop_layout.stack(spatial=("y", "x"))
-
-# Simulate the technology profiles based on the configuration
-match config["tech"]:
-    case "SolarPV":
-        ds_tech = cutout.pv(
-            matrix=capacity_matrix,
-            panel=config["solarpanel"],
-            orientation="latitude_optimal",
-            index=region.index,
-            per_unit=True
+    for rg in resource_grades:
+        print(f"Processing resource grade: {rg}")
+        # Load the resource grade
+        potentialPath = os.path.join(
+            data_path, 'suitability', 
+            f"{rg}_{scenario}_{local_crs_tag}.tif"
         )
-        # Apply derate
-        ds_tech = ds_tech * config["tech_derate"]
+        
+        # Loading potential
+        excluder = ExclusionContainer(crs=local_crs_obj, res=res)
+        excluder.add_raster(potentialPath, codes=1, invert=True)
 
-    case "SolarPVTracking":
-        ds_tech = cutout.pv(
-            matrix=capacity_matrix,
-            panel=config["solarpanel"],
-            orientation="latitude_optimal",
-            index=region.index,
-            tracking="horizontal",
-            per_unit=True
-        )
-        # Apply derate
-        ds_tech = ds_tech * config["tech_derate"]
+        # Availability of the area
+        masked, transform = excluder.compute_shape_availability(region)
+        fig, ax = plt.subplots()
+        excluder.plot_shape_availability(region)
+        available_area = masked.sum(dtype=np.float64) * excluder.res**2
+        eligible_share = available_area / region.geometry.item().area
+        print(f"The eligibility share is: {eligible_share:.2%}")
 
-    case "OnshoreWind":
-        ds_tech = cutout.wind(
-            matrix=capacity_matrix,
-            turbine=Path(config["windturbine_onshore"]),
-            index=region.index,
-            per_unit=True
-        )
-        # Apply derate
-        ds_tech = ds_tech * config["tech_derate"]
+        # `A` is an DataArray with 3 dimensions (`shape`, `x`, `y`) and very sparse data. 
+        # It indicates the relative overlap of weather cell `(x, y)` with geometry `region` while excluding the area specified by the `excluder`. 
+        A = cutout.availabilitymatrix(region, excluder)
 
-    case "OffshoreWind":
-        ds_tech = cutout.wind(
-            matrix=capacity_matrix,
-            turbine=config["windturbine_offshore"],
-            index=region.index,
-            per_unit=True
-        )
-        # Apply derate
-        ds_tech = ds_tech * config["tech_derate"]
+        # Aggregation of potential to weather data cells
+        fig, ax = plt.subplots()
+        region.plot(ax=ax, edgecolor="k", color="None")
+        A.plot(ax=ax, cmap="Greens")
+        #cutout.grid.plot(ax=ax, color="None", edgecolor="grey")
 
-    case "Hydro":
-        plants, basins = hydro()
-        ds_tech = cutout.hydro(
-            plants=plants,
-            hydrobasins=basins
-        )
-        # Apply derate
-        ds_tech = ds_tech * config["tech_derate"]
+        capacity_matrix = A.stack(spatial=["y", "x"])
 
-    case "HeatDemand":
-        ds_tech = cutout.heat_demand(
-            matrix=capacity_matrix,
-            threshold=config["heat_demand_threshold"],
-            a=1,
-            constant=config["heat_demand_constant"]
-        )
+        # Simulate the technology profiles based on the configuration
+        match technology:
+            case "solar":
+                ds_tech = cutout.pv(
+                    matrix=capacity_matrix,
+                    panel=tech_config["solarpanel"],
+                    orientation="latitude_optimal",
+                    index=region.index,
+                    per_unit=True
+                )
+                # Apply derate
+                ds_tech = ds_tech * tech_config["tech_derate"]
 
-    case _:
-        raise ValueError(f"Unknown technology: {config["tech"]}")
+            case "solartracking":
+                ds_tech = cutout.pv(
+                    matrix=capacity_matrix,
+                    panel=tech_config["solarpanel"],
+                    orientation="latitude_optimal",
+                    index=region.index,
+                    tracking="horizontal",
+                    per_unit=True
+                )
+                # Apply derate
+                ds_tech = ds_tech * tech_config["tech_derate"]
 
-# Convert to DataArray to dataframe
-df_tech = ds_tech.to_pandas()
+            case "onshorewind":
+                ds_tech = cutout.wind(
+                    matrix=capacity_matrix,
+                    turbine=Path(tech_config["windturbine_onshore"]),
+                    index=region.index,
+                    per_unit=True
+                )
+                # Apply derate
+                ds_tech = ds_tech * tech_config["tech_derate"]
 
-if config["tech"] == "HeatDemand":
-    # Set demand to zero outside of heating season
-    start_day = config["heat_demand_start_day"]
-    end_day = config["heat_demand_end_day"]
-    df_tech.loc[f"{weather_year}-{start_day}":f"{weather_year}-{end_day}"] = 0
+            case "offshorewind":
+                ds_tech = cutout.wind(
+                    matrix=capacity_matrix,
+                    turbine=tech_config["windturbine_offshore"],
+                    index=region.index,
+                    per_unit=True
+                )
+                # Apply derate
+                ds_tech = ds_tech * tech_config["tech_derate"]
 
+            case "hydro":
+                plants, basins = hydro()
+                ds_tech = cutout.hydro(
+                    plants=plants,
+                    hydrobasins=basins
+                )
+                # Apply derate
+                ds_tech = ds_tech * tech_config["tech_derate"]
 
-# Convert to DataFrame for export
-output_path = os.path.join(data_path, f"/energy_profiles/{config['tech']}_profile_{region_name}.csv")
-ds_tech = ds_tech.to_pandas().to_csv(output_path)
+            case _:
+                raise ValueError(f"Unknown technology: {technology}")
 
+        # Add resource grade to the dataframe
+        df_tech = ds_tech.to_pandas()
+        df_rg.loc[df_tech.index, rg] = df_tech.iloc[:, 0]
 
+# Check for missing values and give warning if any are found
+if df_rg.isnull().values.any():
+    print("Warning: Missing values found in the resource grades dataframe.")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# --------------------- Misc --------------------- #
-ds_tech.to_pandas().plot(ylabel="Power [GW]", ls="--", figsize=(10, 4))
-wnd.to_pandas().plot(ylabel="Power [GW]", ls="--", figsize=(10, 4))
-# Apply derate
-ds_tech = ds_tech * m.derate
-
-ds_tech.name = 'Nei-Mongol'
-
-from atlite.windturbines import load_turbine, turbineconfig
-
-def hydro():
-    plants = gpd.read_file("E:/CETO 2025 Spatial Analysis data/GIS/Hydro/Hydro_plants.gpkg")
-    basins = gpd.read_file("E:/CETO 2025 Spatial Analysis data/GIS/Hydro/Hydrobasin_level4.gpkg")
-
-    return plants, basins
-
-### ---------- Produce profiles ----------- ###
-
-
-
-capacity_matrix(m, cutout, excluder)
-
-
-    EPSG = "EPSG:32650"
-    
-
-    # Balmorel time sets and geography
-    m.region_file = "E:/CETO 2025 Spatial Analysis data/GIS/Admin boundaries/China_provinces.gpkg"
-    m.region_name = 'East-InnerMongolia'
-    m.region = gpd.read_file(m.region_file)
-    m.region = m.region[m.region['name'] == m.region_name].geometry.to_crs(EPSG)
-
-
+# Save the resource grade time series to a CSV file
+output_file=os.path.join(output_path, f"{region_name}_{scenario}_{technology}_{weather_year}.csv")
+df_rg.to_csv(output_file)

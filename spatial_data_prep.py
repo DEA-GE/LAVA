@@ -17,6 +17,7 @@ import openeo
 import richdem
 import xdem
 import logging
+import argparse
 from pyproj import CRS
 from utils.data_preprocessing import *
 from utils.local_OSM_shp_files import *
@@ -27,10 +28,23 @@ from utils.proximity_calc import generate_distance_raster
 # Record the starting time
 start_time = time.time()
 
-logging.basicConfig(handlers=[
-        logging.FileHandler("data-prep.log", mode='w'),
-        logging.StreamHandler()
-        ], level=logging.INFO) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
+# Create handlers
+file_handler = logging.FileHandler("data-prep.log", mode='w')
+file_handler.setLevel(logging.DEBUG)  # file can record everything
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.WARNING)  # terminal only shows WARNING and above
+
+logging.basicConfig(
+    handlers=[file_handler, stream_handler],
+    level=logging.INFO,  # minimum level for logger; handlers override this
+    format="%(levelname)s:%(name)s:%(message)s"
+    ) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
+
+# Suppress specific noisy INFO logs from openeo
+#logging.getLogger("openeo.config").setLevel(logging.WARNING)
+#logging.getLogger("openeo.rest.connection").setLevel(logging.WARNING)
+
 
 with open("configs/config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -52,6 +66,7 @@ consider_additional_exclusion_rasters = config['additional_exclusion_rasters_fol
 CRS_manual = config['CRS_manual']  #if None use empty string
 consider_protected_areas = config['protected_areas_source']
 wdpa_url = config['wdpa_url']
+OSM_source = config['OSM_source']  #either 'geofabrik' or 'overpass'
 
 #----------------------------
 ############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
@@ -64,7 +79,21 @@ region_name = config['region_name'] #if country is studied, then use country nam
 country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
 gadm_level = config['gadm_level']
 #or use custom region
-custom_study_area_filename = config.get('custom_study_area_filename', None)        
+custom_study_area_filename = config.get('custom_study_area_filename', None)
+
+# override region via command line argument
+parser = argparse.ArgumentParser()
+parser.add_argument("--region", help="override region name and folder")
+args = parser.parse_args()
+
+if args.region:
+    region_folder_name = args.region
+    region_name = args.region
+    print(f"\nRegion name and folder name overridden from command line to: {region_name}")
+else:
+    print("No command line region provided, using values from config.")
+
+
 ##################################################
 #north facing pixels
 X = config['X']
@@ -82,8 +111,9 @@ demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
 coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
 protected_areas_folder = os.path.join(data_path, 'protected_areas')
 wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
-if consider_railways == 1 or consider_roads == 1 or consider_airports == 1 or consider_waterbodies == 1:
+if OSM_source == 'geofabrik':
     OSM_data_path = os.path.join(data_path, 'OSM', OSM_folder_name)
+
 
 
 # Get region name without accents, spaces, apostrophes, or periods for saving files
@@ -93,14 +123,13 @@ region_name_clean = clean_region_name(region_name)
 output_dir = os.path.join(dirname, 'data', f'{region_folder_name}')
 os.makedirs(output_dir, exist_ok=True)
 
-print()
-print()
-logging.info(f'Prepping {region_name}...')
+# Set up logging
+logging.info(f'\n Prepping {region_name}...')
 
 #get region boundary
 if custom_study_area_filename:
     custom_study_area_filepath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
-    region = gpd.read_file(custom_study_area_filepath)
+    region = gpd.read_file(custom_study_area_filepath).dissolve() # Dissolve to ensure it's a single polygon
     if region.crs != 4326:
         logging.warning('crs of custom polygon file for study region is not in EPSG 4326')
     logging.info('using custom polygon for study area')
@@ -191,13 +220,13 @@ region.to_crs(global_crs_obj, inplace=True)
 
 
 # OSM data
-if config['OSM_source'] == 'geofabrik':
+if OSM_source == 'geofabrik':
     OSM_output_dir = os.path.join(output_dir, 'OSM_Infrastructure')
     os.makedirs(OSM_output_dir, exist_ok=True) 
 
     process_all_local_osm_layer(config, region, region_name_clean, OSM_output_dir, OSM_data_path, target_crs=None)
 
-elif config['OSM_source'] == 'overpass':
+elif OSM_source == 'overpass':
 
     print('\nprocessing OSM data')
 
@@ -258,7 +287,7 @@ elif config['OSM_source'] == 'overpass':
 # create proximity raster for substations if data exists and calculation is enabled
 if compute_substation_proximity:
     print('\ncomputing proximity distance for substations')
-    substation_filename = config['OSM_source'] + "_substations.gpkg" #OSM substations are saved in a file with the name of the OSM source
+    substation_filename = OSM_source + "_substations.gpkg" #OSM substations are saved in a file with the name of the OSM source
     substations_path = os.path.join(OSM_output_dir, substation_filename)
     if os.path.exists(substations_path):
         substations_gdf = gpd.read_file(substations_path)
@@ -282,7 +311,7 @@ if compute_substation_proximity:
 # create proximity raster for roads if data exists and calculation is enabled
 if compute_road_proximity:
     print('\ncomputing proximity distance for roads')
-    roads_filename=  config['OSM_source'] + "_roads.gpkg" #OSM roads are saved in a file with the name of the OSM source
+    roads_filename=  OSM_source + "_roads.gpkg" #OSM roads are saved in a file with the name of the OSM source
     roads_path = os.path.join(OSM_output_dir, roads_filename)
     if os.path.exists(roads_path):
         roads_gdf = gpd.read_file(roads_path) 
@@ -564,7 +593,7 @@ if consider_solar_atlas == 1:
     else:
         print(f"Global solar atlas data already downloaded: {rel_path(solar_atlas_folder_path)}")
     
-    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, os.listdir(solar_atlas_folder_path)[0], 'PVOUT.tif')
+    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, os.listdir(solar_atlas_folder_path)[0], 'GHI.tif')
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
     clip_reproject_raster(solar_raster_filePath, region_name_clean, region, 'solar', local_crs_obj, 'nearest', 'float32', output_dir)
     #co-register raster to land cover

@@ -24,6 +24,7 @@ dependencies:
   - pyrosm
   - openpyxl
   - xdem
+  - snakemake
   - pip            # ← ensure pip is installed so we can point at Git if needed
   - pip:
     - OSMPythonTools

@@ -6,11 +6,13 @@ import pickle
 import os
 import yaml
 import rasterio
+import argparse
+import itertools
 import matplotlib.pyplot as plt
+import json
 from rasterio.warp import reproject, Resampling
 from rasterio.io import MemoryFile
-import itertools
-from utils.data_preprocessing import clean_region_name
+from utils.data_preprocessing import clean_region_name, rel_path
 
 #------------------------------------------- Functions -------------------------------------------
 
@@ -43,6 +45,8 @@ def align_to_reference(src, ref):
         dst_nodata=nodata,
     )
 
+    # Change nan to zero
+    dst_array[np.isnan(dst_array)] = 0
     return dst_array
 
 def check_alignment(raster_paths):
@@ -78,21 +82,63 @@ def overlap(array1, array2):
     # Compute overlap mask (where both rasters have data)
     overlap_mask = (array1 > 0) & (array2 > 0)
 
-    return overlap_mask
+    return overlap_mask.astype(int)
 
-# Function to compute difference between two rasters
+# Function to compute union mask of multiple masked array where at least one has data
+def union(arrays):
+    """
+    Compute union of multiple masked arrays where at least one has data.
+    
+    Parameters:
+        arrays (list of numpy.ndarray): List of masked arrays.
+
+    Returns:
+        numpy.ndarray: Union mask where at least one array has data.
+    """
+
+    union_mask = np.zeros_like(arrays[0], dtype=int)
+    for array in arrays:
+        union_mask |= (array > 0)
+
+    return union_mask.astype(int)
+
+# Function to compute difference between two masked arrays
 def diff(array1, array2):
     # Compute difference mask (where data1 is present but data2 is not)
     diff_mask = (array1 > 0) & (array2 == 0)
 
-    return diff_mask
+    return diff_mask.astype(int)
 
 # Function to filter a raster based on a value raster and a range
 def filter(filter_array, value_array, vmin, vmax):
+    vmin=float(vmin)
+    vmax=float(vmax)
+    filtered_mask = (filter_array > 0) & (value_array >= vmin) & (value_array <= vmax)
 
-    filtered_mask = (filter_array > 0) & (value_array >= vmin) & (value_array < vmax)
+    return filtered_mask.astype(int)
 
-    return filtered_mask
+def export_raster(array, path, ref):
+    """
+    Export a numpy array as a raster file.
+    
+    Parameters:
+        array (numpy.ndarray): The data to export.
+        path (str): The file path to save the raster.
+        ref (rasterio.io.DatasetReader): Reference raster for CRS and transform.
+    """
+    with rasterio.open(
+        path, 'w',
+        driver='GTiff',
+        height=array.shape[0],
+        width=array.shape[1],
+        count=1,
+        dtype=array.dtype,
+        crs=local_crs_obj,
+        transform=ref.transform,
+        nodata=0
+    ) as dst:
+        dst.write(array, 1)
+
 
 
 #------------------------------------------- Initialization -------------------------------------------
@@ -100,11 +146,38 @@ dirname = os.getcwd()
 with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader) 
 
+#load the technology specific configuration file
+solar_config_file = os.path.join("configs", f"solar.yaml")
+with open(solar_config_file, "r", encoding="utf-8") as f:
+    solar_config = yaml.load(f, Loader=yaml.FullLoader)
+onshorewind_config_file = os.path.join("configs", f"onshorewind.yaml")
+with open(onshorewind_config_file, "r", encoding="utf-8") as f:
+    onshorewind_config = yaml.load(f, Loader=yaml.FullLoader)
+
+region_folder_name = config['region_folder_name']
 region_name = config['region_name'] #if country is studied, then use country name
 region_name = clean_region_name(region_name)
+scenario = config['scenario']
 
-data_path = os.path.join(dirname, 'data', config['region_folder_name'])
+
+# override values via command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--region", help="override region name and folder")
+args = parser.parse_args()
+
+if args.region:
+    region_folder_name = args.region
+    region_name = args.region
+else:
+    print("Using values from config.")
+
+data_path = os.path.join(dirname, 'data', region_folder_name)
+data_path_available_land = os.path.join(data_path, 'available_land')
 data_from_proximity = os.path.join(data_path, 'proximity')
+
+output_path = os.path.join(data_path,"suitability")
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
 
 # Load the CRS
 # geo CRS
@@ -124,10 +197,14 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 
 #--------------------------------------- Data ----------------------------------------
 # Data paths
-min_pixels_connected = config['min_pixels_connected']
-# TO DO: Change to different paths for solar and wind
-wind_avail_path = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
-solar_avail_path = os.path.join(data_path, f'{config['scenario']}_available_land_filtered-min{min_pixels_connected}_{region_name}_{local_crs_tag}.tif')
+wind_avail_path = os.path.join(
+    data_path_available_land,
+    f"{region_name}_onshorewind_{scenario}_available_land_{local_crs_tag}.tif"
+)
+solar_avail_path = os.path.join(
+    data_path_available_land,
+    f"{region_name}_solar_{scenario}_available_land_{local_crs_tag}.tif"
+)
 substation_distance_path = os.path.join(data_from_proximity, f'substation_distance.tif')
 road_distance_path = os.path.join(data_from_proximity, f'road_distance.tif')
 terrain_ruggedness_path = os.path.join(data_path, f'TerrainRuggednessIndex_{region_name}_{local_crs_tag}.tif')
@@ -149,9 +226,7 @@ check_alignment([wind_avail_path, solar_avail_path, substation_distance_path, ro
 #---------------- Reprojection and alignment (can be deleted if all rasters are aligned) ----------------
 # Reference grid (intersection of all rasters)
 ref = wind_avail # Should be standardized to a region raster or intersection of all rasters
-transform = ref.transform
-pixel_area_m2 = abs(transform.a * transform.e)
-pixel_area_km2 = pixel_area_m2 / 1e6
+pixel_area_km2 = abs(ref.transform.a * ref.transform.e) / 1e6
 
 #Reproject rasters to a common array
 GWA_reproj = align_to_reference(GWA, ref)
@@ -162,17 +237,25 @@ terrain_ruggedness_reproj = align_to_reference(terrain_ruggedness, ref)
 wind_avail_reproj = align_to_reference(wind_avail, ref)
 solar_avail_reproj = align_to_reference(solar_avail, ref)
 
+# Cost map calculation
+terrain_ruggedness_cost_factors = np.zeros_like(terrain_ruggedness_reproj, dtype=float)
 
-# Cost map calculation (TO DO: Adjust cost map)
-costmap = substation_distance_reproj * config["substation_cost_factor"] + road_distance_reproj * config["road_cost_factor"] + terrain_ruggedness_reproj * config["ruggedness_cost_factor"]
+for terrain_type in config["terrain_ruggedness_ranges"]:
+    lower, upper = terrain_type['range']
+    cost = terrain_type['cost']
+    terrain_mask = (terrain_ruggedness_reproj >= lower) & (terrain_ruggedness_reproj < upper)
+    terrain_ruggedness_cost_factors[terrain_mask] = cost
 
+costmap = (substation_distance_reproj * config["sub_dist_cost_factor"] + road_distance_reproj * config["road_dist_cost_factor"]) * terrain_ruggedness_cost_factors
+export_raster(costmap, os.path.join(output_path, f'costmap_{region_name}_{local_crs_tag}.tif'), ref)
 
-SG = config["sg_thr"].keys()
-WG = config["wg_thr"].keys()
+# Resource grades
+SG = solar_config["sg_thr"].keys()
+WG = onshorewind_config["wg_thr"].keys()
 SG_WG_comb = list(itertools.product(SG, WG))  # All combinations of SG and WG
 
-wind_grades = {wg: filter(wind_avail_reproj, GWA_reproj, config["wg_thr"][wg][0], config["wg_thr"][wg][1]) for wg in WG}
-solar_grades = {sg: filter(solar_avail_reproj, GSA_reproj, config["sg_thr"][sg][0], config["sg_thr"][sg][1]) for sg in SG}
+wind_grades = {wg: filter(wind_avail_reproj, GWA_reproj, onshorewind_config["wg_thr"][wg][0], onshorewind_config["wg_thr"][wg][1]) for wg in WG}
+solar_grades = {sg: filter(solar_avail_reproj, GSA_reproj, solar_config["sg_thr"][sg][0], solar_config["sg_thr"][sg][1]) for sg in SG}
 
 # Area lists
 a_indiv = [f"{region_name}_{sg}" for sg in SG] + [f"{region_name}_{wg}" for wg in WG]
@@ -186,7 +269,11 @@ df_tier_potentials = pd.DataFrame(index=areas, columns=config["tiers"].keys())
 for sg in SG:
     print(f'Processing solar potential: {sg}')
     
-    inclusion_area = diff(solar_grades[sg], wind_avail_reproj)
+    inclusion_area = diff(solar_grades[sg], union(list(wind_grades.values())))
+    if inclusion_area.sum() < config["min_area_rg"]:
+        print(f'Low/no solar potential found for {sg} in {region_name}. Skipping.')
+        continue
+    export_raster(inclusion_area, os.path.join(output_path, f'{region_name}_{sg}_{local_crs_tag}.tif'), ref)
 
     for t in config["tiers"]:
         tier_area = filter(inclusion_area, costmap, config["tiers"][t][0], config["tiers"][t][1])
@@ -196,7 +283,11 @@ for sg in SG:
 for wg in WG:
     print(f'Processing wind potential: {wg}')
     
-    inclusion_area = diff(wind_grades[wg], solar_avail_reproj)
+    inclusion_area = diff(wind_grades[wg], union(list(solar_grades.values())))
+    if inclusion_area.sum() < config["min_area_rg"]:
+        print(f'Low/no wind potential found for {wg} in {region_name}. Skipping.')
+        continue
+    export_raster(inclusion_area, os.path.join(output_path, f'{region_name}_{wg}_{local_crs_tag}.tif'), ref)
 
     for t in config["tiers"]:
         tier_area = filter(inclusion_area, costmap, config["tiers"][t][0], config["tiers"][t][1])
@@ -207,14 +298,36 @@ for sg, wg in SG_WG_comb:
     print(f'Processing combination: {sg} and {wg}')
     
     inclusion_area = overlap(solar_grades[sg], wind_grades[wg])
+    if inclusion_area.sum() < config["min_area_rg"]: 
+        print(f'Low/no potential found for combination {sg} and {wg} in {region_name}. Skipping.')
+        continue
+    export_raster(inclusion_area, os.path.join(output_path, f'{region_name}_{sg}_{wg}_{local_crs_tag}.tif'), ref)
 
     for t in config["tiers"]:
         tier_area = filter(inclusion_area, costmap, config["tiers"][t][0], config["tiers"][t][1])
         df_tier_potentials.loc[f"{region_name}_{sg}_{wg}", t] = np.sum(tier_area) * pixel_area_km2
 
+# Drop areas with no potential
+df_tier_potentials = df_tier_potentials[df_tier_potentials.sum(axis=1) > 0].astype(int)
 
 # Export potentials to CSV
-df_tier_potentials.to_csv(f'{region_name}_tier_potentials.csv')
+tier_potentials_file = os.path.join(output_path, f'{region_name}_tier_potentials.csv')
+print(f'Exporting tier potentials to {rel_path(output_path)}')
+df_tier_potentials.to_csv(tier_potentials_file)
 
+# Export a json with the relevant areas
+relevant_resource_grades = df_tier_potentials.index.tolist()
+relevant_resource_grades_file = os.path.join(output_path, f'{region_name}_relevant_resource_grades.json')
+with open(relevant_resource_grades_file, 'w') as f:
+    json.dump(relevant_resource_grades, f)
 
-# To do: Exporting the overlap/diff rasters as well as a json with the relevant areas
+# plot available land
+plt.figure(figsize=(10, 6))
+#plt.imshow(wind_grades['WG2'], cmap='viridis', vmin=0, vmax=1)
+#plt.imshow(solar_grades['SG2'], cmap='plasma', alpha=0.5, vmin=0, vmax=1)
+plt.imshow(union(list(wind_grades.values())), cmap='viridis', vmin=0, vmax=1)
+
+plt.imshow(GSA_reproj, cmap='plasma')
+plt.title(f'Solar Available Land in {region_name}')
+plt.legend(['Available Land'])
+plt.colorbar(label='Availability')
