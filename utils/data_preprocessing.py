@@ -472,7 +472,7 @@ def download_global_solar_atlas(country_name: str, data_path: str, measure = 'LT
     timeout = 300 # 5 Minutes
     # or whole world
     if country_name=='world':
-        url = 'https://api.globalsolaratlas.info/download/World/World_PVOUT_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip'
+        url = 'https://api.globalsolaratlas.info/download/World/World_GHI_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip'
         print("Attention: solar atlas whole world is a very big file! (ca. 350MB)")
         timeout = 900 # 15 Minutes
     print(f"Downloading solar data for '{country_name}' from: {url}")
@@ -537,6 +537,9 @@ def rel_path(path: str) -> str:
         path (str): The global path.
 
     Returns:
-        str: The relative path
+        str: The relative path if possible, otherwise the absolute path.
     """
-    return os.path.relpath(path)
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        return os.path.abspath(path)

@@ -4,7 +4,7 @@ import json
 def logpath(region, filename):
     return Path("data") / region / "snakemake_log" / filename
 
-# Load regions from JSON file
+# Load regions from JSON file produced from "extract_china_provinces" script in utils folder
 #regions_filepath = Path("Raw_Spatial_Data/custom_study_area/China_provinces_list.json")
 #with open(regions_filepath, "r") as f:
 #    regions= json.load(f)
@@ -19,6 +19,7 @@ technologies = ["solar", "wind"] #onshorewind
 weather_years = [str(y) for y in range(2010, 2011)]
 scenarios= "ref"
 
+#short term fix for testing
 regions=["Beijing"]
 weather_years=1990
 
@@ -27,8 +28,10 @@ for r in regions:
     Path(f"data/{r}/snakemake_log").mkdir(parents=True, exist_ok=True)
 
 
-#script to run in terminal 
+#script to run in terminal
+#the resources are limited to openeo cause the api is throwing problems with parallelization. The snakemake workflow will parallelize everything else but the spatial_data_prep script. 
 # snakemake --cores 4 --resources openeo_req=1
+
 
 rule all:
     input:
@@ -58,9 +61,10 @@ rule exclusion:
 
 rule suitability:
     input:
-        expand(logpath("{{region}}", "exclusion_{technology}.done"), technology=technologies)
+        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
     output:
         touch(logpath("{region}", "suitability.done"))
+
     shell:
         "python suitability.py --region {wildcards.region}"
 

@@ -93,6 +93,7 @@ if args.region:
 else:
     print("No command line region provided, using values from config.")
 
+
 ##################################################
 #north facing pixels
 X = config['X']
@@ -128,7 +129,7 @@ logging.info(f'\n Prepping {region_name}...')
 #get region boundary
 if custom_study_area_filename:
     custom_study_area_filepath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
-    region = gpd.read_file(custom_study_area_filepath)
+    region = gpd.read_file(custom_study_area_filepath).dissolve() # Dissolve to ensure it's a single polygon
     if region.crs != 4326:
         logging.warning('crs of custom polygon file for study region is not in EPSG 4326')
     logging.info('using custom polygon for study area')
@@ -592,7 +593,7 @@ if consider_solar_atlas == 1:
     else:
         print(f"Global solar atlas data already downloaded: {rel_path(solar_atlas_folder_path)}")
     
-    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, os.listdir(solar_atlas_folder_path)[0], 'PVOUT.tif')
+    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, os.listdir(solar_atlas_folder_path)[0], 'GHI.tif')
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
     clip_reproject_raster(solar_raster_filePath, region_name_clean, region, 'solar', local_crs_obj, 'nearest', 'float32', output_dir)
     #co-register raster to land cover

@@ -65,7 +65,7 @@ custom_study_area_filename: 'gadm41_CHN_1_NeiMongol.geojson' #if None use empty 
 #--exclusions----------------------------------------------------------------------
 # scenario name (written in available area filename)
 scenario: 'ref'
-technology: 'wind' # or 'solar', used for the filename of the available area
+technology: 'onshorewind' # or 'solar', used for the filename of the available area
 
 # deployment density
 deployment_density: 50 # MW/km²
@@ -183,13 +183,10 @@ wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all
 #--Weather and energy data assumptions-------------------------------------------------------------
 weather_data_path: "E:/CETO 2025 Spatial Analysis data/GIS/ERA5/"
 
-weather_years: [str(y) for y in range(1990,2020)]
+weather_year: '1990'
 
 # Technology data
-tech: "HeatDemand"
-tech_derate: 0.95
-solarpanel: atlite.solarpanels.CSi
-windturbine_onshore: 'LW_farm.yaml'
+#tech: "HeatDemand"
 
 # Heat demand
 heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
@@ -198,21 +195,10 @@ heat_demand_hour_shift: 8 # shift of heat demand profile in hours, such that dai
 heat_demand_constant: 0 # Corresponding to no temperature independent heat demand
 heat_demand_threshold: 15 # threshold for heat demand profile, in degrees Celsius
 
-#--Suitability and cost assumptions----------------------------------------------------------------------
+#--Suitability cost assumptions----------------------------------------------------------------------
 
-# Wind resource groups (m/s)
-wg_thr: {
-    'WG1': [3.5, 5], 
-    'WG2': [5, 7], 
-    'WG3': [7, 25]
-}
-
-# Solar resource groups (kWh/m²/day)
-sg_thr: {
-    'SG1': [2.2, 3.8],
-    'SG2': [3.8, 4.4],
-    'SG3': [4.4, 10]
-    }
+# Minimum area for resource grades
+min_area_rg: 100 # in km²
 
 # Cost tiers (Money)
 tiers: {
@@ -225,13 +211,15 @@ tiers: {
 sub_dist_cost_factor: 10
 # Road distance cost factor (Money/km)
 road_dist_cost_factor: 1
-#terrain ruggedness cost factor (Money)
-ruggedness_cost_factor: 1
 
-# Terrain cost  (Money)
-terrain_cost: {
-    'Plain': 0.5,
-    'Hills': 1,
-    'Mountains': 2
-
-}
+# Terrain cost (cost factor per terrain type range)
+terrain_ruggedness_ranges:
+# Plains
+  - range: [0, 150]
+    cost: 0.5
+# Hills
+  - range: [150, 450]
+    cost: 1
+# Mountains
+  - range: [450, 10000]
+    cost: 2

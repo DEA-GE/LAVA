@@ -28,7 +28,6 @@ technology = config.get('technology') #technology, e.g., 'wind' or 'solar'
 scenario=   config.get('scenario', 'ref') # scenario, e.g., 'ref' or 'high'
 print(f"Config parameters: region={region_name}, technology={technology}, scenario={scenario}")
 
-
 # override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", help="region and folder name")

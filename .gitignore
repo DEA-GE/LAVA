@@ -31,7 +31,7 @@
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
-!configs/wind.yaml
+!configs/onshorewind.yaml
 !configs/solar.yaml
 !spatial_data_prep.py
 !Exclusion.py

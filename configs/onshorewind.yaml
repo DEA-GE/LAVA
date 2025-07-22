@@ -22,7 +22,7 @@ max_slope: 20 #degrees
 # spatial elements (buffer in meters)
 railways_buffer: 50
 roads_buffer: 50
-airports_buffer: 2000
+airports_buffer: 5000
 waterbodies_buffer: 20
 military_buffer: 100
 coastlines_buffer: 200
@@ -54,16 +54,15 @@ min_pixels_y: # currently not working, use min_pixels_connected instead
 # model areas 
 model_areas_filename:
 
-# --Suitability and cost assumptions--------------------------------------------
-
 # Technology assumptions
-solarpanel: CSi
+windturbine_onshore: 'LW_farm.yaml'
 tech_derate: 0.95
 
-# Solar resource groups (kWh/m²/day)
-sg_thr: 
-    SG1: [800, 1000]
-    SG2: [1000, 1300]
-    SG3: [1300, 1600]
-    SG4: [1600, 1900]
-    SG5: [1900, 3000]
+# --Suitability and cost assumptions--------------------------------------------
+# Wind resource groups (m/s)
+wg_thr: 
+    WG1: [3.5, 4.5] 
+    WG2: [4.5, 5.5]
+    WG3: [5.5, 6.5]
+    WG4: [6.5, 7.5]
+    WG5: [7.5, 30]
