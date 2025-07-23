@@ -76,12 +76,12 @@ resolution_manual: null
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_without_buffer: [50] #list of landcover codes
 landcover_with_buffer: #dictionary of landcover code with corresponding buffer in meters
-  50: 50
+  50: 2000 #built-up land with 2000m buffer 
 
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 # DEM
-max_elevation: null #meters
+max_elevation: 2000 #meters
 max_slope: 10 #degrees
 
 # spatial elements (buffer in meters)
@@ -89,30 +89,30 @@ railways_buffer: 50
 roads_buffer: 50
 airports_buffer: 2000
 waterbodies_buffer: 20
-military_buffer: null
+military_buffer: 100
 coastlines_buffer: 200
-protectedAreas_buffer: null
-transmission_lines_buffer: null
+protectedAreas_buffer: 100
+transmission_lines_buffer: 100
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
 # solar and wind resources
-min_wind_speed: null
-max_wind_speed: null
+min_wind_speed: 0
+max_wind_speed: 15
 
-min_solar_production: null
-max_solar_production: null
+min_solar_production: 0
+max_solar_production: 5000
 
 # inclusion filter
 # EITHER use substations OR transmission (meters)
-substations_inclusion_buffer: null
-transmission_inclusion_buffer: null
+substations_inclusion_buffer: 10000
+transmission_inclusion_buffer: 10000
 
 # area filter
-min_pixels_connected: 0
-min_pixels_x: 5
-min_pixels_y: 5
+min_pixels_connected: 5
+min_pixels_x: # currently not working, use min_pixels_connected instead
+min_pixels_y: # currently not working, use min_pixels_connected instead
 
 # model areas 
 model_areas_filename:
@@ -179,3 +179,50 @@ Z: 50
 # world database of protected areas
 wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
 
+
+#--Weather and energy data assumptions-------------------------------------------------------------
+weather_data_path: Raw_Spatial_Data 
+
+weather_year: '1990' # [str(y) for y in range(1990,2020)]
+
+# Technology data
+tech: #"HeatDemand"
+tech_derate: 0.95
+solarpanel: CSi
+windturbine_onshore: 'LW_farm.yaml'
+
+# Heat demand
+heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
+heat_demand_end_day: "30-04" #end day of heat demand profile, format: DD-MM
+heat_demand_hour_shift: 8 # shift of heat demand profile in hours, such that daily heat demand average follows diurnal temperature profile
+heat_demand_constant: 0 # Corresponding to no temperature independent heat demand
+heat_demand_threshold: 15 # threshold for heat demand profile, in degrees Celsius
+
+#--Suitability cost assumptions----------------------------------------------------------------------
+
+# Minimum area for resource grades
+min_area_rg: 100 # in km²
+
+# Cost tiers (Money)
+tiers: {
+    'Tier1': [0, 0.5e6],
+    'Tier2': [0.5e6, 1e6],
+    'Tier3': [1e6, 2e6]
+    }
+
+# Substation distance cost factor (Money/km)
+sub_dist_cost_factor: 10
+# Road distance cost factor (Money/km)
+road_dist_cost_factor: 1
+
+# Terrain cost (cost factor per terrain type range)
+terrain_ruggedness_ranges:
+# Plains
+  - range: [0, 150]
+    cost: 0.5
+# Hills
+  - range: [150, 450]
+    cost: 1
+# Mountains
+  - range: [450, 10000]
+    cost: 2

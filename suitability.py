@@ -168,8 +168,9 @@ args = parser.parse_args()
 if args.region:
     region_folder_name = args.region
     region_name = args.region
+    print(f"\nRegion name and folder name overridden from command line to: {region_name}")
 else:
-    print("Using values from config.")
+    print("No command line region provided, using values from config.")
 
 data_path = os.path.join(dirname, 'data', region_folder_name)
 data_path_available_land = os.path.join(data_path, 'available_land')
@@ -317,7 +318,7 @@ df_tier_potentials.to_csv(tier_potentials_file)
 
 # Export a json with the relevant areas
 relevant_resource_grades = df_tier_potentials.index.tolist()
-relevant_resource_grades_file = os.path.join(output_path, f'{region_name}_relevant_resource_grades.json')
+relevant_resource_grades_file = os.path.join(output_path, f'{region_name}_{scenario}_relevant_resource_grades.json')
 with open(relevant_resource_grades_file, 'w') as f:
     json.dump(relevant_resource_grades, f)
 

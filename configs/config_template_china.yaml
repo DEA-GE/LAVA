@@ -21,6 +21,11 @@ plants: 1
 # coastlines 
 coastlines: 1
 
+# compute helper datasets
+compute_substation_proximity: 0
+compute_road_proximity: 0
+compute_terrain_ruggedness: 0
+
 # wind and solar resources
 wind_atlas: 1
 solar_atlas: 1
@@ -37,11 +42,6 @@ protected_areas_filename: 'China_Nature_reserve.gpkg' #include file ending (.gpk
 
 
 CRS_manual:  #if None use empty string
-
-# proximity data
-compute_substation_proximity: 1
-compute_road_proximity: 1
-compute_terrain_ruggedness: 1
 
 
 # name of folders and files with raw data
@@ -71,7 +71,7 @@ technology: 'onshorewind' # or 'solar', used for the filename of the available a
 deployment_density: 50 # MW/km²
 
 # resolution manual
-resolution_manual: 
+resolution_manual: null
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_without_buffer: [10,40,70,80,90] #list of landcover codes
@@ -89,25 +89,25 @@ railways_buffer: 50
 roads_buffer: 50
 airports_buffer: 2000
 waterbodies_buffer: 20
-military_buffer: null
+military_buffer: 100
 coastlines_buffer: 200
-protectedAreas_buffer: null
-transmission_lines_buffer: null
+protectedAreas_buffer: 50
+transmission_lines_buffer: 100
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
 # solar and wind resources
-min_wind_speed: null
-max_wind_speed: null
+min_wind_speed: 0
+max_wind_speed: 15
 
-min_solar_production: null
-max_solar_production: null
+min_solar_production: 0
+max_solar_production: 5000
 
 # inclusion filter
 # EITHER use substations OR transmission (meters)
-substations_inclusion_buffer: null
-transmission_inclusion_buffer: null
+substations_inclusion_buffer: 10000
+transmission_inclusion_buffer: 10000
 
 # area filter
 min_pixels_connected: 5
@@ -181,12 +181,15 @@ wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all
 
 
 #--Weather and energy data assumptions-------------------------------------------------------------
-weather_data_path: "E:/CETO 2025 Spatial Analysis data/GIS/ERA5/"
+weather_data_path: Raw_Spatial_Data 
 
-weather_year: '1990'
+weather_year: '1990' # [str(y) for y in range(1990,2020)]
 
 # Technology data
-#tech: "HeatDemand"
+tech: #"HeatDemand"
+tech_derate: 0.95
+solarpanel: CSi
+windturbine_onshore: 'LW_farm.yaml'
 
 # Heat demand
 heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
