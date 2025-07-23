@@ -48,3 +48,5 @@
 !Snakefile
 !utils/simplify.py
 !utils/extract_china_provinces.py
+!suitability.py
+!weather_data_prep.py
