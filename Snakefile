@@ -15,7 +15,7 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
-technologies = ["solar", "wind"] #onshorewind
+technologies = ["solar", "onshorewind"]
 weather_years = [str(y) for y in range(2010, 2011)]
 scenarios= "ref"
 
@@ -61,7 +61,7 @@ rule exclusion:
 
 rule suitability:
     input:
-        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
+        expand(logpath("{region}", "exclusion_{technology}.done"), region=regions, technology=technologies)
     output:
         touch(logpath("{region}", "suitability.done"))
 
