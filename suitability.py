@@ -198,14 +198,24 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 
 #--------------------------------------- Data ----------------------------------------
 # Data paths
-wind_avail_path = os.path.join(
-    data_path_available_land,
-    f"{region_name}_onshorewind_{scenario}_available_land_{local_crs_tag}.tif"
-)
-solar_avail_path = os.path.join(
-    data_path_available_land,
-    f"{region_name}_solar_{scenario}_available_land_{local_crs_tag}.tif"
-)
+try:
+    wind_avail_path = os.path.join(
+        data_path_available_land,
+        f"{region_name}_onshorewind_{scenario}_available_land_{local_crs_tag}.tif"
+    )
+except FileNotFoundError:
+    print(f"Wind availability raster not found. Both technologies are needed to calculate the suitability.", 
+          "Please selected onshorewind in the config and run extension.py again.")
+    
+try:
+    solar_avail_path = os.path.join(
+        data_path_available_land,
+        f"{region_name}_solar_{scenario}_available_land_{local_crs_tag}.tif"
+    )
+except FileNotFoundError:
+    print(f"Solar availability raster not found. Both technologies are needed to calculate the suitability.", 
+          "Please selected solar in the config and run extension.py again.")
+    
 substation_distance_path = os.path.join(data_from_proximity, f'substation_distance.tif')
 landcover_path = os.path.join(data_path, f"landcover_{config['landcover_source']}_{region_name}_{local_crs_tag}.tif")
 terrain_ruggedness_path = os.path.join(data_path, f'TerrainRuggednessIndex_{region_name}_{local_crs_tag}.tif')

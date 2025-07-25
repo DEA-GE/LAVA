@@ -19,6 +19,21 @@ landcover_with_buffer: #dictionary of landcover code with corresponding buffer i
 max_elevation: null #meters
 max_slope: 20 #degrees
 
+#landcover codes (buffer in meters) (here landcover codes for openeo as default example)
+#| Code | Class                    |
+#| ---- | ------------------------ |
+#| 10   | Tree cover               |
+#| 20   | Shrubland                |
+#| 30   | Grassland                |
+#| 40   | Cropland                 |
+#| 50   | Built-up                 |
+#| 60   | Bare / sparse vegetation |
+#| 70   | Snow and ice             |
+#| 80   | Permanent water bodies   |
+#| 90   | Herbaceous wetland       |
+#| 95   | Mangroves                |
+#| 100  | Moss and lichen          |
+
 # spatial elements (buffer in meters)
 railways_buffer: 50
 roads_buffer: 50

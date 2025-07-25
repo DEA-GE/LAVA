@@ -124,10 +124,14 @@ output_dir = os.path.join(dirname, 'data', f'{region_folder_name}')
 os.makedirs(output_dir, exist_ok=True)
 
 # Set up logging
-logging.info(f'\n Prepping {region_name}...')
+logging.info(f'\nPrepping {region_name}...')
 
 #get region boundary
 if custom_study_area_filename:
+    #check if dynamic filename is used
+    if "{region_name}" in custom_study_area_filename:
+        custom_study_area_filename = custom_study_area_filename.format(region_name=region_name)
+    print(f"Using custom study area filename: {custom_study_area_filename}")
     custom_study_area_filepath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
     region = gpd.read_file(custom_study_area_filepath).dissolve() # Dissolve to ensure it's a single polygon
     if region.crs != 4326:

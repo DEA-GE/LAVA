@@ -188,11 +188,11 @@ def wind_filter(mask):
     elif max_val is not None:
         return mask > max_val
 
-if technology == "wind" and (config['min_wind_speed'] is not None or config['max_wind_speed'] is not None): 
+if technology in  ["onshorewind", "offshorewind"] and (tech_config['min_wind_speed'] is not None or tech_config['max_wind_speed'] is not None): 
     min_wind_speed = tech_config['min_wind_speed']
     max_wind_speed = tech_config['max_wind_speed']
     excluder.add_raster(windRasterPath, codes=wind_filter, crs=global_crs_obj)
-    if min_wind_speed is not None and config['max_wind_speed'] is not None: info=f"min wind speed: {min_wind_speed}, max wind speed: {max_wind_speed}"
+    if min_wind_speed is not None and max_wind_speed is not None: info=f"min wind speed: {min_wind_speed}, max wind speed: {max_wind_speed}"
     elif min_wind_speed is not None: info=f"min wind speed: {min_wind_speed}"
     elif max_wind_speed is not None: info=f"max wind speed: {max_wind_speed}"
     info_list_exclusion.append(f'{info}')
@@ -210,19 +210,19 @@ def solar_filter(mask): #desired yearly, specific solar production (kWh/m²/year
     elif max_val is not None:
         return mask > max_val
     
-if technology == "solar" and (config.get('min_solar_production') is not None or config.get('max_solar_production') is not None):
+if technology == "solar" and (tech_config.get('min_solar_production') is not None or tech_config.get('max_solar_production') is not None):
     
     min_solar_production = tech_config.get('min_solar_production')
     max_solar_production = tech_config.get('max_solar_production')
 
     excluder.add_raster(solarRasterPath, codes=solar_filter, crs=global_crs_obj)
-    info_parts = []
-    if config.get('min_solar_production') is not None:
-        info_parts.append(f"min_solar_production: {min_solar_production}")
-    if config.get('max_solar_production') is not None:
-        info_parts.append(f"max_solar_production: {max_solar_production}")
-
-    info_list_exclusion.append(', '.join(info_parts))
+    if min_solar_production is not None and max_solar_production is not None:
+        info=f"min_solar_production: {min_solar_production}, max_solar_production: {max_solar_production}"
+    elif min_solar_production is not None:
+        info=f"min_solar_production: {min_solar_production}"
+    elif max_solar_production is not None:
+        info=f"max_solar_production: {max_solar_production}"
+    info_list_exclusion.append(info)
 else:
     print("Solar file not found or not selected in config.")
 
@@ -331,9 +331,9 @@ def area_filter(boolean_array, min_size):
 
 
 
-min_pixels_connected = config['min_pixels_connected']
-min_pixels_x=config['min_pixels_x']
-min_pixels_y=config['min_pixels_y']
+min_pixels_connected = tech_config['min_pixels_connected']
+#min_pixels_x=tech_config['min_pixels_x']
+#min_pixels_y=tech_config['min_pixels_y']
 
 masked_area_filtered = area_filter(masked,min_size=min_pixels_connected)
 #masked_area_filtered = area_filter2(masked,min_x=5, min_y=5)
