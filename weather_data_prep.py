@@ -20,12 +20,12 @@ def InstantiateModel():
     # Make model object from class
     m = M()
 
-    m.years = [str(y) for y in range(1990,2020)]
+    m.years = [str(y) for y in range(1990,1991)]
 
-    m.region_name = 'China_mainland_'
+    m.region_name = "Beijing" #'China_mainland_'
 
     # Balmorel time sets and geography
-    m.region_file = 'K:/Github/LAVA_Kina/China_provinces.gpkg'
+    m.region_file = "Raw_Spatial_Data/custom_study_area/gadm41_CHN_1_Beijing.geojson" #'data/Beijing/Beijing_EPSG32650.geojson'
 
     # Shapefile to define the region downloadet from ERA5
     m.region = gpd.read_file(m.region_file)
@@ -38,7 +38,7 @@ def InstantiateModel():
     m.t_start_3 = '-09-01'
     m.t_end_3 = '-12-31'
 
-    m.data_path = "D:/ProjectData/Weather data/ERA5 China/"
+    m.data_path = "Weather data/ERA5/"
 
 
     return m
