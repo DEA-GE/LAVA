@@ -30,15 +30,16 @@ print(f"Config parameters: region={region_name}, technology={technology}, scenar
 
 # override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", default=region_folder_name, help="region and folder name")
+parser.add_argument("--region", default=region_folder_name, help="region name")
+parser.add_argument("--region_folder_name", default=region_folder_name, help="folder name for the region")
 parser.add_argument("--technology",default=technology, help="technology type")
 args = parser.parse_args()
 
 # Override values if provided in command line arguments wiht snakemake
 region_name = clean_region_name(args.region)
-region_folder_name = args.region
+region_folder_name = args.region_folder_name
 technology = args.technology
-if ( args.region != region_folder_name or args.technology != technology ):
+if ( args.region != region_name or args.technology != technology ):
     print(f"Using command line arguments: region={region_name}, technology={technology}")
 
 #load the technology specific configuration file

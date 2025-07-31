@@ -91,7 +91,7 @@ if args.region:
     region_name = args.region
     print(f"\nRegion name and folder name overridden from command line to: {region_name}")
 else:
-    print("No command line region provided, using values from config.")
+    print("\nNo command line region provided, using values from config.")
 
 
 ##################################################
@@ -131,7 +131,7 @@ if custom_study_area_filename:
     #check if dynamic filename is used
     if "{region_name}" in custom_study_area_filename:
         custom_study_area_filename = custom_study_area_filename.format(region_name=region_name)
-    print(f"Using custom study area filename: {custom_study_area_filename}")
+    print(f"\nUsing custom study area filename: {custom_study_area_filename}")
     custom_study_area_filepath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
     region = gpd.read_file(custom_study_area_filepath).dissolve() # Dissolve to ensure it's a single polygon
     if region.crs != 4326:
@@ -269,6 +269,7 @@ elif OSM_source == 'overpass':
                 polygon=polygon,
                 feature_key=feature_key,
                 features_dict=selected_osm_features_dict,
+                timeout=500,
                 # Optional override for geometry types per feature::
                 # relevant_geometries_override={"substation": ["node"]},
                 output_dir=OSM_output_dir
