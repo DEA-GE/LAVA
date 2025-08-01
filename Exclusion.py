@@ -28,19 +28,21 @@ technology = config.get('technology') #technology, e.g., 'wind' or 'solar'
 scenario=   config.get('scenario', 'ref') # scenario, e.g., 'ref' or 'high'
 print(f"Config parameters: region={region_name}, technology={technology}, scenario={scenario}")
 
-# override values via command line arguments through snakemake
+#Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", default=region_name, help="region name")
-parser.add_argument("--region_folder_name", default=region_folder_name, help="folder name for the region")
-parser.add_argument("--technology",default=technology, help="technology type")
+parser.add_argument("--region_folder_name", default=region_folder_name, help="region folder name")
+parser.add_argument("--technology", default=technology, help="technology type")
+parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 args = parser.parse_args()
 
-# Override values if provided in command line arguments wiht snakemake
-region_name = clean_region_name(args.region)
-region_folder_name = args.region_folder_name
-technology = args.technology
-if ( args.region != region_name or args.technology != technology ):
-    print(f"Using command line arguments: region={region_name}, technology={technology}")
+# If running via Snakemake, use the region name and folder name from command line arguments
+if args.method == "snakemake":
+    region_name = args.region
+    region_folder_name = args.region_folder_name
+    print(f"Running via snakemake - measures: region={region_name}, region_folder_name={region_folder_name}")
+else:
+    print(f"Running manually - measures: region={region_name}, region_folder_name={region_folder_name}")
 
 #load the technology specific configuration file
 tech_config_file = os.path.join("configs", f"{technology}.yaml")

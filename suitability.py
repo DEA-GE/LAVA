@@ -159,18 +159,20 @@ region_name = config['region_name'] #if country is studied, then use country nam
 region_name = clean_region_name(region_name)
 scenario = config['scenario']
 
-
-# override values via command line arguments
+#Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", help="override region name and folder")
+parser.add_argument("--region", default=region_name, help="region name")
+parser.add_argument("--region_folder_name", default=region_folder_name, help="region folder name")
+parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 args = parser.parse_args()
 
-if args.region:
-    region_folder_name = args.region
+# If running via Snakemake, use the region name and folder name from command line arguments
+if args.method == "snakemake":
     region_name = args.region
-    print(f"\nRegion name and folder name overridden from command line to: {region_name}")
+    region_folder_name = args.region_folder_name
+    print(f"Running via snakemake - measures: region={region_name}, region_folder_name={region_folder_name}")
 else:
-    print("No command line region provided, using values from config.")
+    print(f"Running manually - measures: region={region_name}, region_folder_name={region_folder_name}")
 
 data_path = os.path.join(dirname, 'data', region_folder_name)
 data_path_available_land = os.path.join(data_path, 'available_land')

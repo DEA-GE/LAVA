@@ -81,18 +81,20 @@ gadm_level = config['gadm_level']
 #or use custom region
 custom_study_area_filename = config.get('custom_study_area_filename', None)
 
-# override region via command line argument
+#Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", help="override region name and folder")
+parser.add_argument("--region", default=region_name, help="region name")
+parser.add_argument("--region_folder_name", default=region_folder_name, help="region folder name")
+parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 args = parser.parse_args()
 
-if args.region:
-    region_folder_name = args.region
+# If running via Snakemake, use the region name and folder name from command line arguments
+if args.method == "snakemake":
     region_name = args.region
-    print(f"\nRegion name and folder name overridden from command line to: {region_name}")
+    region_folder_name = args.region_folder_name
+    print(f"Running via snakemake - measures: region={region_name}, region_folder_name={region_folder_name}")
 else:
-    print("\nNo command line region provided, using values from config.")
-
+    print(f"Running manually - measures: region={region_name}, region_folder_name={region_folder_name}")
 
 ##################################################
 #north facing pixels

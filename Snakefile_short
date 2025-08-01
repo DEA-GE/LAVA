@@ -17,16 +17,19 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
 technologies = ["solar", "onshorewind"]
 scenarios= "ref"
+# the region folder name is the same as the region name in the China case. 
 
 # Create directories for each region and snakemake log
 for r in regions:
     Path(f"data/{r}/snakemake_log").mkdir(parents=True, exist_ok=True)
 
-
-#script to run in terminal
-#the resources are limited to openeo cause the api is throwing problems with parallelization. The snakemake workflow will parallelize everything else but the spatial_data_prep script. 
-# snakemake --cores 4 --resources openeo_req=1
-
+"""script to run in terminal
+The snakemake workflow will parallelize (--cores > 1) everything else but the spatial_data_prep script. 
+The resources are limited to openeo cause the api is throwing problems with parallelization. 
+    use thi line ---->  snakemake --cores 4 --resources openeo_req=1
+to use a specific Snakefile, use the --snakefile option
+    use thi line ----> snakemake --snakefile Snakefile_short --cores 4 --resources openeo_req=1
+"""
 
 rule all:
     input:
@@ -39,18 +42,22 @@ rule spatial_data_prep:
         touch(logpath("{region}", "spatial_data_prep.done"))
     resources:
         openeo_req=1
+    params:
+        method="snakemake"
     shell:
-        "python spatial_data_prep.py --region {wildcards.region}"
+        "python spatial_data_prep.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method}"
 
 rule exclusion:
     input:
         logpath("{region}", "spatial_data_prep.done")
     output:
         touch(logpath("{region}", "exclusion_{technology}.done"))
+    params:
+        method="snakemake"
     shell:
         (
-            "python Exclusion.py --region {wildcards.region} "
-            "--technology {wildcards.technology}"
+            "python Exclusion.py --region {wildcards.region} --region_folder_name {wildcards.region} "
+            "--technology {wildcards.technology} --method {params.method}"
         )
 
 rule suitability:
@@ -58,7 +65,8 @@ rule suitability:
         expand(logpath("{region}", "exclusion_{technology}.done"), region=regions, technology=technologies)
     output:
         touch(logpath("{region}", "suitability.done"))
-
+    params:
+        method="snakemake"
     shell:
-        "python suitability.py --region {wildcards.region}"
+        "python suitability.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method}"
 
