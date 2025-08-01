@@ -30,7 +30,7 @@ print(f"Config parameters: region={region_name}, technology={technology}, scenar
 
 # override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", default=region_folder_name, help="region name")
+parser.add_argument("--region", default=region_name, help="region name")
 parser.add_argument("--region_folder_name", default=region_folder_name, help="folder name for the region")
 parser.add_argument("--technology",default=technology, help="technology type")
 args = parser.parse_args()

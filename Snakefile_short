@@ -22,10 +22,6 @@ scenarios= "ref"
 for r in regions:
     Path(f"data/{r}/snakemake_log").mkdir(parents=True, exist_ok=True)
 
-regions=[ "Chongqing", "Fujian",  "Guizhou",
-          "Hainan", "Hebei", "Hubei", "Hunan", 
-          "Liaoning", "NeiMongol", "Shandong", "Shanghai",
-          "XinjiangUygur", "Xizang"] 
 
 #script to run in terminal
 #the resources are limited to openeo cause the api is throwing problems with parallelization. The snakemake workflow will parallelize everything else but the spatial_data_prep script. 

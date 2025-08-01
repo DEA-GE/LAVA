@@ -30,7 +30,7 @@ compute_terrain_ruggedness: 1
 wind_atlas: 1
 solar_atlas: 1
 country_name_solar_atlas: Germany # name of country or "world" if you want to download the whole world 
-
+measure: LTAym_YearlyMonthlyTotals
 # additional polygons and rasters
 additional_exclusion_polygons_folder_name: 
 additional_exclusion_rasters_folder_name: 
