@@ -580,9 +580,9 @@ if consider_wind_atlas == 1:
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
     clip_reproject_raster(wind_raster_filePath, region_name_clean, region, 'wind', local_crs_obj, 'nearest', 'float32', output_dir)
     #co-register raster to land cover
-    wind_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}.tif')
-    wind_raster_co_registered_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}_resampled.tif')
-    co_register(wind_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', wind_raster_co_registered_filePath, dtype='float32')
+    # wind_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}.tif')
+    # wind_raster_co_registered_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}_resampled.tif')
+    # co_register(wind_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', wind_raster_co_registered_filePath, dtype='float32')
 
 
 
@@ -602,9 +602,9 @@ if consider_solar_atlas == 1:
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
     clip_reproject_raster(solar_raster_filePath, region_name_clean, region, 'solar', local_crs_obj, 'nearest', 'float32', output_dir)
     #co-register raster to land cover
-    solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}.tif')
-    solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}_resampled.tif')
-    co_register(solar_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', solar_raster_co_registered_filePath, dtype='float32')
+    # solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}.tif')
+    # solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}_resampled.tif')
+    # co_register(solar_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', solar_raster_co_registered_filePath, dtype='float32')
 
 
 

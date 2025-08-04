@@ -9,8 +9,7 @@ deployment_density: 50 # MW/km²
 resolution_manual: 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
-landcover_without_buffer: [10,40,70,80,90,95] #list of landcover codes
-landcover_with_buffer: #dictionary of landcover code with corresponding buffer in meters
+landcover_codes: #dictionary of landcover code with corresponding buffer in meters
   50: 2000 #built-up land with 2000m buffer 
 
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
