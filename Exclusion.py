@@ -112,12 +112,14 @@ waterbodiesPath = os.path.join(data_path_OSM, f'{OSM_source}_waterbodies.gpkg')
 waterbodies = 1 if os.path.isfile(waterbodiesPath) else 0
 militaryPath = os.path.join(data_path_OSM, f'{OSM_source}_military.gpkg')
 military = 1 if os.path.isfile(militaryPath) else 0
-
-# OSM Overpass
 substationsPath = os.path.join(data_path_OSM, f'{OSM_source}_substations.gpkg')
 substations = 1 if os.path.isfile(substationsPath) else 0
 transmissionPath = os.path.join(data_path_OSM, f'{OSM_source}_transmission_lines.gpkg')
 transmission = 1 if os.path.isfile(transmissionPath) else 0
+generatorsPath = os.path.join(data_path_OSM, f'{OSM_source}_generators.gpkg')
+generators = 1 if os.path.isfile(generatorsPath) else 0
+plantsPath = os.path.join(data_path_OSM, f'{OSM_source}_plants.gpkg')
+plants = 1 if os.path.isfile(plantsPath) else 0
 
 # Additional exclusion polygons
 additional_exclusion_polygons_Path = os.path.join(data_path, 'additional_exclusion_polygons')
@@ -296,6 +298,22 @@ if transmission == 1 and param is not None:
     info_list_exclusion.append(f"transmission buffer: {param}")
 elif transmission == 1 and param is None: info_list_not_selected.append("transmission")
 elif transmission == 0: info_list_not_available.append("transmission")
+
+# existing generators (points)
+param = tech_config['generators_buffer']
+if generators == 1 and param is not None:
+    excluder.add_geometry(generatorsPath, buffer=param)
+    info_list_exclusion.append(f"existing generators buffer: {param}")
+elif generators == 1 and param is None: info_list_not_selected.append("existing generators")
+elif generators == 0: info_list_not_available.append("existing generators")
+
+# existing plants (polygons)
+param = tech_config['plants_buffer']
+if plants == 1 and param is not None:
+    excluder.add_geometry(plantsPath, buffer=param)
+    info_list_exclusion.append(f"existing plants buffer: {param}")
+elif plants == 1 and param is None: info_list_not_selected.append("existing plants")
+elif plants == 0: info_list_not_available.append("existing plants")
 
 # add additional exclusion polygons
 if additional_exclusion_polygons==1 and tech_config['additional_exclusion_polygons_buffer']:   
