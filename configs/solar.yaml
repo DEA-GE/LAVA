@@ -5,16 +5,13 @@ scenario: 'ref'
 # deployment density
 deployment_density: 50 # MW/km²
 
+# exclusion container resolution manual
+resolution_manual: null
+
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
-  50: 2000 #built-up land with 2000m buffer 
-
-# Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
-
-# DEM
-max_elevation: null #meters
-max_slope: 20 #degrees
+  50: 500 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 #| Code | Class                    |
@@ -31,14 +28,20 @@ max_slope: 20 #degrees
 #| 95   | Mangroves                |
 #| 100  | Moss and lichen          |
 
+# Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
+
+# DEM
+max_elevation: 2000 #meters
+max_slope: 20 #degrees
+
 # spatial elements (buffer in meters)
 railways_buffer: 50
 roads_buffer: 50
 airports_buffer: 2000
-waterbodies_buffer: 500
+waterbodies_buffer: 100
 military_buffer: null
 coastlines_buffer: 200
-protectedAreas_buffer: 1000
+protectedAreas_buffer: 0
 transmission_lines_buffer: 100
 generators_buffer: null
 plants_buffer: null
@@ -48,12 +51,12 @@ additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order
 
 # energy resources
 min_solar_production: 1000 #kWh/kW/year
-max_solar_production: 3000 #kWh/kW/year
+max_solar_production: null #kWh/kW/year
 
 # inclusion filter
 # EITHER use substations OR transmission (meters)
 substations_inclusion_buffer: null
-transmission_inclusion_buffer: 50000
+transmission_inclusion_buffer: null
 
 # area filter
 min_pixels_connected: 5

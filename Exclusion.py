@@ -132,8 +132,8 @@ with open(os.path.join(data_path, f'landuses_{region_name_clean}.json'), 'r') as
     landuses = json.load(fp)
 
 # load pixel size
-if config['resolution_manual'] is not None:
-    res = config['resolution_manual']
+if tech_config['resolution_manual'] is not None:
+    res = tech_config['resolution_manual']
 else:
     with open(os.path.join(data_path, f'pixel_size_{region_name_clean}_{local_crs_tag}.json'), 'r') as fp:
         res = json.load(fp)

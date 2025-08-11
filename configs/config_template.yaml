@@ -7,13 +7,14 @@ country_code: DEU #3-letter ISO code; also needed for global wind atlas
 # use GADM boundary (https://gadm.org/maps.html)
 GADM_region_name: Elbe-Elster #exact name as in GADM file (NAME_{gadm_level})
 GADM_level: 2
-# or use custom region (if file is passed, then this is used as default over the GADM definitions above)
+# or use custom region (if file is passed, then this is used instead of the GADM definitions above)
 custom_study_area_filename: #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
 
 #--data retrieval----------------------------------------------------------------------
 # landcover
 landcover_source: openeo   #'file' or 'openeo' or leave empty to not download (DEM data depends on landcover data due to co-registering)
+resolution_landcover:  # for openeo download, in degress (EPSG4326); 0.008999280057498208 degrees is ca. 1000m at equator
 landcover_filename: #filename including file ending of local landcover file in Raw_Spatial_Data/landcover
 
 # DEM 
@@ -46,8 +47,8 @@ country_name_solar_atlas: Germany # name of country, check https://globalsolarat
 solar_atlas_measure: LTAym_YearlyMonthlyTotals # check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
 
 # protected areas
-protected_areas_source: WDPA #WDPA or file or 0
-wdpa_url: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip
+protected_areas_source: 0 #WDPA or file or 0
+wdpa_url: 
 protected_areas_filename:  #include file ending (.gpkg or .geojson), needs to be in EPSG4326
 
 # compute helper datasets
@@ -55,7 +56,7 @@ compute_substation_proximity: 1
 compute_road_proximity: 1
 compute_terrain_ruggedness: 1
 
-CRS_manual:  #if None use empty string
+CRS_manual:  #set CRS instead of calculating local UTM zone
 
 # additional polygons and rasters
 additional_exclusion_polygons_folder_name: 
@@ -63,12 +64,12 @@ additional_exclusion_rasters_folder_name:
 
 
 #--exclusions----------------------------------------------------------------------
+
+# see onshorewind.yaml and solar.yaml
+
 # scenario name (written in available area filename)
 scenario: ref
-technology: onshorewind #onshorewind or solar, used for the filename of the available area
-
-# exclusion container resolution manual
-resolution_manual: null
+technology: solar #onshorewind or solar, used for the filename of the available area
 
 # model areas 
 model_areas_filename:
@@ -76,7 +77,7 @@ model_areas_filename:
 
 #--advanced details----------------------------------------------------------------------
 
-force_osm_download: 1 #if set to 1, OSM data will be downloaded even if it is already present in the folder
+force_osm_download: 0 #if set to 1, OSM data will be downloaded even if it is already present in the folder
 
 # simplification tolerance for study area
 study_area:
@@ -121,9 +122,6 @@ osm_features_config:
   military: ["landuse", *military, "way"]
 
 
-# landcover data
-resolution_landcover:  # in degress, since EPSG4326; 0.008999280057498208 degrees is ca. 1000m at equator
-
 # north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
 north_facing_pixels: null
 X: 10
@@ -139,6 +137,16 @@ weather_data_path: Raw_Spatial_Data
 
 weather_year: 1990 #[str(y) for y in range(1990,2020)]
 
+# Technology data
+tech: #"HeatDemand"
+tech_derate: 0.95
+
+# Heat demand
+heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
+heat_demand_end_day: "30-04" #end day of heat demand profile, format: DD-MM
+heat_demand_hour_shift: 8 # shift of heat demand profile in hours, such that daily heat demand average follows diurnal temperature profile
+heat_demand_constant: 0 # Corresponding to no temperature independent heat demand
+heat_demand_threshold: 15 # threshold for heat demand profile, in degrees Celsius
 
 #--Suitability cost assumptions----------------------------------------------------------------------
 
@@ -187,4 +195,3 @@ landcover_modifier: {
         'solar': 0.85
     }
 }
-
