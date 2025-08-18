@@ -16,7 +16,7 @@ landcover_with_buffer: #dictionary of landcover code with corresponding buffer i
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 # DEM
-max_elevation: null #meters
+max_elevation: 3000 #meters
 max_slope: 20 #degrees
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
@@ -35,14 +35,14 @@ max_slope: 20 #degrees
 #| 100  | Moss and lichen          |
 
 # spatial elements (buffer in meters)
-railways_buffer: 50
-roads_buffer: 50
-airports_buffer: 5000
-waterbodies_buffer: 500
-military_buffer: null
-coastlines_buffer: 200
-protectedAreas_buffer: 1000
-transmission_lines_buffer: 100
+railways_buffer: 1000
+roads_buffer: 1000
+airports_buffer: 3000
+waterbodies_buffer: 2000
+military_buffer: 2000
+coastlines_buffer: 2000
+protectedAreas_buffer: 2000
+transmission_lines_buffer: 1000
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
@@ -57,8 +57,9 @@ max_solar_production: 3000
 # inclusion filter
 # EITHER use substations OR transmission (meters)
 substations_inclusion_buffer: 50000
-transmission_inclusion_buffer: 50000
+transmission_inclusion_buffer: null
 roads_inclusion_buffer: null
+
 
 # area filter
 min_pixels_connected: 5

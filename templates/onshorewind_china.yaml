@@ -3,7 +3,7 @@
 scenario: 'ref'
 
 # deployment density
-deployment_density: 50 # MW/km²
+deployment_density: 10 # MW/km²
 
 # resolution manual
 resolution_manual: 
@@ -16,7 +16,7 @@ landcover_with_buffer: #dictionary of landcover code with corresponding buffer i
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 # DEM
-max_elevation: null #meters
+max_elevation: 3000 #meters
 max_slope: 20 #degrees
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
@@ -48,7 +48,7 @@ transmission_lines_buffer: 1000
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
 # solar and wind resources
-min_wind_speed: 3.5
+min_wind_speed: 4.5
 max_wind_speed: 25
 
 min_solar_production: 1000
@@ -56,9 +56,8 @@ max_solar_production: 3000
 
 # inclusion filter
 # EITHER use substations OR transmission (meters)
-substations_inclusion_buffer: 50000
+substations_inclusion_buffer: null
 transmission_inclusion_buffer: null
-roads_inclusion_buffer: null
 
 # area filter
 min_pixels_connected: 5
@@ -69,11 +68,14 @@ min_pixels_y: # currently not working, use min_pixels_connected instead
 model_areas_filename:
 
 # Technology assumptions
-panel: 'CSi.yaml'
+turbine: 'LW_farm.yaml'
+
 tech_derate: 0.95
 
-# Solar resource groups (kWh/m²/year)
-sg_thr: 
-    SG1: [1000, 1300]
-    SG2: [1300, 1600]
-    SG3: [1600, 3000]
+# --Suitability and cost assumptions--------------------------------------------
+# Wind resource groups (m/s)
+wg_thr: 
+    WG1: [4.5, 5.5]
+    WG2: [5.5, 6.5]
+    WG3: [6.5, 7.5]
+    WG4: [7.5, 25]

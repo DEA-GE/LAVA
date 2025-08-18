@@ -17,7 +17,7 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
 technologies = ["solar", "onshorewind"]
 weather_years = [str(y) for y in range(2010, 2011)]
-scenarios= "ref"
+scenario= "noInclusion"
 
 #short term fix for testing
 regions=["Beijing"]
@@ -28,55 +28,69 @@ for r in regions:
     Path(f"data/{r}/snakemake_log").mkdir(parents=True, exist_ok=True)
 
 
-#script to run in terminal
-#the resources are limited to openeo cause the api is throwing problems with parallelization. The snakemake workflow will parallelize everything else but the spatial_data_prep script. 
-# snakemake --cores 4 --resources openeo_req=1
-
+"""script to run in terminal
+The snakemake workflow will parallelize (--cores > 1) everything else but the spatial_data_prep script. 
+The resources are limited to openeo cause the api is throwing problems with parallelization. 
+    use thi line ---->  snakemake --cores 4 --resources openeo_req=1
+to use a specific Snakefile, use the --snakefile option
+    use thi line ----> snakemake --snakefile Snakefile_short --cores 4 --resources openeo_req=1
+"""
 
 rule all:
     input:
         expand(logpath("{region}", "spatial_data_prep.done"), region=regions),
-        expand(logpath("{region}", "exclusion_{technology}.done"), region=regions, technology=technologies),
-        expand(logpath("{region}", "suitability.done"), region=regions),
-        expand(logpath("{region}", "energy_profiles_{technology}_{weather_year}.done"), region=regions, technology=technologies, weather_year=weather_years)
+        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario),
+        expand(logpath("{region}", "suitability_{scenario}.done"), region=regions, scenario=scenario),
+        expand(logpath("{region}", "energy_profiles_{technology}_{weather_year}_{scenario}.done"), region=regions, technology=technologies, weather_year=weather_years, scenario=scenario)
 
 rule spatial_data_prep:
     output:
         touch(logpath("{region}", "spatial_data_prep.done"))
     resources:
         openeo_req=1
+    params:
+        method="snakemake"
     shell:
-        "python spatial_data_prep.py --region {wildcards.region}"
+        "python spatial_data_prep.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method}"
 
 rule exclusion:
     input:
         logpath("{region}", "spatial_data_prep.done")
     output:
-        touch(logpath("{region}", "exclusion_{technology}.done"))
+        touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
+    params:
+        method="snakemake",
+        scenario=scenario 
     shell:
         (
-            "python Exclusion.py --region {wildcards.region} "
-            "--technology {wildcards.technology}"
+            "python Exclusion.py --region {wildcards.region} --region_folder_name {wildcards.region} "
+            "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
         )
-
 rule suitability:
     input:
-        expand(logpath("{region}", "exclusion_{technology}.done"), region=regions, technology=technologies)
+        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario)
     output:
-        touch(logpath("{region}", "suitability.done"))
-
+        touch(logpath("{region}", "suitability_{scenario}.done"))
+    params:
+        method="snakemake",
+        scenario=scenario
     shell:
-        "python suitability.py --region {wildcards.region}"
-
+        "python suitability.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method} --scenario {params.scenario}"
 
 rule energy_profiles:
     input:
-         logpath("{region}", "suitability.done")
+         logpath("{region}", "suitability_{scenario}.done")
     output:
-        touch(logpath("{region}", "energy_profiles_{technology}_{weather_year}.done"))
+        touch(logpath("{region}", "energy_profiles_{technology}_{weather_year}_{scenario}.done"))
+    params:
+        method="snakemake", 
+        scenario=scenario
     shell:
         (
             "python energy_profiles.py --region {wildcards.region} "
+            "--region_folder_name {wildcards.region} "
             "--technology {wildcards.technology} "
             "--weather_year {wildcards.weather_year} "
+            "--method {params.method} "
+            "--scenario {params.scenario} "
         )

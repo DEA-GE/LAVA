@@ -51,8 +51,14 @@
 !other/Atlite_custom_region.ipynb
 !Snakefile
 !utils/simplify.py
-!utils/extract_china_provinces.py
+!utils/gadm_levels_to_geojson.py
 !suitability.py
 !weather_data_prep.py
 !simple_results_analysis.py
 !snakefile_short
+!templates/onshorewind_china.yaml
+!templates/solar_china.yaml
+!templates
+!bias_correction_factors
+!bias_correction_factors/ERA5_wnd100m_bias.nc
+!weather_data

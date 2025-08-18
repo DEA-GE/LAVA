@@ -16,7 +16,8 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
 technologies = ["solar", "onshorewind"]
-scenarios= "ref"
+scenario= "noInclusion"
+regions=["Xizang"] #"Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur",
 # the region folder name is the same as the region name in the China case. 
 
 # Create directories for each region and snakemake log
@@ -34,8 +35,8 @@ to use a specific Snakefile, use the --snakefile option
 rule all:
     input:
         expand(logpath("{region}", "spatial_data_prep.done"), region=regions),
-        expand(logpath("{region}", "exclusion_{technology}.done"), region=regions, technology=technologies),
-        expand(logpath("{region}", "suitability.done"), region=regions)
+        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario),
+        expand(logpath("{region}", "suitability_{scenario}.done"), region=regions, scenario=scenario)
 
 rule spatial_data_prep:
     output:
@@ -51,22 +52,24 @@ rule exclusion:
     input:
         logpath("{region}", "spatial_data_prep.done")
     output:
-        touch(logpath("{region}", "exclusion_{technology}.done"))
+        touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
     params:
-        method="snakemake"
+        method="snakemake",
+        scenario=scenario 
     shell:
         (
             "python Exclusion.py --region {wildcards.region} --region_folder_name {wildcards.region} "
-            "--technology {wildcards.technology} --method {params.method}"
+            "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
         )
 
 rule suitability:
     input:
-        expand(logpath("{region}", "exclusion_{technology}.done"), region=regions, technology=technologies)
+        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario)
     output:
-        touch(logpath("{region}", "suitability.done"))
+        touch(logpath("{region}", "suitability_{scenario}.done"))
     params:
-        method="snakemake"
+        method="snakemake",
+        scenario=scenario
     shell:
-        "python suitability.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method}"
+        "python suitability.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method} --scenario {params.scenario}"
 
