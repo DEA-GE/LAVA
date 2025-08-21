@@ -96,6 +96,8 @@ region = gpd.read_file(regionPath)
 
 northfacingRasterPath = os.path.join(data_from_DEM, f'north_facing_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 nfacing = 1 if os.path.isfile(northfacingRasterPath) else 0
+terrainRuggednessPath = os.path.join(data_from_DEM, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
+terrainRuggedness = 1 if os.path.isfile(terrainRuggednessPath) else 0
 coastlinesPath = os.path.join(data_path, f'goas_{region_name_clean}_{global_crs_tag}.gpkg')
 coastlines = 1 if os.path.isfile(coastlinesPath) else 0
 protectedAreasPath = os.path.join(data_path, f"protected_areas_{config['protected_areas_source']}_{region_name_clean}_{global_crs_tag}.gpkg")
@@ -182,6 +184,15 @@ if nfacing==1  and param is not None:
     info_list_exclusion.append(f'north facing pixels')
 elif nfacing==1 and param is None: info_list_not_selected.append(f"nfacing")
 elif nfacing==0: info_list_not_available.append(f"nfacing")
+
+
+# add terrain ruggedness exclusions
+param = tech_config.get('max_terrain_ruggedness')
+if terrainRuggedness==1 and param is not None:
+    excluder.add_raster(terrainRuggednessPath, codes=range(param,10000), crs=global_crs_obj)
+    info_list_exclusion.append(f"max terrain ruggedness: {param}")
+elif terrainRuggedness==1 and param is None: info_list_not_selected.append("terrain_ruggedness")
+elif terrainRuggedness==0: info_list_not_available.append("terrain_ruggedness")
 
 
 # add wind exclusions

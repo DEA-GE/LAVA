@@ -500,14 +500,15 @@ try:
     #------------- Terrain Ruggedness Index -----------------
     if compute_terrain_ruggedness:
         print('\nprocessing Terrain Ruggedness Index')
-        tri_FilePath = os.path.join(output_dir, f'TerrainRuggednessIndex_{region_name_clean}_EPSG{EPSG}.tif')
-        if os.path.exists(tri_FilePath):
-            print(f"Terrain Ruggedness Index already exists at {rel_path(tri_FilePath)}. Skipping calculation.")
+        tri_local_path = os.path.join(output_dir, f'TerrainRuggednessIndex_{region_name_clean}_{local_crs_tag}.tif')
+        tri_global_path = os.path.join(richdem_helper_dir, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
+        if os.path.exists(tri_local_path) and os.path.exists(tri_global_path):
+            print(f"Terrain Ruggedness Index already exists at {rel_path(tri_local_path)}. Skipping calculation.")
         else:
             dem = xdem.DEM(dem_localCRS_Path)
             tri = dem.terrain_ruggedness_index(window_size=9)
-            tri_array = tri.data
-            tri.save(tri_FilePath)
+            tri.save(tri_local_path)
+            reproject_raster(tri_local_path, region_name_clean, 4326, 'nearest', 'float32', tri_global_path)
     
 
     # create map showing pixels with slope bigger X and aspect between Y and Z (north facing with slope where you would not build PV)
