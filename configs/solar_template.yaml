@@ -31,6 +31,7 @@ landcover_codes: #dictionary of landcover code with corresponding buffer in mete
 # DEM
 max_elevation: 2000 #meters
 max_slope: 20 #degrees
+max_terrain_ruggedness: null #terrain ruggedness index
 
 # spatial elements (buffer in meters)
 railways_buffer: 50
