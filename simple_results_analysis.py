@@ -20,6 +20,7 @@ repository root. ``--output`` sets the resulting GeoPackage path.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import re
 from pathlib import Path
@@ -73,32 +74,36 @@ def _array_to_gdf(data, transform, nodata, crs) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame({"geometry": geoms}, crs=crs)
 
 
-def parse_info_txt(path: Path) -> dict | None:
-    """Parse exclusion info text file and return metrics.
+def parse_info_json(path: Path) -> dict | None:
+    """Parse exclusion info JSON file and return metrics.
 
-    Expected keys are ``eligibility share``, ``available area`` and
-    ``power potential`` written in ``Exclusion.py``.
-    Returns ``None`` if the file is missing or malformed.
+    Expected keys are ``eligibility_share`` (fractional), ``available_area_m2``
+    and ``power_potential_MW`` written in ``Exclusion.py``. Returns ``None``
+    if the file is missing, cannot be decoded or lacks required keys.
     """
 
     try:
-        text = path.read_text()
+        with path.open() as f:
+            data = json.load(f)
     except FileNotFoundError:
         logger.warning("Missing info file %s", path)
         return None
-
-    m_share = re.search(r"eligibility share:\s*([0-9.]+)%", text)
-    m_area = re.search(r"available area:\s*([0-9.]+)\s*m2", text)
-    m_power = re.search(r"power potential:\s*([0-9.]+)\s*MW", text)
-    if not (m_share and m_area and m_power):
+    except json.JSONDecodeError:
         logger.warning("Malformed info file %s", path)
         return None
 
-    return {
-        "eligibility_share": float(m_share.group(1)) / 100,
-        "available_area": float(m_area.group(1)),
-        "power_potential": float(m_power.group(1)),
-    }
+    try:
+        return {
+            "eligibility_share": float(data["eligibility_share"]),
+            "available_area": float(data["available_area_m2"]),
+            "power_potential": float(data["power_potential_MW"]),
+        }
+    except KeyError as e:
+        logger.warning("Missing key %s in info file %s", e, path)
+        return None
+    except (TypeError, ValueError):
+        logger.warning("Malformed values in info file %s", path)
+        return None
 
 
 def aggregate_available_land(root: Path, output: Path) -> None:
@@ -109,8 +114,8 @@ def aggregate_available_land(root: Path, output: Path) -> None:
         if not info:
             continue
         region, tech, scen = info
-        info_path = f.parent / f"{region}_{scen}_{tech}_exclusion_info.txt"
-        info_dict = parse_info_txt(info_path)
+        info_path = f.parent / f"{region}_{scen}_{tech}_exclusion_info.json"
+        info_dict = parse_info_json(info_path)
         if not info_dict:
             continue
         groups.setdefault((tech, scen), []).append((region, f, info_dict))
