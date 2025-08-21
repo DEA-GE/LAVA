@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Simplified aggregation of LAVA available land results.
 
-This script searches for all raster files matching ``*_available_land_*.tif``
-inside ``data/**/available_land/``. The technology and scenario are parsed
-from the file name and rasters belonging to the same technology and scenario
-are reprojected to ``EPSG:4326`` and merged into a single raster. This
+This script reads exclusion info files inside ``data/**/available_land/`` to
+determine region, technology and scenario. It then searches for matching
+``{region}_{technology}_{scenario}_available_land_*.tif`` rasters, reprojects
+them to ``EPSG:4326`` and merges them into a single raster. This
 combined raster is then converted to vector polygons. The polygons are
 written as layers to a GeoPackage (``aggregated_available_land.gpkg`` by
 default).
@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import re
 from pathlib import Path
 
 import geopandas as gpd
@@ -35,15 +34,6 @@ from shapely.geometry import shape
 from shapely.ops import unary_union
 
 
-_PATTERN = re.compile(r"(.+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_available_land_.*\.tif$")
-
-
-def _parse_info(path: Path):
-    match = _PATTERN.match(path.name)
-    if not match:
-        return None
-    region, tech, scenario = match.groups()
-    return region, tech, scenario
 
 
 logger = logging.getLogger(__name__)
@@ -110,19 +100,21 @@ def parse_info_json(path: Path) -> dict | None:
 
 
 def aggregate_available_land(root: Path, output: Path) -> None:
-    files = list(root.glob("data/**/available_land/*_available_land_*.tif"))
+    info_files = list(root.glob("data/**/available_land/*_exclusion_info.json"))
     groups: dict[tuple[str, str], list[tuple[str, Path, dict]]] = {}
-    for f in files:
-        info = _parse_info(f)
-        if not info:
+    for info_file in info_files:
+        parts = info_file.stem.split("_")
+        if len(parts) < 5 or parts[-2:] != ["exclusion", "info"]:
             continue
-        region, tech, scen = info
-        info_path = f.parent / f"{region}_{scen}_{tech}_exclusion_info.json"
-        info_dict = parse_info_json(info_path)
+        region = "_".join(parts[:-4])
+        scen = parts[-4]
+        tech = parts[-3]
+        info_dict = parse_info_json(info_file)
         if not info_dict:
             continue
-        groups.setdefault((tech, scen), []).append((region, f, info_dict))
-
+        pattern = f"{region}_{tech}_{scen}_available_land_*.tif"
+        for raster in info_file.parent.glob(pattern):
+            groups.setdefault((tech, scen), []).append((region, raster, info_dict))
     if not groups:
         print("No available land rasters found.")
         return
