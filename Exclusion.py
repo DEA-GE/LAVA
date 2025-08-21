@@ -39,14 +39,13 @@ args = parser.parse_args()
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
     region_name_clean = clean_region_name(args.region)
-    region_folder_name = args.region_folder_name
     technology = args.technology
     scenario = args.scenario
     print(f'\nExclusion for {region_name_clean}')
-    print(f"Running via snakemake - measures: region={region_name}, region_folder_name={region_folder_name}, technology={technology}, scenario={scenario}")
+    print(f"Running via snakemake - measures: region={region_name_clean}, technology={technology}, scenario={scenario}")
 else:
     print(f'\nExclusion for {region_name_clean}')
-    print(f"Running manually - measures: region={region_name}, region_folder_name={region_folder_name}, technology={technology}, scenario={scenario}")
+    print(f"Running manually - measures: region={region_name_clean}, technology={technology}, scenario={scenario}")
 
 
 #load the technology specific configuration file

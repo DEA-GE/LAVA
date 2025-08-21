@@ -69,7 +69,7 @@ wdpa_url = config['wdpa_url']
 OSM_source = config['OSM_source']  #either 'geofabrik' or 'overpass'
 
 #----------------------------
-study_region_name = config['study_region_name']
+study_region_name = config['study_region_name'] # this defines the folder where the data is saved and the prefix in the files. 
 region_name_clean = clean_region_name(study_region_name) 
 OSM_folder_name = config['OSM_folder_name'] #usually same as country_code, only needed if OSM is to be considered
 DEM_filename = config['DEM_filename']
@@ -83,7 +83,7 @@ custom_study_area_filename = config.get('custom_study_area_filename', None)
 
 #Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", default=region_name_clean, help="region name")
+parser.add_argument("--region", default=region_name_clean, help="studyregion name")
 parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 args = parser.parse_args()
 
@@ -91,9 +91,9 @@ args = parser.parse_args()
 if args.method == "snakemake":
     region_name = args.region
     region_name_clean = clean_region_name(region_name)  # Clean the region name for file naming
-    print(f"Running via snakemake - measures: region={region_name_clean}, region_folder_name={region_name_clean}")
+    print(f"Running via snakemake - measures: region={region_name_clean}")
 else:
-    print(f"Running manually - measures: region={region_name_clean}, region_folder_name={region_name_clean}")
+    print(f"Running manually - measures: region={region_name_clean}")
 
 ##################################################
 #north facing pixels
@@ -115,10 +115,6 @@ wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
 if OSM_source == 'geofabrik':
     OSM_data_path = os.path.join(data_path, 'OSM', OSM_folder_name)
 
-
-
-
-
 # Define output directories
 output_dir = os.path.join(dirname, 'data', f'{region_name_clean}')
 os.makedirs(output_dir, exist_ok=True)
@@ -130,7 +126,7 @@ logging.info(f'\nPrepping {region_name_clean}...')
 if custom_study_area_filename:
     #check if dynamic filename is used
     if "{region_name}" in custom_study_area_filename:
-        custom_study_area_filename = custom_study_area_filename.format(region_name=region_name)
+        custom_study_area_filename = custom_study_area_filename.format(region_name=region_name_clean)
     print(f"\nUsing custom study area filename: {custom_study_area_filename}")
     custom_study_area_filepath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
     region = gpd.read_file(custom_study_area_filepath).dissolve() # Dissolve to ensure it's a single polygon

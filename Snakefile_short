@@ -15,8 +15,8 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
 technologies = ["solar", "onshorewind"]
-scenario= "noInclusion"
-regions=["Xizang"] #"Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur",
+scenario= "min3msWind"
+regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur"]
 
 
 # Create directories for each region and snakemake log
@@ -57,7 +57,7 @@ rule exclusion:
         scenario=scenario 
     shell:
         (
-            "python Exclusion.py --region {wildcards.region} --region_folder_name {wildcards.region} "
+            "python Exclusion.py --region {wildcards.region} "
             "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
         )
 
@@ -70,4 +70,4 @@ rule suitability:
         method="snakemake",
         scenario=scenario
     shell:
-        "python suitability.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method} --scenario {params.scenario}"
+        "python suitability.py --region {wildcards.region} --method {params.method} --scenario {params.scenario}"

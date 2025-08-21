@@ -38,8 +38,8 @@
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
-!configs/onshorewind.yaml
-!configs/solar.yaml
+!configs/onshorewind_template.yaml
+!configs/solar_template.yaml
 !spatial_data_prep.py
 !Exclusion.py
 !data_explore.ipynb

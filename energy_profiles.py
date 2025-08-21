@@ -20,18 +20,16 @@ dirname = os.getcwd()
 with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader) 
 
-region_folder_name = config['region_folder_name']
-region_name = config['region_name'] #if country is studied, then use country name
+region_name = config['study_region_name']
 region_name = clean_region_name(region_name)
 technology=config["technology"]
-scenario= config["scenario"]
+scenario = config.get('scenario', 'ref') # scenario, e.g., 'ref' or 'high'
 weather_year = config["weather_year"]
 #print(f"Config parameters: region={region_name}, technology={technology}, weather_year={weather_year}")
 
 # override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
 parser.add_argument("--region",default=region_name,  help="region name")
-parser.add_argument("--region_folder_name", default=region_folder_name, help="region folder name")
 parser.add_argument("--technology", default=technology, help="technology type")
 parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 parser.add_argument("--scenario", default=scenario, help="scenario name")
@@ -41,20 +39,19 @@ args = parser.parse_args()
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
     region_name = args.region
-    region_folder_name = args.region_folder_name
     technology = args.technology
     scenario = args.scenario
     weather_year = args.weather_year
-    print(f"Running via snakemake - measures: region={region_name}, region_folder_name={region_folder_name}, technology={technology}, scenario={scenario}, weather_year={weather_year}")
+    print(f"Running via snakemake - measures: region={region_name}, technology={technology}, scenario={scenario}, weather_year={weather_year}")
 else:
-    print(f"Running manually - measures: region={region_name}, region_folder_name={region_folder_name}, technology={technology}, scenario={scenario}, weather_year={weather_year}")
+    print(f"Running manually - measures: region={region_name}, technology={technology}, scenario={scenario}, weather_year={weather_year}")
 
 #load the technology specific configuration file
 tech_config_file = os.path.join("configs", f"{technology}.yaml")
 with open(tech_config_file, "r", encoding="utf-8") as f:
     tech_config = yaml.load(f, Loader=yaml.FullLoader)
 
-data_path = os.path.join(dirname, 'data', region_folder_name)
+data_path = os.path.join(dirname, 'data', region_name)
 output_path = os.path.join(data_path,"energy_profiles")
 if not os.path.exists(output_path):
     os.makedirs(output_path)
@@ -76,7 +73,7 @@ auth = local_crs_obj.to_authority()
 local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":", "_")
 
 # load pixel size
-if config['resolution_manual'] is not None:
+if tech_config['resolution_manual'] is not None:
     res = config['resolution_manual']
 else:
     with open(os.path.join(data_path, f'pixel_size_{region_name}_{local_crs_tag}.json'), 'r') as fp:

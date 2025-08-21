@@ -51,7 +51,7 @@ rule spatial_data_prep:
     params:
         method="snakemake"
     shell:
-        "python spatial_data_prep.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method}"
+        "python spatial_data_prep.py --region {wildcards.region} --method {params.method}"
 
 rule exclusion:
     input:
@@ -63,7 +63,7 @@ rule exclusion:
         scenario=scenario 
     shell:
         (
-            "python Exclusion.py --region {wildcards.region} --region_folder_name {wildcards.region} "
+            "python Exclusion.py --region {wildcards.region} "
             "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
         )
 rule suitability:
@@ -75,7 +75,7 @@ rule suitability:
         method="snakemake",
         scenario=scenario
     shell:
-        "python suitability.py --region {wildcards.region} --region_folder_name {wildcards.region} --method {params.method} --scenario {params.scenario}"
+        "python suitability.py --region {wildcards.region} --method {params.method} --scenario {params.scenario}"
 
 rule energy_profiles:
     input:
@@ -88,7 +88,6 @@ rule energy_profiles:
     shell:
         (
             "python energy_profiles.py --region {wildcards.region} "
-            "--region_folder_name {wildcards.region} "
             "--technology {wildcards.technology} "
             "--weather_year {wildcards.weather_year} "
             "--method {params.method} "

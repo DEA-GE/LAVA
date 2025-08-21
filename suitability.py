@@ -168,12 +168,11 @@ args = parser.parse_args()
 
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
-    region_name = args.region
-    region_folder_name = args.region_folder_name
+    region_name = clean_region_name(args.region)
     scenario = args.scenario
-    print(f"Running via snakemake - measures: region={region_name}, region_folder_name={region_folder_name}, scenario={scenario}")
+    print(f"Running via snakemake - measures: region={region_name}, scenario={scenario}")
 else:
-    print(f"Running manually - measures: region={region_name}, region_folder_name={region_folder_name}, scenario={scenario}")
+    print(f"Running manually - measures: region={region_name} scenario={scenario}")
 
 data_path = os.path.join(dirname, 'data', region_name)
 data_path_available_land = os.path.join(data_path, 'available_land')
