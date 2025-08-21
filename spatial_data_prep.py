@@ -69,30 +69,31 @@ wdpa_url = config['wdpa_url']
 OSM_source = config['OSM_source']  #either 'geofabrik' or 'overpass'
 
 #----------------------------
-############### Define study region ############### use geopackage from gadm.org to inspect in QGIS
-region_folder_name = config['region_folder_name']
+study_region_name = config['study_region_name'] # this defines the folder where the data is saved and the prefix in the files. 
+region_name_clean = clean_region_name(study_region_name) 
 OSM_folder_name = config['OSM_folder_name'] #usually same as country_code, only needed if OSM is to be considered
 DEM_filename = config['DEM_filename']
 
 #use GADM boundary
-region_name = config['region_name'] #if country is studied, then use country name
+gadm_region_name = config['GADM_region_name'] #if country is studied, then use country name
 country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
-gadm_level = config['gadm_level']
+gadm_level = config['GADM_level']
 #or use custom region
 custom_study_area_filename = config.get('custom_study_area_filename', None)
 
-# override region via command line argument
+#Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", help="override region name and folder")
+parser.add_argument("--region", default=region_name_clean, help="studyregion name")
+parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 args = parser.parse_args()
 
-if args.region:
-    region_folder_name = args.region
+# If running via Snakemake, use the region name and folder name from command line arguments
+if args.method == "snakemake":
     region_name = args.region
-    print(f"\nRegion name and folder name overridden from command line to: {region_name}")
+    region_name_clean = clean_region_name(region_name)  # Clean the region name for file naming
+    print(f"Running via snakemake - measures: region={region_name_clean}")
 else:
-    print("No command line region provided, using values from config.")
-
+    print(f"Running manually - measures: region={region_name_clean}")
 
 ##################################################
 #north facing pixels
@@ -114,24 +115,19 @@ wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
 if OSM_source == 'geofabrik':
     OSM_data_path = os.path.join(data_path, 'OSM', OSM_folder_name)
 
-
-
-# Get region name without accents, spaces, apostrophes, or periods for saving files
-region_name_clean = clean_region_name(region_name)
-
 # Define output directories
-output_dir = os.path.join(dirname, 'data', f'{region_folder_name}')
+output_dir = os.path.join(dirname, 'data', f'{region_name_clean}')
 os.makedirs(output_dir, exist_ok=True)
 
 # Set up logging
-logging.info(f'\nPrepping {region_name}...')
+logging.info(f'\nPrepping {region_name_clean}...')
 
 #get region boundary
 if custom_study_area_filename:
     #check if dynamic filename is used
     if "{region_name}" in custom_study_area_filename:
-        custom_study_area_filename = custom_study_area_filename.format(region_name=region_name)
-    print(f"Using custom study area filename: {custom_study_area_filename}")
+        custom_study_area_filename = custom_study_area_filename.format(region_name=region_name_clean)
+    print(f"\nUsing custom study area filename: {custom_study_area_filename}")
     custom_study_area_filepath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
     region = gpd.read_file(custom_study_area_filepath).dissolve() # Dissolve to ensure it's a single polygon
     if region.crs != 4326:
@@ -144,7 +140,7 @@ elif gadm_level==0:
     logging.info('using whole country as study area')
 else:
     gadm_data = pygadm.Items(admin=country_code, content_level=gadm_level)
-    region = gadm_data.loc[gadm_data[f'NAME_{gadm_level}']==region_name].copy()
+    region = gadm_data.loc[gadm_data[f'NAME_{gadm_level}']==gadm_region_name].copy()
     region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
     logging.info('using admin area within country as study area')
 
@@ -269,6 +265,7 @@ elif OSM_source == 'overpass':
                 polygon=polygon,
                 feature_key=feature_key,
                 features_dict=selected_osm_features_dict,
+                timeout=500,
                 # Optional override for geometry types per feature::
                 # relevant_geometries_override={"substation": ["node"]},
                 output_dir=OSM_output_dir
@@ -579,9 +576,9 @@ if consider_wind_atlas == 1:
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
     clip_reproject_raster(wind_raster_filePath, region_name_clean, region, 'wind', local_crs_obj, 'nearest', 'float32', output_dir)
     #co-register raster to land cover
-    wind_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}.tif')
-    wind_raster_co_registered_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}_resampled.tif')
-    co_register(wind_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', wind_raster_co_registered_filePath, dtype='float32')
+    # wind_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}.tif')
+    # wind_raster_co_registered_filePath = os.path.join(output_dir, f'wind_{region_name_clean}_{local_crs_tag}_resampled.tif')
+    # co_register(wind_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', wind_raster_co_registered_filePath, dtype='float32')
 
 
 
@@ -592,7 +589,7 @@ if consider_solar_atlas == 1:
     solar_atlas_folder_path = os.path.join(wind_solar_atlas_folder, f'{country_name_solar_atlas}_solar_atlas')
 
     if not os.path.exists(solar_atlas_folder_path):
-        solar_atlas_measure = config['measure']  
+        solar_atlas_measure = config['solar_atlas_measure']  
         solar_atlas_folder_name = download_global_solar_atlas(country_name=country_name_solar_atlas, data_path=data_path, measure = solar_atlas_measure)
     else:
         print(f"Global solar atlas data already downloaded: {rel_path(solar_atlas_folder_path)}")
@@ -601,9 +598,9 @@ if consider_solar_atlas == 1:
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
     clip_reproject_raster(solar_raster_filePath, region_name_clean, region, 'solar', local_crs_obj, 'nearest', 'float32', output_dir)
     #co-register raster to land cover
-    solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}.tif')
-    solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}_resampled.tif')
-    co_register(solar_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', solar_raster_co_registered_filePath, dtype='float32')
+    # solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}.tif')
+    # solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}_resampled.tif')
+    # co_register(solar_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', solar_raster_co_registered_filePath, dtype='float32')
 
 
 
