@@ -135,15 +135,16 @@ The script `create_qgis_project.py` puts all files together into a QGIS project 
 Once the available land rasters are created you can combine them across study
 regions. The script `simple_results_analysis.py` scans all folders under
 `data/**/available_land/` for files matching `*_available_land_*.tif`. Files are
-grouped by technology and scenario and the resulting geometries are written to a
-GeoPackage.
+grouped by technology and scenario. All rasters in a group are reprojected to
+EPSG:4326, merged, and then converted to polygons. The resulting geometries are
+written to a GeoPackage.
 
 ```
-python simple_results_analysis.py --root PATH/TO/REPO --output aggregated_available_land.gpkg
+python simple_results_analysis.py --output aggregated_available_land.gpkg
 ```
 
-The output GeoPackage will contain one layer per technology and scenario
-combination.
+If run from outside the repository root, provide ``--root PATH/TO/REPO``. The
+output GeoPackage will contain one layer per technology and scenario combination.
 
 ## 8. Folder structure
 original from [here](https://tree.nathanfriend.com/?s=(%27opt5s!(%27fancy7~fullPath!false~trailingSCsh7~rootDot7)~B(%27B%27LAVA.configs.envs.other.utils.Raw_SpatiFDJ24custom_studyH4DEM4globFsoCr_wind_atCs4GOAS484OSM43.dJ%5C%27reg5_name%5C%27I*DEM6reg96soCr6wind63686EPSG6Cnduses6pixel_size6OSM_files0derived_from_DEMI-*slope0-*aspect02%2FI%27)~vers5!%271%27)-%20%20.%5Cn-6I2addit5Fexclus9s3protectedHs4.-5ion60*7!true8Cndcover95_polygonBsource!ClaFal_H_areaI4-Jata4%01JIHFCB987654320.-)

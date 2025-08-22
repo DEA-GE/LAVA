@@ -38,8 +38,8 @@
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
-!configs/onshorewind_template.yaml
-!configs/solar_template.yaml
+!configs/onshorewind_template_china.yaml
+!configs/solar_template_china.yaml
 !spatial_data_prep.py
 !Exclusion.py
 !data_explore.ipynb
@@ -65,3 +65,4 @@
 !bias_correction_factors
 !bias_correction_factors/ERA5_wnd100m_bias.nc
 !weather_data
+!delete_available_land.py

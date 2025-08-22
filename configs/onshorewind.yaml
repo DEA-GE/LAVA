@@ -36,7 +36,8 @@ landcover_codes: #dictionary of landcover code with corresponding buffer in mete
 
 # DEM
 max_elevation: 3500 #meters
-max_slope: 20 #degrees
+max_slope: 30 #degrees
+max_terrain_ruggedness: 10 #Terrain Ruggedness Index (m); maximum allowable terrain ruggedness
 
 # spatial elements (buffer in meters)
 railways_buffer: 1000
@@ -59,8 +60,8 @@ max_wind_speed: null #m/s
 
 # inclusion filter
 # EITHER use substations OR transmission OR roads (meters)
-substations_inclusion_buffer: 100000
-transmission_inclusion_buffer: 100000
+substations_inclusion_buffer: 200000
+transmission_inclusion_buffer: 200000
 roads_inclusion_buffer: 30000
 
 
