@@ -10,6 +10,7 @@
 !utils/proximity_calc.py
 !utils/fetch_OSM.py
 !utils/local_OSM_shp_files.py
+!utils/raster_analysis.py
 !utils/README.md
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
@@ -29,8 +30,10 @@
 !Raw_Spatial_Data/global_solar_wind_atlas
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !technologies
-!technologies/HW_farm.yaml
-!technologies/LW_farm.yaml
+!technologies/HW_distributed_farm.yaml
+!technologies/LW_distributed_farm.yaml
+!technologies/HW_utility_farm.yaml
+!technologies/LW_utility_farm.yaml
 !technologies/CSi.yaml
 !configs
 !configs/config_template.yaml

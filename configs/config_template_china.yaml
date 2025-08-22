@@ -139,10 +139,6 @@ weather_data_path: Raw_Spatial_Data
 
 weather_year: 1990 #[str(y) for y in range(1990,2020)]
 
-# Technology data
-tech: #"HeatDemand"
-tech_derate: 0.95
-
 # Heat demand
 heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
 heat_demand_end_day: "30-04" #end day of heat demand profile, format: DD-MM
@@ -152,22 +148,23 @@ heat_demand_threshold: 15 # threshold for heat demand profile, in degrees Celsiu
 
 #--Suitability cost assumptions----------------------------------------------------------------------
 
-# Minimum area for resource grades (% of total available land area)
-min_area_rg: 0.05
+# Minimum area for resource grades and distributed areas (km2)
+min_area_rg: 125
+min_area_distributed: 25
 
 # Cost tiers
 tiers: {
-    'Tier1': [0.5, 1.00],
-    'Tier2': [1.00, 1.50],
-    'Tier3': [1.50, 2.00],
-    'Tier4': [2.00, 2.50],
-    'Tier5': [2.50, 100],
+    'Tier1': [0, 1.00],
+    'Tier2': [1.00, 1.25],
+    'Tier3': [1.25, 1.50],
+    'Tier4': [1.50, 2.00],
+    'Tier5': [2.00, 1000],
     }
 
 # Substation distance (meters)
 average_sub_dist: {
-    'onshorewind': 5000,
-    'solar': 5000
+    'onshorewind': 10000,
+    'solar': 10000
 }
 
 # Terrain modifier (terrain types defined by ruggedness ranges)
@@ -219,7 +216,7 @@ region_modifier: {
     'Jiangxi': {'onshorewind': 1.01, 'solar': 1.01},
     'Jilin': {'onshorewind': 0.98, 'solar': 0.94},
     'Liaoning': {'onshorewind': 0.98, 'solar': 0.94},
-    'Ningxia': {'onshorewind': 0.93, 'solar': 0.91},
+    'NingxiaHui': {'onshorewind': 0.93, 'solar': 0.91},
     'Qinghai': {'onshorewind': 0.93, 'solar': 0.91},
     'Shaanxi': {'onshorewind': 0.93, 'solar': 0.91},
     'Shandong': {'onshorewind': 0.98, 'solar': 0.99},
@@ -227,7 +224,7 @@ region_modifier: {
     'Shanxi': {'onshorewind': 0.98, 'solar': 0.99},
     'Sichuan': {'onshorewind': 1.01, 'solar': 1.01},
     'Tianjin': {'onshorewind': 0.98, 'solar': 0.99},
-    'Xinjiang': {'onshorewind': 0.93, 'solar': 0.91},
+    'XinjiangUygur': {'onshorewind': 0.93, 'solar': 0.91},
     'Xizang': {'onshorewind': 0.93, 'solar': 0.91},
     'Yunnan': {'onshorewind': 1.03, 'solar': 1.04},
     'Zhejiang': {'onshorewind': 1.01, 'solar': 1.03}
@@ -239,11 +236,11 @@ modifier_weights: {
         'onshorewind': 1,
         'solar': 1
     },
-    substation_distance: {
+    'substation_distance': {
         'onshorewind': 0.1,
         'solar': 0.1
     },
-    region': {
+    'region': {
         'onshorewind': 1,
         'solar': 1
     },

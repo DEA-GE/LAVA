@@ -7,12 +7,12 @@ import pickle
 import os  
 import argparse
 import geopandas as gpd
-from rasterio.plot import show  
 from atlite.gis import shape_availability
 import rasterio
 import yaml
 from utils.data_preprocessing import clean_region_name
 from rasterstats import zonal_stats
+from utils.raster_analysis import area_filter
 
 dirname = os.getcwd() 
 #main_dir = os.path.join(dirname, '..')
@@ -309,27 +309,6 @@ if tech_config['deployment_density']:
 print('\nfollowing data was considered during exclusion:')
 for item in info_list_exclusion:
     print('- ', item)
-
-
-
-# area filter
-def area_filter(boolean_array, min_size):
-    # Label connected components in the array
-    labeled_array, num_features = label(boolean_array)
-    
-    # Count the number of pixels in each component
-    component_sizes = np.bincount(labeled_array.ravel())
-    
-    # Create a mask for components that meet the size requirement (ignoring the background)
-    large_component_mask = np.zeros_like(component_sizes, dtype=bool)
-    large_component_mask[1:] = component_sizes[1:] >= min_size  # Skip the background component (index 0)
-    
-    # Filter the original array, keeping only large components
-    filtered_array = large_component_mask[labeled_array]
-    
-    return filtered_array
-
-
 
 min_pixels_connected = tech_config['min_pixels_connected']
 #min_pixels_x=tech_config['min_pixels_x']

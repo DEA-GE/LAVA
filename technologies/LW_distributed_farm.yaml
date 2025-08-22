@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: Contributors to atlite <https://github.com/pypsa/atlite>
+#
+# SPDX-License-Identifier: CC-BY-4.0
+
+# Turbine characteristic data
+name: Generic low wind farm of 9 turbines (4 MW each)
+# The manufacturer of this turbine
+manufacturer: Generic
+# Link to the original datasheet of the turbine that inspired this
+source: https://en.wind-turbine-models.com/turbines/2388-goldwind-gw-191-4000
+
+# Hub height in meters
+HUB_HEIGHT: 119
+# Power curve, specified as lists of velocities and powers, including
+# cut-in and cut-out speeds
+# Power curve velocities in m/s
+V: [ 0.  ,  0.25,  0.5 ,  0.75,  1.  ,  1.25,  1.5 ,  1.75,  2.  ,
+        2.25,  2.5 ,  2.75,  3.  ,  3.25,  3.5 ,  3.75,  4.  ,  4.25,
+        4.5 ,  4.75,  5.  ,  5.25,  5.5 ,  5.75,  6.  ,  6.25,  6.5 ,
+        6.75,  7.  ,  7.25,  7.5 ,  7.75,  8.  ,  8.25,  8.5 ,  8.75,
+        9.  ,  9.25,  9.5 ,  9.75, 10.  , 10.25, 10.5 , 10.75, 11.  ,
+       11.25, 11.5 , 11.75, 12.  , 12.25, 12.5 , 12.75, 13.  , 13.25,
+       13.5 , 13.75, 14.  , 14.25, 14.5 , 14.75, 15.  , 15.25, 15.5 ,
+       15.75, 16.  , 16.25, 16.5 , 16.75, 17.  , 17.25, 17.5 , 17.75,
+       18.  , 18.25, 18.5 , 18.75, 19.  , 19.25, 19.5 , 19.75, 20.  ,
+       20.25, 20.5 , 20.75, 21.  , 21.25, 21.5 , 21.75, 22.  , 22.25,
+       22.5 , 22.75, 23.  , 23.25, 23.5 , 23.75, 24.  , 24.25, 24.5 ,
+       24.75, 25.]
+# Generated power from the power curves in MW
+POW: [   0,    0,    0,    0,    0,    0,    1,    7,   24,   49,   81,
+        121,  168,  223,  288,  363,  449,  546,  655,  777,  912, 1062,
+       1227, 1407, 1604, 1817, 2046, 2289, 2538, 2785, 3020, 3231, 3415,
+       3567, 3688, 3781, 3851, 3902, 3938, 3962, 3977, 3987, 3993, 3996,
+       3998, 3999, 3999, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
+       4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
+       4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
+       4000, 4000, 4000, 4000,    0,    0,    0,    0,    0,    0,    0,
+          0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+          0,    0]

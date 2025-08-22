@@ -56,8 +56,8 @@ max_solar_production: 3000
 
 # inclusion filter
 # EITHER use substations OR transmission (meters)
-substations_inclusion_buffer: 50000
-transmission_inclusion_buffer: 50000
+substations_inclusion_buffer: null
+transmission_inclusion_buffer: null
 
 # area filter
 min_pixels_connected: 5
@@ -68,7 +68,7 @@ min_pixels_y: # currently not working, use min_pixels_connected instead
 model_areas_filename:
 
 # Technology assumptions
-turbine: 'LW_farm.yaml'
+turbine: 'HW_distributed_farm.yaml'
 
 tech_derate: 0.95
 
