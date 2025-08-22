@@ -15,7 +15,7 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
 technologies = ["solar", "onshorewind"]
-scenario= "test"
+scenario= "200infra30roadsNoRugg"
 regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur","Xizang"]
 
 

@@ -139,7 +139,7 @@ def aggregate_available_land(root: Path, output: Path, json_output: Path) -> Non
         share_agg = sum(shares) / len(shares) if shares else None
 
         def to_sci(value: float) -> str:
-            return f"{value:.3e}"
+            return f"{value:.2e}"
 
         gdf = gpd.GeoDataFrame(
             {
@@ -158,32 +158,28 @@ def aggregate_available_land(root: Path, output: Path, json_output: Path) -> Non
 
         region_measures: dict[str, dict] = {}
         for region, _, info in items:
-            share_val = info["eligibility_share"]
-            area_val = info["available_area"] / 1e6
-            power_val = info["power_potential"] / 1e6
-            print(
-                f"{region}: share={to_sci(share_val)}, area={to_sci(area_val)} km2, "
-                f"power={to_sci(power_val)} TW"
-            )
+            share_val =  round(info["eligibility_share"] * 100 ,2) # Convert to percentage
+            area_val = round( info["available_area"] / 1e6 ,2)  # Convert m2 to km2
+            power_val = round(info["power_potential"] / 1e6, 2)  # Convert MW to TW
+            #print(
+            #    f"{region}: share={to_sci(share_val)}, area={to_sci(area_val)} km2, "
+            #    f"power={to_sci(power_val)} TW"
+            #)
             region_measures[region] = {
-                "eligibility_share": to_sci(share_val),
+                "eligibility_share_%": share_val,
                 "available_area_km2": to_sci(area_val),
-                "power_potential_TW": to_sci(power_val),
+                "power_potential_TW": power_val,
             }
 
-        print(
-            f"Total {tech} {scen}: share={share_str}, "
-            f"area={to_sci(area_sum / 1e6)} km2, power={to_sci(power_sum / 1e6)} TW"
-        )
 
         results.append(
             {
                 "scenario": scen,
                 "technology": tech,
                 "aggregated": {
-                    "eligibility_share": to_sci(share_agg) if share_agg is not None else None,
+                    "eligibility_share_%": round(share_agg * 100,2)  if share_agg is not None else None,
                     "available_area_km2": to_sci(area_sum / 1e6),
-                    "power_potential_TW": to_sci(power_sum / 1e6),
+                    "power_potential_TW": round(power_sum / 1e6,2)
                 },
                 "regions": region_measures,
             }
