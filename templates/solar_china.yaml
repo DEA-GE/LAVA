@@ -1,15 +1,23 @@
 #--exclusions----------------------------------------------------------------------
+# scenario name (written in available area filename)
+scenario: 'ref'
 
 # deployment density
 deployment_density: 50 # MW/km²
 
-# exclusion container resolution manual
-resolution_manual: null
-
+# resolution manual
+resolution_manual: 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
-landcover_codes: #dictionary of landcover code with corresponding buffer in meters
-  50: 500 
+landcover_without_buffer: [10,40,70,80,90,95] #list of landcover codes
+landcover_with_buffer: #dictionary of landcover code with corresponding buffer in meters
+  50: 2000 #built-up land with 2000m buffer 
+
+# Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
+
+# DEM
+max_elevation: null #meters
+max_slope: 20 #degrees
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 #| Code | Class                    |
@@ -26,54 +34,38 @@ landcover_codes: #dictionary of landcover code with corresponding buffer in mete
 #| 95   | Mangroves                |
 #| 100  | Moss and lichen          |
 
-# Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
-
-# DEM
-max_elevation: 4000 #meters
-max_slope: 20 #degrees
-max_terrain_ruggedness: 1500 #terrain ruggedness index
-
-
 # spatial elements (buffer in meters)
 railways_buffer: 1000
 roads_buffer: 1000
-airports_buffer: 1000
-waterbodies_buffer: 1000
-military_buffer: 1000
-coastlines_buffer: 1000
-protectedAreas_buffer: 1000
+airports_buffer: 3000
+waterbodies_buffer: 2000
+military_buffer: 2000
+coastlines_buffer: 2000
+protectedAreas_buffer: 2000
 transmission_lines_buffer: 1000
-generators_buffer: 1000
-plants_buffer: 1000
-railways_buffer: 1000
-roads_buffer: 1000
-airports_buffer: 1000
-waterbodies_buffer: 1000
-military_buffer: 1000
-coastlines_buffer: 1000
-protectedAreas_buffer: 1000
-transmission_lines_buffer: 1000
-generators_buffer: 1000
-plants_buffer: 1000
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
-# energy resources
-min_solar_production: 1000 #kWh/kW/year
-max_solar_production: null #kWh/kW/year
+# solar and wind resources
+min_wind_speed: 3.5
+max_wind_speed: 25
+
+min_solar_production: 1000
+max_solar_production: 3000
 
 # inclusion filter
-# EITHER use substations OR transmission OR roads (meters)
-substations_inclusion_buffer: 100000
-transmission_inclusion_buffer: 100000
-roads_inclusion_buffer: 10000
+# EITHER use substations OR transmission (meters)
+substations_inclusion_buffer: 30000
+transmission_inclusion_buffer: null
 
 # area filter
 min_pixels_connected: 5
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
 
+# model areas 
+model_areas_filename:
 
 # Technology assumptions
 panel: 'CSi.yaml'

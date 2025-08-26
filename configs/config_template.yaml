@@ -1,18 +1,37 @@
+
+study_region_name: Elbe-Elster #all files and the results folder will be named like that
+country_code: DEU #3-letter ISO code; also needed for global wind atlas
+
+
+#--define study region----------------------------------------------------------------------
+# use GADM boundary (https://gadm.org/maps.html)
+GADM_region_name: Elbe-Elster #exact name as in GADM file (NAME_{gadm_level})
+GADM_level: 2
+# or use custom region (if file is passed, then this is used instead of the GADM definitions above)
+custom_study_area_filename: #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+
+
 #--data retrieval----------------------------------------------------------------------
 # landcover
 landcover_source: openeo   #'file' or 'openeo' or leave empty to not download (DEM data depends on landcover data due to co-registering)
+resolution_landcover:  # for openeo download, in degress (EPSG4326); 0.008999280057498208 degrees is ca. 1000m at equator
+landcover_filename: #filename including file ending of local landcover file in Raw_Spatial_Data/landcover
+
+# DEM 
+DEM_filename: gebco_cutout.tif 
 
 # OSM data
-OSM_source: overpass #'geofabrik' or 'overpass'
+OSM_source: overpass #geofabrik or overpass
+OSM_folder_name:  #name of the folder within /Raw_Spatial_Data/OSM with all raw OSM shapefiles from Geofabrik; only needed if Geofabrik used as OSM source
 
-#land data
+# OSM features
 railways: 1
 roads: 1
 airports: 1
 waterbodies: 1
 military: 1
 
-# power infrastructure
+# OSM power infrastructure features
 substations: 1
 transmission_lines: 1
 generators: 1
@@ -21,55 +40,36 @@ plants: 1
 # coastlines 
 coastlines: 1
 
+# wind and solar resources (GWA and GSA)
+wind_atlas: 1
+solar_atlas: 1
+country_name_solar_atlas: Germany # name of country, check https://globalsolaratlas.info/download  
+solar_atlas_measure: LTAym_YearlyMonthlyTotals # check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
+
+# protected areas
+protected_areas_source: 0 #WDPA or file or 0
+wdpa_url: 
+protected_areas_filename:  #include file ending (.gpkg or .geojson), needs to be in EPSG4326
+
 # compute helper datasets
 compute_substation_proximity: 1
 compute_road_proximity: 1
 compute_terrain_ruggedness: 1
 
-# wind and solar resources
-wind_atlas: 1
-solar_atlas: 1
-country_name_solar_atlas: Germany # name of country or "world" if you want to download the whole world 
+CRS_manual:  #set CRS instead of calculating local UTM zone
 
 # additional polygons and rasters
 additional_exclusion_polygons_folder_name: 
 additional_exclusion_rasters_folder_name: 
 
-# protected areas
-protected_areas_source: WDPA #WDPA or file or 0
-wdpa_url: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Mar2025_Public_DEU.zip
-protected_areas_filename: '' #include file ending (.gpkg or .geojson), needs to be in EPSG4326
-
-
-CRS_manual:  #if None use empty string
-
-
-# name of folders and files with raw data
-region_folder_name: Elbe-Elster #always needed, same name as in gadm.org (if country is studied, then use country name)
-OSM_folder_name: BerlinBrandenburg #name of the folder with all raw OSM shapefiles from Geofabrik; needed if Geofabrik used as OSM source
-
-DEM_filename: gebco_cutout.tif 
-landcover_filename: PROBAV_LC100_global_v3.0.1_2019-nrt_Discrete-Classification-map_EPSG-4326.tif
-
-
-# Define study region (use geopackage from gadm.org to inspect in QGIS or go on gadm.org)
-# use GADM boundary (https://gadm.org/maps.html)
-region_name: Elbe-Elster
-country_code: DEU       #always needed (also for global wind atlas)
-gadm_level: 2
-# or use custom region (if file is passed, then this is used as default over the GADM definitions above)
-#if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
-custom_study_area_filename: '' #if None use empty string
-
-
 
 #--exclusions----------------------------------------------------------------------
+
+# see onshorewind.yaml and solar.yaml
+
 # scenario name (written in available area filename)
 scenario: ref
-technology: onshorewind # or 'solar', used for the filename of the available area
-
-# resolution manual
-resolution_manual: null
+technology: solar #onshorewind or solar, used for the filename of the available area
 
 # model areas 
 model_areas_filename:
@@ -77,7 +77,7 @@ model_areas_filename:
 
 #--advanced details----------------------------------------------------------------------
 
-force_osm_download: 1 #if set to 1, OSM data will be downloaded even if it is already present in the folder
+force_osm_download: 0 #if set to 1, OSM data will be downloaded even if it is already present in the folder
 
 # simplification tolerance for study area
 study_area:
@@ -122,9 +122,6 @@ osm_features_config:
   military: ["landuse", *military, "way"]
 
 
-# landcover data
-resolution_landcover: 0.008999280057498208 # in degress, since EPSG4326; 0.008999280057498208 degrees is ca. 1000m at equator
-
 # north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
 north_facing_pixels: null
 X: 10
@@ -133,6 +130,12 @@ Z: 50
 
 # world database of protected areas
 wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
+
+# inclusion filter
+# EITHER use substations OR transmission (meters)
+substations_inclusion_buffer: 50000
+transmission_inclusion_buffer: 50000
+roads_inclusion_buffer: null
 
 
 #--Weather and energy data assumptions-------------------------------------------------------------
@@ -198,4 +201,3 @@ landcover_modifier: {
         'solar': 0.85
     }
 }
-

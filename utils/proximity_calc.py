@@ -47,7 +47,7 @@ def generate_distance_raster(shapefile_path, region_gdf, output_path, pixel_size
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     t0 = time.time()
 
-    print("Loading input data...")
+    #print("Loading input data...")
 
     shp_gdf = gpd.read_file(shapefile_path)
 
@@ -61,7 +61,7 @@ def generate_distance_raster(shapefile_path, region_gdf, output_path, pixel_size
 
     temp_raster_path = os.path.join(os.path.dirname(output_path), "temp_rasterized.tif")
 
-    print("Rasterizing shapefile...")
+    #print("Rasterizing shapefile...")
     t1 = time.time()
     rv_array, affine = dr.rasterize(
         shp_gdf,
@@ -71,10 +71,10 @@ def generate_distance_raster(shapefile_path, region_gdf, output_path, pixel_size
         nodata=no_data_value,
         output=temp_raster_path,
     )
-    print(f"✔ Rasterization completed in {time.time() - t1:.2f} seconds")
+    #print(f"✔ Rasterization completed in {time.time() - t1:.2f} seconds")
 
  
-    print("Calculating distance raster...")
+    #print("Calculating distance raster...")
     t2 = time.time()
     dr_obj = dr.DistanceRaster(
         rv_array,
@@ -82,9 +82,9 @@ def generate_distance_raster(shapefile_path, region_gdf, output_path, pixel_size
         output_path=output_path,
         conditional=raster_conditional
     )
-    print(f"✔ Distance calculation completed in {time.time() - t2:.2f} seconds")
+    #print(f"✔ Distance calculation completed in {time.time() - t2:.2f} seconds")
 
-    print("Clipping raster to region...")
+    #print("Clipping raster to region...")
     t3 = time.time()
     with rasterio.open(output_path) as src:
         out_image, out_transform = mask(src, region_geometries, crop=True)
@@ -97,12 +97,12 @@ def generate_distance_raster(shapefile_path, region_gdf, output_path, pixel_size
         "nodata": src.nodata
     })
 
-    print("Saving clipped raster...")
+    #print("Saving clipped raster...")
     with rasterio.open(output_path, 'w', **out_meta) as dest:
         dest.write(out_image)
-    print(f"✔ Clipping and saving completed in {time.time() - t3:.2f} seconds")
+    #print(f"✔ Clipping and saving completed in {time.time() - t3:.2f} seconds")
 
-    print(f"✅ Distance raster generation complete in {time.time() - t0:.2f} seconds.")
+    #print(f"✅ Distance raster generation complete in {time.time() - t0:.2f} seconds.")
 
 # Example usage
 if __name__ == "__main__":

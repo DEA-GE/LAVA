@@ -70,8 +70,8 @@ def osm_to_gpkg(
     os.makedirs(output_dir, exist_ok=True)
 
     
-    nominatim = Nominatim()
-    location = nominatim.query(region_name)
+    nominatim = Nominatim()  # Geocode region to retrieve area identifier
+    location = nominatim.query(region_name)  # Query Nominatim for the region
     if not location:
         print(f"Region '{region_name}' not found.")
         return {}
@@ -80,20 +80,21 @@ def osm_to_gpkg(
     #print(f"Fetching data for: {region_name} ")
     #print(f"Fetching data for: {location.displayName()} (Area ID: {area_id})")
     
-    overpass = Overpass()
+    overpass = Overpass() # Initialize Overpass API interface
     query = overpassQueryBuilder(
         polygon=polygon,
         elementType=[element_type],
         selector=selector,
         includeGeometry=True
-        )
-    result = overpass.query(query, timeout=timeout)
+        ) # Build Overpass query
+    result = overpass.query(query, timeout=timeout) # Execute query with timeout
 
     if not result.elements():
         print(f"No elements found for {feature_key} in {region_name}")
         return {}
+    
 
-    # Expected geometries
+    # Expected geometries for each supported feature
     default_geometries = {
         "substations": ["Polygon"],
         "plants": ["Polygon"],
@@ -112,10 +113,10 @@ def osm_to_gpkg(
         else default_geometries.get(feature_key, ["Point", "LineString", "Polygon"])
     )
 
-    geoms_dict = {g: [] for g in relevant_geometries}
-    unsupported_counts = {}
+    geoms_dict = {g: [] for g in relevant_geometries}  # Store features by geometry type
+    unsupported_counts = {}  # Track unsupported geometry types
 
-    for element in result.elements():
+    for element in result.elements():  # Iterate over all returned OSM elements
         geometry = element.geometry()
         geometry_type = geometry.get('type')
         if geometry_type in geoms_dict:
@@ -125,7 +126,7 @@ def osm_to_gpkg(
                     'id': str(element.id()),
                     'Type': element.type()
                 }
-                geom = shape(geometry)
+                geom = shape(geometry)  # Convert GeoJSON-like dict to Shapely geometry
                 geoms_dict[geometry_type].append({**props, 'geometry': geom})
             except Exception as e:
                 print(f"Error parsing element {element.id()}: {e}")
@@ -136,21 +137,22 @@ def osm_to_gpkg(
     for geom_type, features in geoms_dict.items():
         if not features:
             continue
-        gdf = gpd.GeoDataFrame(features, crs=f"EPSG:{EPSG}")
+        gdf = gpd.GeoDataFrame(features, crs=f"EPSG:{EPSG}")  # Create GeoDataFrame for this geometry
         gpkg_path = os.path.join(
             output_dir, f"overpass_{feature_key}.gpkg"
         )
-        gdf.to_file(gpkg_path, driver="GPKG")
+        # Write layer using UTF-8 to ensure cross-platform compatibility
+        gdf.to_file(gpkg_path, driver="GPKG", encoding="utf-8")
         print(f"  ✔ Saved {len(gdf)} {geom_type}(s) to {rel_path(gpkg_path)}")
 
-    print(f"✅ Finished '{feature_key}' for {region_name} in {time.time() - start_time:.2f} seconds.")
+    #print(f"✅ Finished '{feature_key}' for {region_name} in {time.time() - start_time:.2f} seconds.")
     return unsupported_counts
 
 
 
 if __name__ == "__main__":
     import yaml
-    from data_preprocessing import rel_path
+    from utils.data_preprocessing import rel_path
 
     config_path = os.path.join("configs", "config.yaml")
     if not os.path.exists(config_path):
