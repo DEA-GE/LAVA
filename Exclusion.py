@@ -7,13 +7,13 @@ import pickle
 import os  
 import argparse
 import geopandas as gpd
-from rasterio.plot import show  
 from atlite.gis import shape_availability
 from atlite.gis import shape_availability_reprojected
 import rasterio
 import yaml
 from utils.data_preprocessing import clean_region_name, log_scenario_run
 from rasterstats import zonal_stats
+from utils.raster_analysis import area_filter
 
 dirname = os.getcwd() 
 #main_dir = os.path.join(dirname, '..')
@@ -87,7 +87,7 @@ demRasterPath = os.path.join(data_path, f'DEM_{region_name_clean}_{global_crs_ta
 dem = 1 if os.path.isfile(demRasterPath) else 0
 slopeRasterPath = os.path.join(data_from_DEM, f'slope_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 slope = 1 if os.path.isfile(slopeRasterPath) else 0
-terrain_ruggedness_path = os.path.join(data_from_DEM, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
+terrain_ruggedness_path = os.path.join(data_path, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
 terrain_ruggedness = 1 if os.path.isfile(terrain_ruggedness_path) else 0
 windRasterPath = os.path.join(data_path, f'wind_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 wind = 1 if os.path.isfile(windRasterPath) else 0
@@ -181,7 +181,7 @@ elif slope==0: info_list_not_available.append(f"slope")
 # add terrain ruggedness exclusions
 param = tech_config['max_terrain_ruggedness']
 if terrain_ruggedness==1 and param is not None:
-    excluder.add_raster(terrain_ruggedness_path, codes=range(param,1000000), crs=global_crs_obj)
+    excluder.add_raster(terrain_ruggedness_path, codes=range(0,param), invert=True, crs=global_crs_obj)
     info_list_exclusion.append(f"max terrain ruggedness: {param}")
 elif terrain_ruggedness==1 and param is None: info_list_not_selected.append(f"terrain_ruggedness")
 elif terrain_ruggedness==0: info_list_not_available.append(f"terrain_ruggedness")
@@ -397,27 +397,6 @@ if tech_config['deployment_density']:
 print('\nfollowing data was considered during exclusion:')
 for item in info_list_exclusion:
     print('- ', item)
-
-
-
-# area filter
-def area_filter(boolean_array, min_size):
-    # Label connected components in the array
-    labeled_array, num_features = label(boolean_array)
-    
-    # Count the number of pixels in each component
-    component_sizes = np.bincount(labeled_array.ravel())
-    
-    # Create a mask for components that meet the size requirement (ignoring the background)
-    large_component_mask = np.zeros_like(component_sizes, dtype=bool)
-    large_component_mask[1:] = component_sizes[1:] >= min_size  # Skip the background component (index 0)
-    
-    # Filter the original array, keeping only large components
-    filtered_array = large_component_mask[labeled_array]
-    
-    return filtered_array
-
-
 
 min_pixels_connected = tech_config['min_pixels_connected']
 #min_pixels_x=tech_config['min_pixels_x']

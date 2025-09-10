@@ -10,6 +10,7 @@
 !utils/proximity_calc.py
 !utils/fetch_OSM.py
 !utils/local_OSM_shp_files.py
+!utils/raster_analysis.py
 !utils/README.md
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
@@ -36,8 +37,10 @@
 !configs/onshorewind_template_china.yaml
 !configs/solar_template_china.yaml
 !configs/technologies
-!configs/technologies/HW_farm.yaml
-!configs/technologies/LW_farm.yaml
+!configs/technologies/HW_distributed_farm.yaml
+!configs/technologies/LW_distributed_farm.yaml
+!configs/technologies/HW_utility_farm.yaml
+!configs/technologies/LW_utility_farm.yaml
 !configs/technologies/CSi.yaml
 !spatial_data_prep.py
 !Exclusion.py
@@ -59,6 +62,7 @@
 !create_cutout.py
 !simple_results_analysis.py
 !snakefile_short
+!snakefile_short_short
 !templates/onshorewind_china.yaml
 !templates/solar_china.yaml
 !templates

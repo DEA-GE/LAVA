@@ -1,5 +1,5 @@
 
-study_region_name: Beijing #all files and the results folder will be named like that
+study_region_name: Gansu #all files and the results folder will be named like that
 country_code: CHN #3-letter ISO code; also needed for global wind atlas
 
 
@@ -8,7 +8,7 @@ country_code: CHN #3-letter ISO code; also needed for global wind atlas
 GADM_region_name:  #exact name as in GADM file (NAME_{gadm_level})
 GADM_level: 
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: 'gadm41_CHN_1_{region_name}.geojson' #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+custom_study_area_filename: '{region_name}.geojson' #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
 
 #--data retrieval----------------------------------------------------------------------
@@ -77,7 +77,7 @@ model_areas_filename:
 
 #--advanced details----------------------------------------------------------------------
 
-force_osm_download: 1 #if set to 1, OSM data will be downloaded even if it is already present in the folder
+force_osm_download: 0 #if set to 1, OSM data will be downloaded even if it is already present in the folder
 
 # simplification tolerance for study area
 study_area:
@@ -218,7 +218,7 @@ region_modifier: {
     'Jiangxi': {'onshorewind': 1.01, 'solar': 1.01},
     'Jilin': {'onshorewind': 0.98, 'solar': 0.94},
     'Liaoning': {'onshorewind': 0.98, 'solar': 0.94},
-    'Ningxia': {'onshorewind': 0.93, 'solar': 0.91},
+    'NingxiaHui': {'onshorewind': 0.93, 'solar': 0.91},
     'Qinghai': {'onshorewind': 0.93, 'solar': 0.91},
     'Shaanxi': {'onshorewind': 0.93, 'solar': 0.91},
     'Shandong': {'onshorewind': 0.98, 'solar': 0.99},
@@ -226,7 +226,7 @@ region_modifier: {
     'Shanxi': {'onshorewind': 0.98, 'solar': 0.99},
     'Sichuan': {'onshorewind': 1.01, 'solar': 1.01},
     'Tianjin': {'onshorewind': 0.98, 'solar': 0.99},
-    'Xinjiang': {'onshorewind': 0.93, 'solar': 0.91},
+    'XinjiangUygur': {'onshorewind': 0.93, 'solar': 0.91},
     'Xizang': {'onshorewind': 0.93, 'solar': 0.91},
     'Yunnan': {'onshorewind': 1.03, 'solar': 1.04},
     'Zhejiang': {'onshorewind': 1.01, 'solar': 1.03}

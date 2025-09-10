@@ -29,6 +29,7 @@ import logging
 from pathlib import Path
 
 import geopandas as gpd
+import pandas as pd
 import rasterio
 from rasterio.crs import CRS
 from rasterio.features import shapes
@@ -103,7 +104,11 @@ def parse_info_json(path: Path) -> dict | None:
         return None
 
 
-def aggregate_available_land(root: Path, output: Path, json_output: Path) -> None:
+def _build_groups(root: Path) -> dict[tuple[str, str], list[tuple[str, Path, dict]]]:
+    """Collect available-land rasters grouped by (technology, scenario).
+
+    Returns a mapping from (tech, scen) -> list of tuples (region, raster_path, info_dict).
+    """
     info_files = list(root.glob("data/**/available_land/*_exclusion_info.json"))
     groups: dict[tuple[str, str], list[tuple[str, Path, dict]]] = {}
     for info_file in info_files:
@@ -119,75 +124,141 @@ def aggregate_available_land(root: Path, output: Path, json_output: Path) -> Non
         pattern = f"{region}_{tech}_{scen}_available_land_*.tif"
         for raster in info_file.parent.glob(pattern):
             groups.setdefault((tech, scen), []).append((region, raster, info_dict))
+    return groups
+
+
+def _derive_suffixed(path: Path, suffix_token: str) -> Path:
+    """Add a token to the filename before the extension.
+
+    Example: ("foo/bar.gpkg", "reference") -> "foo/bar_reference.gpkg"
+    """
+    return path.with_name(f"{path.stem}_{suffix_token}{path.suffix}")
+
+
+def aggregate_available_land(
+    root: Path,
+    output: Path,
+    json_output: Path,
+    per_scenario_files: bool = False,
+) -> None:
+    groups = _build_groups(root)
     if not groups:
         print("No available land rasters found.")
         return
+    def to_sci(value: float) -> str:
+        return f"{value:.2e}"
 
+    def run_for_subset(subset: dict[tuple[str, str], list[tuple[str, Path, dict]]],
+                       out_gpkg: Path,
+                       out_json: Path) -> None:
+        out_gpkg.parent.mkdir(parents=True, exist_ok=True)
+        out_json.parent.mkdir(parents=True, exist_ok=True)
 
-    results: list[dict] = []
+        results: list[dict] = []
 
+        for (tech, scen), items in subset.items():
+            paths = [p for _, p, _ in items]
+            data, transform, nodata, crs = _merge_rasters(paths)
+            gdf = _array_to_gdf(data, transform, nodata, crs)
+            merged_geom = unary_union(gdf.geometry)
 
-    for (tech, scen), items in groups.items():
-        paths = [p for _, p, _ in items]
-        data, transform, nodata, crs = _merge_rasters(paths)
-        gdf = _array_to_gdf(data, transform, nodata, crs)
-        merged_geom = unary_union(gdf.geometry)
+            area_sum = sum(info["available_area"] for _, _, info in items)
+            power_sum = sum(info["power_potential"] for _, _, info in items)
+            shares = [info["eligibility_share"] for _, _, info in items]
+            share_agg = sum(shares) / len(shares) if shares else None
 
-        area_sum = sum(info["available_area"] for _, _, info in items)
-        power_sum = sum(info["power_potential"] for _, _, info in items)
-        shares = [info["eligibility_share"] for _, _, info in items]
-        share_agg = sum(shares) / len(shares) if shares else None
-
-        def to_sci(value: float) -> str:
-            return f"{value:.2e}"
-
-        gdf = gpd.GeoDataFrame(
-            {
-                "technology": [tech],
-                "scenario": [scen],
-                "available_area": [area_sum],
-                "power_potential": [power_sum],
-                "eligibility_share": [share_agg],
-                "geometry": [merged_geom],
-            },
-            crs=crs,
-        )
-        layer = f"{tech}_{scen}"
-        gdf.to_file(output, layer=layer, driver="GPKG")
-        print(f"Written layer {layer} with {len(paths)} files")
-
-        region_measures: dict[str, dict] = {}
-        for region, _, info in items:
-            share_val =  round(info["eligibility_share"] * 100 ,2) # Convert to percentage
-            area_val = round( info["available_area"] / 1e6 ,2)  # Convert m2 to km2
-            power_val = round(info["power_potential"] / 1e6, 2)  # Convert MW to TW
-            #print(
-            #    f"{region}: share={to_sci(share_val)}, area={to_sci(area_val)} km2, "
-            #    f"power={to_sci(power_val)} TW"
-            #)
-            region_measures[region] = {
-                "eligibility_share_%": share_val,
-                "available_area_km2": to_sci(area_val),
-                "power_potential_TW": power_val,
-            }
-
-
-        results.append(
-            {
-                "scenario": scen,
-                "technology": tech,
-                "aggregated": {
-                    "eligibility_share_%": round(share_agg * 100,2)  if share_agg is not None else None,
-                    "available_area_km2": to_sci(area_sum / 1e6),
-                    "power_potential_TW": round(power_sum / 1e6,2)
+            gdf = gpd.GeoDataFrame(
+                {
+                    "technology": [tech],
+                    "scenario": [scen],
+                    "available_area": [area_sum],
+                    "power_potential": [power_sum],
+                    "eligibility_share": [share_agg],
+                    "geometry": [merged_geom],
                 },
-                "regions": region_measures,
-            }
-        )
+                crs=crs,
+            )
+            layer = f"{tech}_{scen}"
+            gdf.to_file(out_gpkg, layer=layer, driver="GPKG")
+            print(f"Written layer {layer} with {len(paths)} files -> {out_gpkg}")
 
-    with json_output.open("w") as f:
-        json.dump(results, f, indent=2)
-    print(f"Written metrics JSON to {json_output}")
+            region_measures: dict[str, dict] = {}
+            for region, _, info in items:
+                share_val = round(info["eligibility_share"] * 100, 2)  # %
+                area_val = round(info["available_area"] / 1e6, 2)  # km2
+                power_val = round(info["power_potential"] / 1e6, 2)  # TW
+                region_measures[region] = {
+                    "eligibility_share_%": share_val,
+                    "available_area_km2": to_sci(area_val),
+                    "power_potential_TW": power_val,
+                }
+
+            results.append(
+                {
+                    "scenario": scen,
+                    "technology": tech,
+                    "aggregated": {
+                        "eligibility_share_%": round(share_agg * 100, 2) if share_agg is not None else None,
+                        "available_area_km2": to_sci(area_sum / 1e6),
+                        "power_potential_TW": round(power_sum / 1e6, 2),
+                    },
+                    "regions": region_measures,
+                }
+            )
+
+        with out_json.open("w") as f:
+            json.dump(results, f, indent=2)
+        print(f"Written metrics JSON to {out_json}")
+
+        # Flatten results into rows
+        rows = []
+        for entry in results:
+            scenario = entry["scenario"]
+            tech = entry["technology"]
+            agg = entry["aggregated"]
+
+            # aggregated row
+            rows.append(
+                {
+                    "Scenario": scenario,
+                    "Technology": tech,
+                    "Region": "ALL",
+                    "eligibility_share_%": agg["eligibility_share_%"],
+                    "available_area_km2": agg["available_area_km2"],
+                    "power_potential_TW": agg["power_potential_TW"],
+                }
+            )
+
+            # per-region rows
+            for region, vals in entry["regions"].items():
+                rows.append(
+                    {
+                        "Scenario": scenario,
+                        "Technology": tech,
+                        "Region": region,
+                        "eligibility_share_%": vals["eligibility_share_%"],
+                        "available_area_km2": vals["available_area_km2"],
+                        "power_potential_TW": vals["power_potential_TW"],
+                    }
+                )
+
+        # Save to CSV (same stem as JSON)
+        df = pd.DataFrame(rows)
+        csv_output = out_json.with_suffix(".csv")
+        df.to_csv(csv_output, index=False)
+        print(f"Written metrics table to {csv_output}")
+
+    if per_scenario_files:
+        # Determine unique scenarios
+        scenarios = sorted({scen for (_, scen) in groups.keys()})
+        for scen in scenarios:
+            subset = {k: v for k, v in groups.items() if k[1] == scen}
+            scen_gpkg = _derive_suffixed(output, scen)
+            scen_json = _derive_suffixed(json_output, scen)
+            run_for_subset(subset, scen_gpkg, scen_json)
+    else:
+        # Single aggregated outputs containing all scenarios (one layer per tech-scenario)
+        run_for_subset(groups, output, json_output)
 
 
 if __name__ == "__main__":
@@ -210,5 +281,13 @@ if __name__ == "__main__":
         default=Path("aggregated_available_land.json"),
         help="Path to write aggregated metrics JSON",
     )
+    parser.add_argument(
+        "--per-scenario-files",
+        action="store_true",
+        help=(
+            "If set, write one GPKG, JSON, and CSV per scenario by suffixing the"
+            " provided output filenames with _{scenario}."
+        ),
+    )
     args = parser.parse_args()
-    aggregate_available_land(args.root, args.output, args.json_output)
+    aggregate_available_land(args.root, args.output, args.json_output, args.per_scenario_files)

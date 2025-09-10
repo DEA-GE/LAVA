@@ -1,7 +1,7 @@
 #--exclusions----------------------------------------------------------------------
 
 # deployment density
-deployment_density: 10 # MW/km²
+deployment_density: 4 # MW/km²
 
 # exclusion container resolution manual
 resolution_manual: null
@@ -9,12 +9,12 @@ resolution_manual: null
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
   50: 3000
-  10: 1000
   40: 1000
   70: 1000
   80: 1000
   90: 1000
   95: 1000
+  #10: 1000
 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
@@ -35,9 +35,9 @@ landcover_codes: #dictionary of landcover code with corresponding buffer in mete
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 # DEM
-max_elevation: 3500 #meters
+max_elevation: 4000 #meters
 max_slope: 20 #degrees
-max_terrain_ruggedness: null #Terrain Ruggedness Index (m); maximum allowable terrain ruggedness
+max_terrain_ruggedness: null #terrain ruggedness index
 
 # spatial elements (buffer in meters)
 railways_buffer: 1000
@@ -55,15 +55,14 @@ plants_buffer: 1000
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
 # energy resources
-min_wind_speed: 4.5 #m/s
+min_wind_speed: 3 #m/s
 max_wind_speed: null #m/s
 
 # inclusion filter
 # EITHER use substations OR transmission OR roads (meters)
-substations_inclusion_buffer: 100000
-transmission_inclusion_buffer: 100000
-roads_inclusion_buffer: 30000
-
+substations_inclusion_buffer: null
+transmission_inclusion_buffer: null
+roads_inclusion_buffer: 10000
 
 # area filter
 min_pixels_connected: 5
@@ -72,7 +71,7 @@ min_pixels_y: # currently not working, use min_pixels_connected instead
 
 
 # Technology assumptions
-turbine: 'LW_farm.yaml'
+turbine: 'HW_distributed_farm.yaml'
 
 tech_derate: 0.95
 

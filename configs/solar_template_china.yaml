@@ -9,7 +9,13 @@ resolution_manual: null
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
-  50: 500 
+  50: 1000
+  10: 1000
+  40: 1000
+  70: 1000
+  80: 1000
+  90: 1000
+  95: 1000
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 #| Code | Class                    |
@@ -29,38 +35,38 @@ landcover_codes: #dictionary of landcover code with corresponding buffer in mete
 # Below, if you dont want to use some data then insert "null" (without quotation marks). This will skip the file during the exclusion calculation.
 
 # DEM
-max_elevation: 2000 #meters
+max_elevation: 4000 #meters
 max_slope: 20 #degrees
-max_terrain_ruggedness: null #terrain ruggedness index
+max_terrain_ruggedness: 1500 #terrain ruggedness index
+
 
 # spatial elements (buffer in meters)
-railways_buffer: 50
-roads_buffer: 50
-airports_buffer: 2000
-waterbodies_buffer: 100
-military_buffer: null
-coastlines_buffer: 200
-protectedAreas_buffer: 0
-transmission_lines_buffer: 100
-generators_buffer: null
-plants_buffer: null
+railways_buffer: 1000
+roads_buffer: 1000
+airports_buffer: 1000
+waterbodies_buffer: 1000
+military_buffer: 1000
+coastlines_buffer: 1000
+protectedAreas_buffer: 1000
+transmission_lines_buffer: 1000
+generators_buffer: 1000
+plants_buffer: 1000
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
 # energy resources
-min_solar_production: 1000 #kWh/kW/year
+min_solar_production: 1050 #kWh/kW/year
 max_solar_production: null #kWh/kW/year
 
 # inclusion filter
 # EITHER use substations OR transmission OR roads (meters)
-substations_inclusion_buffer: 50000
+substations_inclusion_buffer: null
 transmission_inclusion_buffer: null
-roads_inclusion_buffer: null
-
+roads_inclusion_buffer: 10000
 
 # area filter
-min_pixels_connected: 5
+min_pixels_connected: 1
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
 

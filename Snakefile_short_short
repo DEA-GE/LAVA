@@ -14,9 +14,10 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
-technologies = ["solar", "onshorewind"]
-scenario= "100infra10roadIncRugg1500Slope20_v2"
-#regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur","Xizang"]
+technologies = ["onshorewind"]
+scenario= "incForest"
+#regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur","Xizang","Hebei","Shanxi","Shaanxi","Sichuan"]
+
 
 
 # Create directories for each region and snakemake log
@@ -28,14 +29,13 @@ The snakemake workflow will parallelize (--cores > 1) everything else but the sp
 The resources are limited to openeo cause the api is throwing problems with parallelization. 
     use thi line ---->  snakemake --cores 4 --resources openeo_req=1
 to use a specific Snakefile, use the --snakefile option
-    use this line ----> snakemake --snakefile Snakefile_short --cores 4 --resources openeo_req=1
+    use this line ----> snakemake --snakefile Snakefile_short_short --cores 4 --resources openeo_req=1
 """
 
 rule all:
     input:
         expand(logpath("{region}", "spatial_data_prep.done"), region=regions),
         expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario),
-        expand(logpath("{region}", "suitability_{scenario}.done"), region=regions, scenario=scenario)
 
 rule spatial_data_prep:
     output:
@@ -60,14 +60,3 @@ rule exclusion:
             "python Exclusion.py --region {wildcards.region} "
             "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
         )
-
-rule suitability:
-    input:
-        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario)
-    output:
-        touch(logpath("{region}", "suitability_{scenario}.done"))
-    params:
-        method="snakemake",
-        scenario=scenario
-    shell:
-        "python suitability.py --region {wildcards.region} --method {params.method} --scenario {params.scenario}"
