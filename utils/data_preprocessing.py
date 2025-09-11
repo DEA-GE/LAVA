@@ -14,6 +14,8 @@ import io
 import fiona
 import urllib.parse
 from pyproj import CRS
+import pandas as pd
+import rasterstats 
 
 import logging
 
@@ -579,3 +581,16 @@ def rel_path(path: str) -> str:
         return os.path.relpath(path)
     except ValueError:
         return os.path.abspath(path)
+
+
+
+def landcover_stats_df(region_boundary, rasterFilePath, legend_dict, pixel_size):
+    stats = rasterstats.zonal_stats(region_boundary, rasterFilePath, categorical=True, category_map=legend_dict)
+    df = pd.DataFrame(stats)
+    df_long = df.melt(var_name='category', value_name='count')
+    df_long = df_long.groupby('category', as_index=False)['count'].sum()
+    category_to_code = {category: code for code, category in legend_dict.items()}
+    df_long['code'] = df_long['category'].map(category_to_code)
+    df_long['area_km2'] = round(df_long['count'] * pixel_size / 1e6, 0)
+    df_long = df_long[['category', 'code', 'count', 'area_km2']]
+    return df_long

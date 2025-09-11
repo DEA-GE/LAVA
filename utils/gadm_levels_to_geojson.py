@@ -24,13 +24,20 @@ def extract_gadm_levels(
     name_col = f'NAME_{gadm_level}'
     gdf = gadm_data.loc[gadm_data[name_col].notnull()].copy()
     areas_list= []
+    rename_dict = {
+        "XinjiangUygur": "Xinjiang",
+        "NingxiaHui": "Ningxia"
+    }
     for name, group in gdf.groupby(name_col):
+        # Rename if in dictionary, otherwise use original name
+        name = rename_dict.get(name, name)
         # Clean filename
         safe_name = "".join([c if c.isalnum() or c in " _-" else "_" for c in str(name)])
+
         out_path = os.path.join(output_folder, f"{safe_name}.geojson")
         group.to_file(out_path, driver="GeoJSON")
         areas_list.append(safe_name)
-        list_out = os.path.join(output_folder, "areas_list.json")
+        list_out = os.path.join(output_folder, "processed_areas_list.json")
         with open(list_out, "w", encoding="utf-8") as f:
             json.dump(areas_list, f, ensure_ascii=False, indent=2)
 

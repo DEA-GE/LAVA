@@ -1,5 +1,5 @@
 
-study_region_name: Beijing #all files and the results folder will be named like that
+study_region_name: Gansu #all files and the results folder will be named like that
 country_code: CHN #3-letter ISO code; also needed for global wind atlas
 
 
@@ -8,7 +8,7 @@ country_code: CHN #3-letter ISO code; also needed for global wind atlas
 GADM_region_name:  #exact name as in GADM file (NAME_{gadm_level})
 GADM_level: 
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: 'gadm41_CHN_1_{region_name}.geojson' #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+custom_study_area_filename: '{region_name}.geojson' #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
 
 #--data retrieval----------------------------------------------------------------------
@@ -77,7 +77,7 @@ model_areas_filename:
 
 #--advanced details----------------------------------------------------------------------
 
-force_osm_download: 1 #if set to 1, OSM data will be downloaded even if it is already present in the folder
+force_osm_download: 0 #if set to 1, OSM data will be downloaded even if it is already present in the folder
 
 # simplification tolerance for study area
 study_area:
@@ -138,6 +138,10 @@ weather_data_path: Raw_Spatial_Data
 
 weather_year: 1990 #[str(y) for y in range(1990,2020)]
 
+# Technology data
+tech: #"HeatDemand"
+tech_derate: 0.95
+
 # Heat demand
 heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
 heat_demand_end_day: "30-04" #end day of heat demand profile, format: DD-MM
@@ -147,23 +151,22 @@ heat_demand_threshold: 15 # threshold for heat demand profile, in degrees Celsiu
 
 #--Suitability cost assumptions----------------------------------------------------------------------
 
-# Minimum area for resource grades and distributed areas (km2)
-min_area_rg: 125
-min_area_distributed: 25
+# Minimum area for resource grades (% of total available land area)
+min_area_rg: 0.05
 
 # Cost tiers
 tiers: {
-    'Tier1': [0, 1.00],
-    'Tier2': [1.00, 1.25],
-    'Tier3': [1.25, 1.50],
-    'Tier4': [1.50, 2.00],
-    'Tier5': [2.00, 1000],
+    'Tier1': [0.5, 1.00],
+    'Tier2': [1.00, 1.50],
+    'Tier3': [1.50, 2.00],
+    'Tier4': [2.00, 2.50],
+    'Tier5': [2.50, 100],
     }
 
 # Substation distance (meters)
 average_sub_dist: {
-    'onshorewind': 10000,
-    'solar': 10000
+    'onshorewind': 5000,
+    'solar': 5000
 }
 
 # Terrain modifier (terrain types defined by ruggedness ranges)
@@ -235,11 +238,11 @@ modifier_weights: {
         'onshorewind': 1,
         'solar': 1
     },
-    'substation_distance': {
+    substation_distance: {
         'onshorewind': 0.1,
         'solar': 0.1
     },
-    'region': {
+    region': {
         'onshorewind': 1,
         'solar': 1
     },

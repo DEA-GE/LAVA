@@ -144,7 +144,7 @@ for cutout_file in cutout_files:
         # Simulate the technology profiles based on the configuration
         match technology:
             case "solar":
-                technology_path = os.path.join(dirname, 'technologies', tech_config["panel"])
+                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["panel"])
 
                 ds_tech = cutout.pv(
                     matrix=capacity_matrix,
@@ -157,7 +157,7 @@ for cutout_file in cutout_files:
                 ds_tech = ds_tech * tech_config["tech_derate"]
 
             case "solartracking":
-                technology_path = os.path.join(dirname, 'technologies', tech_config["panel"])
+                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["panel"])
 
                 ds_tech = cutout.pv(
                     matrix=capacity_matrix,
@@ -171,7 +171,7 @@ for cutout_file in cutout_files:
                 ds_tech = ds_tech * tech_config["tech_derate"]
 
             case "onshorewind":
-                technology_path = os.path.join(dirname, 'technologies', tech_config["turbine"])
+                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["turbine"])
                 
                 ds_tech = cutout.wind(
                     matrix=capacity_matrix,
@@ -183,7 +183,7 @@ for cutout_file in cutout_files:
                 ds_tech = ds_tech * tech_config["tech_derate"]
 
             case "offshorewind":
-                technology_path = os.path.join(dirname, 'technologies', tech_config["turbine"])
+                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["turbine"])
 
                 ds_tech = cutout.wind(
                     matrix=capacity_matrix,

@@ -18,6 +18,7 @@ import richdem
 import xdem
 import logging
 import argparse
+import numpy as np
 from pyproj import CRS
 from utils.data_preprocessing import *
 from utils.local_OSM_shp_files import *
@@ -176,7 +177,7 @@ with open(os.path.join(output_dir, f'{region_name_clean}_local_CRS.pkl'), 'wb') 
 region.to_crs(local_crs_obj, inplace=True) 
 region.to_file(os.path.join(output_dir, f'{region_name_clean}_{local_crs_tag}.geojson'), driver='GeoJSON', encoding='utf-8')
 # also have region polygon in equal-area Mollweide projection
-region_mollweide = region.to_crs(CRS.from_user_input('ESRI:54009')) 
+region_mollweide = region.to_crs(CRS.from_user_input('ESRI:54009'))
 
 # set global CRS EPSG:4326
 global_crs_obj = CRS.from_user_input('4326')
@@ -189,8 +190,10 @@ with open(os.path.join(output_dir, f'{region_name_clean}_global_CRS.pkl'), 'wb')
 #calculate bounding box with 1000m buffer (region needs to be in projected CRS so meters are the unit)
 region_copy = region
 region_copy['buffered']=region_copy.buffer(1000)
+region_buffered_4000 = region_copy.buffer(4000) #have DEM larger than study area to account for Ruggedness Index calculation (convert to 4326 below)
 # Convert buffered region back to EPSC 4326 to get bounding box latitude and longitude 
 region_buffered_4326 = region_copy.set_geometry('buffered').to_crs(global_crs_obj)
+region_buffered_4000 = region_buffered_4000.to_crs(global_crs_obj)
 bounding_box = region_buffered_4326['buffered'].total_bounds 
 logging.info(f"Bounding box in EPSG 4326: \nminx: {bounding_box[0]}, miny: {bounding_box[1]}, maxx: {bounding_box[2]}, maxy: {bounding_box[3]}")
 
@@ -462,11 +465,13 @@ if config['landcover_source'] == 'file':
 print('processing DEM') #block comment: SHIFT+ALT+A, multiple line comment: STRG+#
 try:
     clip_reproject_raster(demRasterPath, region_name_clean, region, 'DEM', local_crs_obj, 'nearest', 'int16', output_dir)
+    clip_reproject_raster(demRasterPath, region_name_clean, region_buffered_4000, 'DEM_buffered', local_crs_obj, 'nearest', 'int16', output_dir)
     dem_4326_Path = os.path.join(output_dir, f'DEM_{region_name_clean}_EPSG4326.tif')
+    dem_local_buffered_Path = os.path.join(output_dir, f'DEM_buffered_{region_name_clean}_{local_crs_tag}.tif') #for ruggedness index calculation
     #reproject and match resolution of DEM to landcover data (co-registration)
     dem_localCRS_Path=os.path.join(output_dir, f'DEM_{region_name_clean}_{local_crs_tag}.tif')
-    dem_resampled_Path=os.path.join(output_dir, f'DEM_{region_name_clean}_{local_crs_tag}_resampled.tif') 
-    co_register(dem_localCRS_Path, processed_landcover_filePath, 'nearest', dem_resampled_Path, dtype='int16')
+    # dem_resampled_Path=os.path.join(output_dir, f'DEM_{region_name_clean}_{local_crs_tag}_resampled.tif') 
+    # co_register(dem_localCRS_Path, processed_landcover_filePath, 'nearest', dem_resampled_Path, dtype='int16')
 
     #slope and aspect map
     # Define output directories
@@ -479,8 +484,8 @@ try:
     slope = richdem.TerrainAttribute(dem_file, attrib='slope_degrees')
     slopeFilePathLocalCRS = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_{local_crs_tag}.tif')
     save_richdem_file(slope, dem_localCRS_Path, slopeFilePathLocalCRS)
-    slope_co_registered_FilePath = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_{local_crs_tag}_resampled.tif')
-    co_register(slopeFilePathLocalCRS, processed_landcover_filePath, 'nearest', slope_co_registered_FilePath, dtype='int16')
+    # slope_co_registered_FilePath = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_{local_crs_tag}_resampled.tif')
+    # co_register(slopeFilePathLocalCRS, processed_landcover_filePath, 'nearest', slope_co_registered_FilePath, dtype='int16')
     #save in 4326: slope cannot be calculated from EPSG4326 because units get confused (https://github.com/r-barnes/richdem/issues/34)
     slopeFilePath4326 = os.path.join(richdem_helper_dir, f'slope_{region_name_clean}_EPSG4326.tif')
     reproject_raster(slopeFilePathLocalCRS, region_name_clean, 4326, 'nearest', 'int16', slopeFilePath4326)
@@ -491,8 +496,8 @@ try:
     aspect = richdem.TerrainAttribute(dem_file, attrib='aspect')
     aspectFilePathLocalCRS = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_{local_crs_tag}.tif')
     save_richdem_file(aspect, dem_localCRS_Path, aspectFilePathLocalCRS)
-    aspect_co_registered_FilePath = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_{local_crs_tag}_resampled.tif')
-    co_register(aspectFilePathLocalCRS, processed_landcover_filePath, 'nearest', aspect_co_registered_FilePath, dtype='int16')
+    # aspect_co_registered_FilePath = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_{local_crs_tag}_resampled.tif')
+    # co_register(aspectFilePathLocalCRS, processed_landcover_filePath, 'nearest', aspect_co_registered_FilePath, dtype='int16')
     #save in 4326: not sure if aspect is calculated correctly in EPSG4326 because units might get confused (https://github.com/r-barnes/richdem/issues/34)
     aspectFilePath4326 = os.path.join(richdem_helper_dir, f'aspect_{region_name_clean}_EPSG4326.tif')
     reproject_raster(aspectFilePathLocalCRS, region_name_clean, 4326, 'nearest', 'int16', aspectFilePath4326)
@@ -500,13 +505,14 @@ try:
     #------------- Terrain Ruggedness Index -----------------
     if compute_terrain_ruggedness:
         print('\nprocessing Terrain Ruggedness Index')
-        tri_local_path = os.path.join(output_dir, f'TerrainRuggednessIndex_{region_name_clean}_{local_crs_tag}.tif')
+        tri_local_path = os.path.join(richdem_helper_dir, f'TerrainRuggednessIndex_{region_name_clean}_{local_crs_tag}.tif')
         tri_global_path = os.path.join(richdem_helper_dir, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
         if os.path.exists(tri_local_path) and os.path.exists(tri_global_path):
             print(f"Terrain Ruggedness Index already exists at {rel_path(tri_local_path)}. Skipping calculation.")
         else:
-            dem = xdem.DEM(dem_localCRS_Path)
+            dem = xdem.DEM(dem_local_buffered_Path)
             tri = dem.terrain_ruggedness_index(window_size=9)
+            tri.data = np.rint(tri.data).astype(np.int32)
             tri.save(tri_local_path)
             reproject_raster(tri_local_path, region_name_clean, 4326, 'nearest', 'float32', tri_global_path)
     

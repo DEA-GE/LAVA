@@ -14,9 +14,10 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
-technologies = ["solar", "onshorewind"]
-scenario= "100infra10roadIncRugg1500Slope20"
-#regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur","Xizang"]
+technologies = ["onshorewind"]
+scenario= "incForest"
+#regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur","Xizang","Hebei","Shanxi","Shaanxi","Sichuan"]
+
 
 
 # Create directories for each region and snakemake log
