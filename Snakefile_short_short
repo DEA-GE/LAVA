@@ -14,8 +14,8 @@ regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Gua
           "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
           "Jilin", "Liaoning", "NeiMongol", "NingxiaHui", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
           "Shanxi", "Sichuan", "Tianjin", "XinjiangUygur", "Xizang", "Yunnan", "Zhejiang"]
-technologies = ["onshorewind"]
-scenario= "incForest"
+technologies = ["onshorewind","solar"]
+scenario= "incForest1500rugg"
 #regions=["Gansu","Qinghai","NeiMongol","NingxiaHui","XinjiangUygur","Xizang","Hebei","Shanxi","Shaanxi","Sichuan"]
 
 
