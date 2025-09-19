@@ -30,7 +30,6 @@
 !Raw_Spatial_Data/global_solar_wind_atlas
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !weather_data
-!weather_data/create_cutout.py
 !weather_data/wind_speed_regions.ipynb
 !configs
 !configs/config_template.yaml
@@ -60,6 +59,7 @@
 !utils/gadm_levels_to_geojson.py
 !suitability.py
 !weather_data_prep.py
+!create_cutout.py
 !simple_results_analysis.py
 !snakefile_short
 !snakefile_short_short
@@ -68,5 +68,4 @@
 !templates
 !bias_correction_factors
 !bias_correction_factors/ERA5_wnd100m_bias.nc
-!weather_data
 !delete_available_land.py

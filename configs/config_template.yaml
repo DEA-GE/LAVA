@@ -145,7 +145,7 @@ roads_inclusion_buffer: null
 #--Weather and energy data assumptions-------------------------------------------------------------
 weather_data_path: Raw_Spatial_Data 
 
-weather_year: 1990 #[str(y) for y in range(1990,2020)]
+weather_years: [2019] # list of years 
 
 # Technology data
 tech: #"HeatDemand"
