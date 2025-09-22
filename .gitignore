@@ -53,16 +53,16 @@
 !other/color_raster_file.ipynb
 !other/resampling_reprojecting.ipynb
 !other/Atlite_custom_region.ipynb
-!Snakefile
 !utils/simplify.py
 !utils/gadm_levels_to_geojson.py
 !utils/delete_available_land.py
 !utils/!simple_results_analysis.py
+!snakemake/Snakefile
+!snakemake/snakefile_short
+!snakemake/snakefile_short_short
 !suitability.py
 !weather_data_prep.py
 !create_cutout.py
-!snakefile_short
-!snakefile_short_short
 !bias_correction_factors
 !bias_correction_factors/ERA5_wnd100m_bias.nc
 
