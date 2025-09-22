@@ -3,7 +3,6 @@
 !README.md
 !envs
 !envs/requirements.yaml
-!envs/requirements_qgis.yaml
 !utils
 !utils/legends.py
 !utils/data_preprocessing.py
