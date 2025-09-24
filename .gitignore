@@ -48,13 +48,6 @@
 !data_explore.ipynb
 !GLAES_Aachen.ipynb
 !GLAES_Aachen_test_data.ipynb
-!other
-!other/pyrosm_test.ipynb
-!other/OSMnx.ipynb
-!other/earthOSM_test.ipynb
-!other/color_raster_file.ipynb
-!other/resampling_reprojecting.ipynb
-!other/Atlite_custom_region.ipynb
 !utils/simplify.py
 !utils/gadm_levels_to_geojson.py
 !utils/delete_available_land.py
