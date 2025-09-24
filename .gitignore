@@ -46,12 +46,10 @@
 !spatial_data_prep.py
 !Exclusion.py
 !data_explore.ipynb
-!GLAES_Aachen.ipynb
-!GLAES_Aachen_test_data.ipynb
 !utils/simplify.py
 !utils/gadm_levels_to_geojson.py
 !utils/delete_available_land.py
-!utils/!simple_results_analysis.py
+!utils/simple_results_analysis.py
 !snakemake
 !snakemake/Snakefile
 !snakemake/snakefile_short
