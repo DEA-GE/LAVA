@@ -80,10 +80,15 @@ def osm_to_gpkg(
     #print(f"Fetching data for: {region_name} ")
     #print(f"Fetching data for: {location.displayName()} (Area ID: {area_id})")
     
-    overpass = Overpass() # Initialize Overpass API interface
+
+    # some spatial elements like airports or waterbodies can be represented as both ways and relations
+    element_types = element_type if isinstance(element_type, list) else [element_type]
+
+    overpass = Overpass()
+
     query = overpassQueryBuilder(
         polygon=polygon,
-        elementType=[element_type],
+        elementType=element_types,
         selector=selector,
         includeGeometry=True
         ) # Build Overpass query

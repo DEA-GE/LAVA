@@ -98,7 +98,7 @@ def geopandas_clip_reproject(geopandas_file, gdf, target_crs_obj):
     return geopandas_clipped
 
 
-def clip_raster(input_raster_path, region_name_clean, gdf,output_dir):
+def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name=None):
     """
     Clips a raster to the geometry defined in a GeoDataFrame and saves the clipped raster.
 
@@ -132,8 +132,12 @@ def clip_raster(input_raster_path, region_name_clean, gdf,output_dir):
         ori_raster_crs = ori_raster_crs.replace(":", "")
         print(f'original raster CRS: {src.crs}')
         # Save the clipped raster as a new GeoTIFF file
-        with rasterio.open(os.path.join(output_dir, f'{filename}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
-            dest.write(out_image)
+        if data_name is None:
+            with rasterio.open(os.path.join(output_dir, f'{filename}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
+                dest.write(out_image)
+        else:
+            with rasterio.open(os.path.join(output_dir, f'{data_name}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
+                dest.write(out_image)
 
 
 

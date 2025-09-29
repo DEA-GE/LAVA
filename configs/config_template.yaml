@@ -1,28 +1,28 @@
 
-study_region_name: Elbe-Elster #all files and the results folder will be named like that
-country_code: DEU #3-letter ISO code; also needed for global wind atlas
+study_region_name: Elbe-Elster #[mandatory][string] all files and the results folder will be named like that
+country_code: DEU #[mandatory][string: 3-letter ISO code] also needed for global wind atlas
 
 
 #--define study region----------------------------------------------------------------------
 # use GADM boundary (https://gadm.org/maps.html)
-GADM_region_name: Elbe-Elster #exact name as in GADM file (NAME_{gadm_level})
-GADM_level: 2
+GADM_region_name: Elbe-Elster #[situational][string] exact name as in GADM file (NAME_{gadm_level})
+GADM_level: 2 #[situational][integer]
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+custom_study_area_filename: #[situational][string] if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
 
 #--data retrieval----------------------------------------------------------------------
 # landcover
-landcover_source: openeo   #'file' or 'openeo' or leave empty to not download (DEM data depends on landcover data due to co-registering)
-resolution_landcover:  # for openeo download, in degress (EPSG4326); 0.008999280057498208 degrees is ca. 1000m at equator
-landcover_filename: #filename including file ending of local landcover file in Raw_Spatial_Data/landcover
+landcover_source: openeo   #[mandatory][string: file/openeo/ ] or leave empty to not download 
+resolution_landcover:  #[optional][float] set manual resolution for openeo download, in degress (EPSG4326); 0.008999280057498208 degrees is ca. 1000m at equator
+landcover_filename: #[situational][string] filename including file ending of local landcover file in Raw_Spatial_Data/landcover
 
 # DEM 
-DEM_filename: gebco_cutout.tif 
+DEM_filename: gebco_cutout.tif #[mandatory][string]
 
 # OSM data
-OSM_source: overpass #geofabrik or overpass
-OSM_folder_name:  #name of the folder within /Raw_Spatial_Data/OSM with all raw OSM shapefiles from Geofabrik; only needed if Geofabrik used as OSM source
+OSM_source: overpass #[mandatory][string: overpass/geofabrik]
+OSM_folder_name:  #[situational][string] name of the folder within /Raw_Spatial_Data/OSM with all raw OSM shapefiles from Geofabrik; only needed if Geofabrik used as OSM source
 
 # OSM features
 railways: 1
@@ -43,13 +43,13 @@ coastlines: 1
 # wind and solar resources (GWA and GSA)
 wind_atlas: 1
 solar_atlas: 1
-country_name_solar_atlas: Germany # name of country, check https://globalsolaratlas.info/download  
-solar_atlas_measure: LTAym_YearlyMonthlyTotals # check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
+country_name_solar_atlas: Germany #[mandatory][string] name of country, check https://globalsolaratlas.info/download  
+solar_atlas_measure: LTAym_YearlyMonthlyTotals #[situational][string] check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
 
 # protected areas
-protected_areas_source: 0 #WDPA or file or 0
-wdpa_url: 
-protected_areas_filename:  #include file ending (.gpkg or .geojson), needs to be in EPSG4326
+protected_areas_source: 0 #[mandatory][WDPA/file/0]
+wdpa_url: #[mandatory][string]
+protected_areas_filename:  #[situational][string] include file ending (.gpkg or .geojson), needs to be in EPSG4326
 
 # forest density (optional; raster in Raw_Spatial_Data/Additional_layers)
 forest_density_source: 0  # keep 0 to disable; set filename below to use
@@ -63,8 +63,8 @@ compute_terrain_ruggedness: 1
 CRS_manual:  #set CRS instead of calculating local UTM zone
 
 # additional polygons and rasters
-additional_exclusion_polygons_folder_name: 
-additional_exclusion_rasters_folder_name: 
+additional_exclusion_polygons_folder_name: #[optional][string]
+additional_exclusion_rasters_folder_name: #[optional][string]
 
 
 #--exclusions----------------------------------------------------------------------
@@ -121,8 +121,8 @@ osm_features_config:
   generators: ["power", *generators, "node"]
   roads: ["highway", *roads, "way"]
   railways: ["railway", *railways, "way"]
-  airports: ["aeroway", *airports, "way"]
-  waterbodies: ["natural", *waterbodies, "way"]
+  airports: ["aeroway", *airports, ["way", "relation"]]
+  waterbodies: ["natural", *waterbodies, ["way", "relation"]]
   military: ["landuse", *military, "way"]
 
 
@@ -135,11 +135,6 @@ Z: 50
 # world database of protected areas
 wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
 
-# inclusion filter
-# EITHER use substations OR transmission (meters)
-substations_inclusion_buffer: 50000
-transmission_inclusion_buffer: 50000
-roads_inclusion_buffer: null
 
 
 #--Weather and energy data assumptions-------------------------------------------------------------
@@ -147,16 +142,6 @@ weather_data_path: Raw_Spatial_Data
 
 weather_years: [2019] # list of years 
 
-# Technology data
-tech: #"HeatDemand"
-tech_derate: 0.95
-
-# Heat demand
-heat_demand_start_day: "01-10" #start day of heat demand profile, format: DD-MM
-heat_demand_end_day: "30-04" #end day of heat demand profile, format: DD-MM
-heat_demand_hour_shift: 8 # shift of heat demand profile in hours, such that daily heat demand average follows diurnal temperature profile
-heat_demand_constant: 0 # Corresponding to no temperature independent heat demand
-heat_demand_threshold: 15 # threshold for heat demand profile, in degrees Celsius
 
 #--Suitability cost assumptions----------------------------------------------------------------------
 

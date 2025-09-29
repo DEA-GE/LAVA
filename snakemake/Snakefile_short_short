@@ -29,7 +29,7 @@ The snakemake workflow will parallelize (--cores > 1) everything else but the sp
 The resources are limited to openeo cause the api is throwing problems with parallelization. 
     use thi line ---->  snakemake --cores 4 --resources openeo_req=1
 to use a specific Snakefile, use the --snakefile option
-    use this line ----> snakemake --snakefile Snakefile_short_short --cores 4 --resources openeo_req=1
+    use this line ----> snakemake --snakefile snakemake/Snakefile_short_short --cores 4 --resources openeo_req=1
 """
 
 rule all:

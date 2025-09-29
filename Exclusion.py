@@ -392,15 +392,16 @@ with rasterio.open(landcoverPath, 'r+') as src:
 
 # calculate available areas
 print('\nperforming exclusions...')
-#masked, transform = shape_availability(region.geometry, excluder)
-masked, transform = shape_availability_reprojected(region.geometry, excluder, dst_transform=transform_lc, dst_crs=local_crs_obj, dst_shape=shape)
+masked, transform = shape_availability(region.geometry, excluder)
+#masked, transform = shape_availability_reprojected(region.geometry, excluder, dst_transform=transform_lc, dst_crs=local_crs_obj, dst_shape=shape)
 
 available_area = masked.sum() * excluder.res**2
 eligible_share = available_area / region.geometry.item().area
 
 # print results
-print(f"\nEligibility share: {eligible_share:.2%}")
-print(f'Available area: {available_area:.2} km²')
+print(f"\nThe eligibility share is: {eligible_share:.2%}")
+print(f'The available area is: {available_area:.2f} km²')
+
 if tech_config['deployment_density']:
     power_potential = available_area*1e-6 * tech_config['deployment_density']
     print(f'Power potential: {power_potential:.2} MW')
@@ -484,12 +485,13 @@ with open(os.path.join(output_dir, f"{region_name_clean}_{scenario}_{technology}
     for item in info_list_exclusion:
         file.write(f"{item}\n")
     file.write(f"\neligibility share: {eligible_share:.2%}")
-    file.write(f"\navailable area: {available_area:.2} m2")
+    file.write(f"\navailable area: {available_area:.2f} m2")
     file.write(f"\npower potential: {power_potential:.2} MW")
 
     if config['model_areas_filename']:
         # Write table from GeoDataFrame subset
         file.write("\n\nResults for model areas:\n")
+
         file.write(subset.to_string(index=False))
 
 # save info in JSON file for easier retrieval
@@ -515,3 +517,4 @@ with open(
     "w",
 ) as file:
     json.dump(info_data, file, indent=2)
+
