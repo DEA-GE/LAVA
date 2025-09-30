@@ -59,4 +59,11 @@
 !create_cutout.py
 !bias_correction_factors
 !bias_correction_factors/ERA5_wnd100m_bias.nc
-
+!docs
+!docs/config.py
+!docs/index.rst
+!docs/getting_started.rst
+!docs/requirements-docs.txt
+!docs/troubleshooting.rst
+!docs/usage.rst
+!docs/faq.rst
