@@ -68,4 +68,8 @@
 !docs/usage.rst
 !docs/faq.rst
 !.readthedocs.yaml
-
+!tkinter_app
+!tkinter_app/data_loader.py
+!tkinter_app/flag_mapper.py
+!tkinter_app/main.py
+!tkinter_app/_init__.py

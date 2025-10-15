@@ -85,13 +85,14 @@ custom_study_area_filename = config.get('custom_study_area_filename', None)
 
 #Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", default=region_name_clean, help="studyregion name")
+parser.add_argument("--region", default=region_name_clean, help="study region name")
 parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
 args = parser.parse_args()
 
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
     region_name = args.region
+    print(region_name)
     region_name_clean = clean_region_name(region_name)  # Clean the region name for file naming
     print(f"Running via snakemake - measures: region={region_name_clean}")
 else:
@@ -260,10 +261,10 @@ elif OSM_source == 'overpass':
         gpkg_path = os.path.join(OSM_output_dir, f"overpass_{feature_key}.gpkg")
 
         if os.path.exists(gpkg_path) and not config['force_osm_download']:
-            print(f"⏭️  Skipping '{feature_key}' for {region_name_clean}: '{rel_path(gpkg_path)}' already exists.")
+            print(f">>  Skipping '{feature_key}' for {region_name_clean}: '{rel_path(gpkg_path)}' already exists.")
 
         else:
-            print(f"\n🔍 Processing {feature_key} in {region_name_clean}")
+            print(f"\nProcessing {feature_key} in {region_name_clean}")
             #the function returns a dictionary with unsupported geometries to check if the features dictionary is correct
             unsupported = osm_to_gpkg(
                 region_name=region_name_clean,
