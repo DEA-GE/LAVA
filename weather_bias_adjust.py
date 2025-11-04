@@ -84,7 +84,8 @@ country_name_solar_atlas = config['country_name_solar_atlas']
 
 # Load the weather data (all years)
 weather_data_path = os.path.abspath(config["weather_data_path"])
-weather_data_files = glob.glob(os.path.join(weather_data_path, '*.nc'))
+# Load all .nc or .grib files in the weather data path
+weather_data_files = glob.glob(os.path.join(weather_data_path, f"*.nc")) + glob.glob(os.path.join(weather_data_path, f"*.grib"))
 
 GWAraster_path = os.path.join(dirname, 'Raw_Spatial_Data', 'global_solar_wind_atlas', f'{country_code}_wind_speed_100.tif')
 GSAraster_path = os.path.join(dirname, 'Raw_Spatial_Data', 'global_solar_wind_atlas', f'{country_name_solar_atlas}_GISdata_LTAy_YearlyMonthlyTotals_GlobalSolarAtlas-v2_GEOTIFF', 'GHI.tif')
@@ -112,6 +113,14 @@ ERA_ghi_bias = ds_bias_correction(GSA_ds / 8760, era5_ds['ghi'], mean_dims=['tim
 ERA5_wnd100m_bias = ERA5_wnd100m_bias.fillna(1)
 ERA_ghi_bias = ERA_ghi_bias.fillna(1)
 
+# Limit bias correction factors to reasonable ranges
+min_val, max_val = config['wind_bias_range']
+ERA5_wnd100m_bias = ERA5_wnd100m_bias.clip(min=min_val, max=max_val)
+
 # Export bias
 ERA5_wnd100m_bias.to_netcdf(output_path + "/ERA5_wnd100m_bias.nc")
 ERA_ghi_bias.to_netcdf(output_path + "/ERA5_ghi_bias.nc")
+
+# Export rasters
+ERA5_wnd100m_bias.rio.to_raster(output_path + "/ERA5_wnd100m_bias.tif")
+ERA_ghi_bias.rio.to_raster(output_path + "/ERA5_ghi_bias.tif")
