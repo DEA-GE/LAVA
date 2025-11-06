@@ -1,24 +1,21 @@
 from pathlib import Path
 import json
+import yaml
+
+
+
+with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
+    config_snakemake = yaml.load(f, Loader=yaml.FullLoader)
+
+
+#define parameters , keep them in list as it iterates, multiple input can be included. 
+regions = config_snakemake["study_region_name"]
+technologies = config_snakemake["technologies"]
+scenario= config_snakemake["scenario"]
+
 
 def logpath(region, filename):
     return Path("data") / region / "snakemake_log" / filename
-
-# Load regions from JSON file produced from "extract_china_provinces" script in utils folder
-#regions_filepath = Path("Raw_Spatial_Data/custom_study_area/China_provinces_list.json")
-#with open(regions_filepath, "r") as f:
-#    regions= json.load(f)
-
-#define parameters
-regions = ["Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Guangxi", "Guizhou",
-          "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
-          "Jilin", "Liaoning", "NeiMongol", "Ningxia", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
-          "Shanxi", "Sichuan", "Tianjin", "Xinjiang", "Xizang", "Yunnan", "Zhejiang"]
-technologies = ["onshorewind"]
-scenario= "incForest20Rugg1000"
-#regions=["Gansu","Qinghai","NeiMongol","Ningxia","Xinjiang","Xizang","Hebei","Shanxi","Shaanxi","Sichuan"]
-
-
 
 # Create directories for each region and snakemake log
 for r in regions:

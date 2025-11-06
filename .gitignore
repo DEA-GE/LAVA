@@ -51,6 +51,8 @@
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
+!configs/config_snakemake.yaml
+!configs/config_snakemake_template_china.yaml
 !configs/onshorewind_template_china.yaml
 !configs/solar_template_china.yaml
 !configs/onshorewind_template.yaml
@@ -65,8 +67,14 @@
 # --- Snakemake ---
 !snakemake
 !snakemake/Snakefile
-!snakemake/snakefile_short
-!snakemake/snakefile_short_short
+!snakemake/Snakefile_simplified
+!snakemake/rules
+!snakemake/rules/spatial_data_prep.smk
+!snakemake/rules/exclusion.smk
+!snakemake/rules/suitability.smk
+!snakemake/rules/energy_profiles.smk
+!snakemake/rules/weather_data_prep.smk
+!snakemake/rules/weather_bias_adjust.smk
 # --- Sphinx docs ---
 !docs
 !docs/.gitkeep
