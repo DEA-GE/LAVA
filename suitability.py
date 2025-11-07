@@ -96,21 +96,21 @@ else:
         res = json.load(fp)
 
 # Get selected suitability categories
-suitability_categories = {k for k,v in config_suitability["suitability_categories"].items() if v}
+suitability_params = {k for k,v in config_suitability["suitability_params"].items() if v}
 
 
 #--------------------------------------- Data ----------------------------------------
 
 potential = {}
-potential_method = config_suitability['potential_method']
-if potential_method == 'available_land':
+input_area = config_suitability['input_area']
+if input_area == 'available_land':
     for tech in suitability_techs:
         path = os.path.join(data_path_available_land, f"{region_name}_{tech}_{scenario}_available_land_{local_crs_tag}.tif")
         potential[tech] = rasterio.open(path).read(1)
         # Reference grid
         ref = rasterio.open(path) # Should be standardized to a region raster or intersection of all rasters
         pixel_area_km2 = abs(ref.transform.a * ref.transform.e) / 1e6
-elif potential_method == 'study_region':
+elif input_area == 'study_region':
     for tech in suitability_techs:
         path = os.path.join(data_path, f"{region_name}_{local_crs_tag}.geojson")
         # Reference grid
@@ -127,7 +127,7 @@ GSAPath = os.path.join(data_path, f'solar_{region_name}_{local_crs_tag}.tif')
 GSA = rasterio.open(GSAPath)
 GSA_reproj = align_to_reference(GSA, ref, resampling=Resampling.bilinear)
 
-if 'terrain' in suitability_categories:
+if 'terrain' in suitability_params:
     terrain_ruggedness_path = os.path.join(data_path, 'derived_from_DEM', f'TerrainRuggednessIndex_{region_name}_{local_crs_tag}.tif')
     terrain_ruggedness = rasterio.open(terrain_ruggedness_path)
     terrain_ruggedness_reproj = align_to_reference(terrain_ruggedness, ref, resampling=Resampling.bilinear)
@@ -136,12 +136,12 @@ if 'terrain' in suitability_categories:
     landcover = rasterio.open(landcover_path)
     land_cover_reproj = align_to_reference(landcover, ref, resampling=Resampling.nearest)
 
-if 'topography' in suitability_categories:
+if 'topography' in suitability_params:
     dem_path = os.path.join(data_path, f'DEM_{region_name}_{local_crs_tag}.tif')
     dem = rasterio.open(dem_path)
     dem_reproj = align_to_reference(dem, ref, resampling=Resampling.bilinear)
 
-if 'substation_distance' in suitability_categories:
+if 'substation_distance' in suitability_params:
     substation_distance_path = os.path.join(data_from_proximity, f'substation_distance.tif')
     substation_distance = rasterio.open(substation_distance_path)
     substation_distance_reproj = align_to_reference(substation_distance, ref, resampling=Resampling.bilinear)
@@ -149,8 +149,8 @@ if 'substation_distance' in suitability_categories:
 
 #---------------- Dynamic costmap based on selected suitability categories ----------------
 
-if suitability_categories:
-    print(f'Calculating costmaps based on suitability categories: {list(suitability_categories)}')
+if suitability_params:
+    print(f'Calculating costmaps based on suitability parameters: {list(suitability_params)}')
     # Initialize costmaps (multiplicative identity)
     costmap = {}
     for tech in suitability_techs:
@@ -159,7 +159,7 @@ if suitability_categories:
     for tech in suitability_techs:
 
         # --- TERRAIN (optional) ---
-        if "terrain" in suitability_categories:
+        if "terrain" in suitability_params:
             terrain_factor = np.zeros_like(ref.read(1), dtype=float)
 
             for terrain_type in config_suitability["terrain_modifier"]:
@@ -175,10 +175,10 @@ if suitability_categories:
             # Apply terrain weight
             costmap[tech] *= (1 + terrain_factor * config_suitability["modifier_weights"]["terrain"][tech])
 
-            export_raster(terrain_factor, os.path.join(output_path, f'terrain_factor_{tech}_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
+            export_raster(terrain_factor, os.path.join(output_path, f'terrain_factor_{tech}_{scenario}_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
 
         # --- TOPOGRAPHY (optional) ---
-        if "topography" in suitability_categories:
+        if "topography" in suitability_params:
             topography_factor = np.zeros_like(ref.read(1), dtype=float)
 
             for topography_level in config_suitability["topography_modifier"]:
@@ -189,20 +189,20 @@ if suitability_categories:
             # Apply elevation weight
             costmap[tech] *= (1 + topography_factor * config_suitability["modifier_weights"]["topography"][tech])
 
-            export_raster(topography_factor, os.path.join(output_path, f'topography_factor_{tech}_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
+            export_raster(topography_factor, os.path.join(output_path, f'topography_factor_{tech}_{scenario}_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
 
         # --- SUBSTATION DISTANCE (optional) ---
-        if "substation_distance" in suitability_categories:
+        if "substation_distance" in suitability_params:
             avg_sub = config_suitability["average_sub_dist"][config_suitability["region_set"][region_name]]
             substation_factor = substation_distance_reproj / avg_sub[tech] - 1
 
             # Apply substation distance weight
             costmap[tech] *= (1 + substation_factor * config_suitability["modifier_weights"]["substation_distance"][tech])
 
-            export_raster(substation_factor, os.path.join(output_path, f'substation_factor_{tech}_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
+            export_raster(substation_factor, os.path.join(output_path, f'substation_factor_{tech}_{scenario}_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
 
         # --- REGION (optional) ---
-        if "region" in suitability_categories:
+        if "region" in suitability_params:
             region_key = config_suitability["region_set"][region_name]
             region_factor = config_suitability["region_modifier"][region_key][tech] - 1
 
@@ -210,10 +210,10 @@ if suitability_categories:
             costmap[tech] *= (1 + region_factor * config_suitability["modifier_weights"]["region"][tech])
 
         # --- Export cost maps ---
-        export_raster(costmap[tech] * potential[tech],  os.path.join(output_path, f'costmap_{tech}_available_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
+        export_raster(costmap[tech] * potential[tech],  os.path.join(output_path, f'costmap_{tech}_{scenario}_available_{region_name}_{local_crs_tag}.tif'), ref, local_crs_obj)
 
 else:
-    print('No suitability categories selected. Calculating only resource grades')
+    print('No suitability parameters selected. Calculating only resource grades')
 
 
 # Resource grades
@@ -236,7 +236,7 @@ df_potentials = pd.DataFrame(index=areas, columns=["Potential"])
 
 # DataFrame to store tiered potentials (as share of full potential)
 df_tier_potentials = {}
-if suitability_categories:
+if suitability_params:
     for tech in suitability_techs:
         df_tier_potentials[tech] = pd.DataFrame(index=areas, columns=config_suitability["tiers"].keys())
 else:
@@ -292,10 +292,10 @@ for tech in suitability_techs:
 
         # Save potential area and export raster
         df_potentials.loc[f"{region_name}_{rg}", "Potential"] = np.sum(inclusion_area) * pixel_area_km2
-        export_raster(inclusion_area, os.path.join(output_path, f'{region_name}_{rg}_{local_crs_tag}.tif'), ref, local_crs_obj)
+        export_raster(inclusion_area, os.path.join(output_path, f'{region_name}_{rg}_{scenario}_{local_crs_tag}.tif'), ref, local_crs_obj)
 
         # If there are suitability categories selected, calculate tiered potentials as share of the full potential
-        if suitability_categories:
+        if suitability_params:
             for t in config_suitability["tiers"]:
                 tier_area = filter(inclusion_area, costmap[tech], config_suitability["tiers"][t][0], config_suitability["tiers"][t][1])
                 df_tier_potentials[tech].loc[f"{region_name}_{rg}", t] = np.sum(tier_area) / np.sum(inclusion_area)
@@ -320,9 +320,9 @@ if multi_tech:
 
         # Save potential area and export raster
         df_potentials.loc[f"{region_name}_" + "_".join(tech_combo), "Potential"] = np.sum(inclusion_area) * pixel_area_km2
-        export_raster(inclusion_area, os.path.join(output_path, f"{region_name}_" + "_".join(tech_combo) + f"_{local_crs_tag}.tif"), ref, local_crs_obj)
+        export_raster(inclusion_area, os.path.join(output_path, f"{region_name}_" + "_".join(tech_combo) + f"_{scenario}_{local_crs_tag}.tif"), ref, local_crs_obj)
 
-        if suitability_categories:
+        if suitability_params:
             for t in config_suitability["tiers"]:
                 for tech in suitability_techs:
                     tier_area = filter(inclusion_area, costmap[tech], config_suitability["tiers"][t][0], config_suitability["tiers"][t][1])
@@ -335,9 +335,9 @@ if multi_tech:
 # Process the distributed areas found above
 distributed_area = union([tech_grades[tech]['distributed'] for tech in suitability_techs])
 df_potentials.loc[f"{region_name}_distributed", "Potential"] = np.sum(distributed_area) * pixel_area_km2
-export_raster(distributed_area, os.path.join(output_path, f'{region_name}_distributed_{local_crs_tag}.tif'), ref, local_crs_obj)
+export_raster(distributed_area, os.path.join(output_path, f'{region_name}_distributed_{scenario}_{local_crs_tag}.tif'), ref, local_crs_obj)
 
-if suitability_categories:
+if suitability_params:
     for t in config_suitability["tiers"]:
         for tech in suitability_techs:
             tier_area = filter(distributed_area, costmap[tech], config_suitability["tiers"][t][0],config_suitability["tiers"][t][1])
@@ -349,19 +349,19 @@ else:
 
 # Export potentials to CSV
 print(f'Exporting potentials to {rel_path(output_path)}')
-potentials_file = os.path.join(output_path, f'{region_name}_rg_potentials.csv')
+potentials_file = os.path.join(output_path, f'{region_name}_{scenario}_resource_grade_potentials.csv')
 df_potentials.to_csv(potentials_file)
 for tech in suitability_techs:
-    df_tier_potentials_file = os.path.join(output_path, f'{region_name}_tier_potentials_{tech}.csv')
+    df_tier_potentials_file = os.path.join(output_path, f'{region_name}_{tech}_{scenario}_tier_potentials.csv')
     df_tier_potentials[tech].to_csv(df_tier_potentials_file)
 
 # Export lists with the relevant resource grades
 relevant_resource_grades = df_potentials.dropna(how='all').index.tolist()
-relevant_resource_grades_file = os.path.join(output_path, f'{region_name}_relevant_resource_grades.json')
+relevant_resource_grades_file = os.path.join(output_path, f'{region_name}_{scenario}_relevant_resource_grades.json')
 with open(relevant_resource_grades_file, 'w') as f:
     json.dump(relevant_resource_grades, f)
 for tech in suitability_techs:
     relevant_resource_grades_tech = df_tier_potentials[tech].dropna(how='all').index.tolist()
-    relevant_resource_grades_tech_file = os.path.join(output_path, f'{region_name}_{tech}_relevant_resource_grades.json')
+    relevant_resource_grades_tech_file = os.path.join(output_path, f'{region_name}_{tech}_{scenario}_relevant_resource_grades.json')
     with open(relevant_resource_grades_tech_file, 'w') as f:
         json.dump(relevant_resource_grades_tech, f)

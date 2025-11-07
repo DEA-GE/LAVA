@@ -83,9 +83,12 @@ country_code = config['country_code']
 country_name_solar_atlas = config['country_name_solar_atlas']
 
 # Load the weather data (all years)
-weather_data_path = os.path.abspath(config["weather_data_path"])
-# Load all .nc or .grib files in the weather data path
-weather_data_files = glob.glob(os.path.join(weather_data_path, f"*.nc")) + glob.glob(os.path.join(weather_data_path, f"*.grib"))
+if config.get('weather_external_data_path'):
+    weather_data_path = os.path.abspath(config["weather_external_data_path"])
+else:
+    weather_data_path = os.path.join(dirname, 'Raw_Spatial_Data', 'Weather_data')
+weather_data_files = glob.glob(os.path.join(weather_data_path, f'*.nc'))
+
 
 GWAraster_path = os.path.join(dirname, 'Raw_Spatial_Data', 'global_solar_wind_atlas', f'{country_code}_wind_speed_100.tif')
 GSAraster_path = os.path.join(dirname, 'Raw_Spatial_Data', 'global_solar_wind_atlas', f'{country_name_solar_atlas}_GISdata_LTAy_YearlyMonthlyTotals_GlobalSolarAtlas-v2_GEOTIFF', 'GHI.tif')
@@ -97,30 +100,52 @@ os.makedirs(output_path, exist_ok=True)
 # Load ERA5 data (all files)
 era5_ds = xr.open_mfdataset(weather_data_files)
 
-# Calclulate GHI (kWh/m2)
-era5_ds['ghi'] = (era5_ds["influx_direct"] + era5_ds["influx_diffuse"]) / 1000
+if config['weather_bias_correction'].get('onshorewind') or config['weather_bias_correction'].get('offshorewind'):
+    print("Computing wind bias correction based on Global Wind Atlas data...")
+    print("Using ERA5 files: ", weather_data_files)
+    print("Max and min bias correction factors will be limited to: ", config['weather_bias_range'])
 
-#----------------------- Global wind atlas and global solar atlas ----------------------
-# Resample the raster to ERA5 grid and convert to xarray grid
-GWA_ds = raster2grid(GWAraster_path, era5_ds['wnd100m'].rio.write_crs("EPSG:4326"), 'wnd100m', 'linear')
-GSA_ds = raster2grid(GSAraster_path, era5_ds['ghi'].rio.write_crs("EPSG:4326"), 'ghi', 'linear')
+    # Resample the raster to ERA5 grid and convert to xarray grid
+    GWA_ds = raster2grid(GWAraster_path, era5_ds['wnd100m'].rio.write_crs("EPSG:4326"), 'wnd100m', 'linear')
 
-# Find ERA5 bias relative to GWA/GSA reference
-ERA5_wnd100m_bias = ds_bias_correction(GWA_ds, era5_ds['wnd100m'], mean_dims=['time'])
-ERA_ghi_bias = ds_bias_correction(GSA_ds / 8760, era5_ds['ghi'], mean_dims=['time'])
+    # Find ERA5 bias relative to GWA reference
+    ERA5_wnd100m_bias = ds_bias_correction(GWA_ds, era5_ds['wnd100m'], mean_dims=['time'])
 
-# Fill NaN values with 1 (no bias where no reference data is available)
-ERA5_wnd100m_bias = ERA5_wnd100m_bias.fillna(1)
-ERA_ghi_bias = ERA_ghi_bias.fillna(1)
+    # Fill NaN values with 1 (no bias where no reference data is available)
+    ERA5_wnd100m_bias = ERA5_wnd100m_bias.fillna(1)
 
-# Limit bias correction factors to reasonable ranges
-min_val, max_val = config['wind_bias_range']
-ERA5_wnd100m_bias = ERA5_wnd100m_bias.clip(min=min_val, max=max_val)
+    # Limit bias correction factors to reasonable ranges
+    min_val, max_val = config['weather_bias_range']
+    ERA5_wnd100m_bias = ERA5_wnd100m_bias.clip(min=min_val, max=max_val)
 
-# Export bias
-ERA5_wnd100m_bias.to_netcdf(output_path + "/ERA5_wnd100m_bias.nc")
-ERA_ghi_bias.to_netcdf(output_path + "/ERA5_ghi_bias.nc")
+    # Export bias
+    ERA5_wnd100m_bias.to_netcdf(output_path + "/ERA5_wnd100m_bias.nc")
 
-# Export rasters
-ERA5_wnd100m_bias.rio.to_raster(output_path + "/ERA5_wnd100m_bias.tif")
-ERA_ghi_bias.rio.to_raster(output_path + "/ERA5_ghi_bias.tif")
+    # Export rasters
+    ERA5_wnd100m_bias.rio.to_raster(output_path + "/ERA5_wnd100m_bias.tif")
+
+if config['weather_bias_correction'].get('solar'):
+    print("Computing solar bias correction based on Global Solar Atlas data...")
+    print("Using ERA5 files: ", weather_data_files)
+    print("Max and min bias correction factors will be limited to: ", config['weather_bias_range'])
+    # Calclulate GHI (kWh/m2/hour)
+    era5_ds['ghi'] = (era5_ds["influx_direct"] + era5_ds["influx_diffuse"]) / 1000
+
+    # Resample the raster to ERA5 grid and convert to xarray grid (kWh/m2/year)
+    GSA_ds = raster2grid(GSAraster_path, era5_ds['ghi'].rio.write_crs("EPSG:4326"), 'ghi', 'linear')
+
+    # Find ERA5 bias relative to GSA reference
+    ERA5_ghi_bias = ds_bias_correction(GSA_ds / 8760, era5_ds['ghi'], mean_dims=['time'])
+
+    # Fill NaN values with 1 (no bias where no reference data is available)
+    ERA5_ghi_bias = ERA5_ghi_bias.fillna(1)
+
+    # Limit bias correction factors to reasonable ranges
+    min_val, max_val = config['weather_bias_range']
+    ERA5_ghi_bias = ERA5_ghi_bias.clip(min=min_val, max=max_val)
+
+    # Export bias
+    ERA5_ghi_bias.to_netcdf(output_path + "/ERA5_ghi_bias.nc")
+    
+    # Export rasters
+    ERA5_ghi_bias.rio.to_raster(output_path + "/ERA5_ghi_bias.tif")

@@ -139,16 +139,18 @@ wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all
 
 
 #--Weather and energy data assumptions-------------------------------------------------------------
-weather_data_path: "DRIVE:/PATH/TO/DATA/" # Absolute path to external folder with weather data files
+# Absolute path to external folder with weather data files, otherwise weather data will be stored in Raw_Spatial_Data/Weather_data
+weather_external_data_path: "DRIVE:/PATH/TO/DATA/"
+
 
 # Method to define the area for which energy profiles are created
-potential_method: available_land # 'resource_grades' or 'available_land' or 'study_region'
+input_area: resource_grades # 'resource_grades' or 'available_land' or 'study_region'
 
 # Year of weather data to be used for profile creation
 weather_year: 2015
 
 # Download weather data within study region boundaries, or geographical bounds defined below
-weather_data_extend: geo_bounds # 'region' or 'geo_bounds'
+weather_data_extend: geo_bounds # 'study_region' or 'geo_bounds'
 
 # If 'geo_bounds' is selected, define the bounding box here (geographical coordinates)
 weather_data_geo_bounds: { 
@@ -158,7 +160,11 @@ weather_data_geo_bounds: {
     'north': 54
 }
 
-# Apply bias correction to ERA5 wind data based on Global Wind Atlas
-wind_bias_correction: true
-wind_bias_range: [0.5, 2.0] # Limit min and max bias correction factors to this range
+# Apply bias correction to ERA5 wind data based on Global Wind Atlas and Global Solar Atlas data
+weather_bias_correction: { 
+  onshorewind: true,
+  offshorewind: true,
+  solar: false
+}
 
+weather_bias_range: [0.5, 2.0] # Limit min and max bias correction factors to this range

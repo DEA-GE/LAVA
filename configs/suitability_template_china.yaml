@@ -2,10 +2,10 @@
 suitability_techs: ['solar', 'onshorewind']
 
 # Method to define the area for suitability analysis
-potential_method: available_land # 'available_land' or 'study_region'
+input_area: available_land # 'available_land' or 'study_region'
 
 # Enable/disable suitability categories
-suitability_categories:
+suitability_params:
   terrain: true
   topography: false
   substation_distance: true
