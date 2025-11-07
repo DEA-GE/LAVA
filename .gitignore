@@ -1,8 +1,20 @@
 *
 !.gitignore
 !README.md
+# --- Setup ---
 !envs
 !envs/requirements.yaml
+# --- Main scripts ---
+!spatial_data_prep.py
+!Exclusion.py
+!data_explore.ipynb
+!suitability.py
+!weather_data_prep.py
+!weather_bias_adjust.py
+!create_cutout.py
+!bias_correction_factors
+!bias_correction_factors/ERA5_wnd100m_bias.nc
+# --- Supporting scripts ---
 !utils
 !utils/legends.py
 !utils/data_preprocessing.py
@@ -11,6 +23,11 @@
 !utils/local_OSM_shp_files.py
 !utils/raster_analysis.py
 !utils/README.md
+!utils/simplify.py
+!utils/gadm_levels_to_geojson.py
+!utils/delete_scenario_results.py
+!utils/results_analysis.py
+# --- Raw input data ---
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
 !Raw_Spatial_Data/landcover/.gitkeep
@@ -30,9 +47,12 @@
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !weather_data
 !weather_data/wind_speed_regions.ipynb
+# --- Config files ---
 !configs
 !configs/config_template.yaml
 !configs/config_template_china.yaml
+!configs/config_snakemake.yaml
+!configs/config_snakemake_template_china.yaml
 !configs/onshorewind_template_china.yaml
 !configs/solar_template_china.yaml
 !configs/onshorewind_template.yaml
@@ -44,25 +64,21 @@
 !configs/technologies/HW_utility_farm.yaml
 !configs/technologies/LW_utility_farm.yaml
 !configs/technologies/CSi.yaml
-!spatial_data_prep.py
-!Exclusion.py
-!data_explore.ipynb
-!utils/simplify.py
-!utils/gadm_levels_to_geojson.py
-!utils/delete_scenario_results.py
-!utils/results_analysis.py
+# --- Snakemake ---
 !snakemake
 !snakemake/Snakefile
-!snakemake/snakefile_short
-!snakemake/snakefile_short_short
-!suitability.py
-!weather_data_prep.py
-!weather_bias_adjust.py
-!create_cutout.py
-!bias_correction_factors
-!bias_correction_factors/ERA5_wnd100m_bias.nc
+!snakemake/Snakefile_simplified
+!snakemake/rules
+!snakemake/rules/spatial_data_prep.smk
+!snakemake/rules/exclusion.smk
+!snakemake/rules/suitability.smk
+!snakemake/rules/energy_profiles.smk
+!snakemake/rules/weather_data_prep.smk
+!snakemake/rules/weather_bias_adjust.smk
+# --- Sphinx docs ---
 !docs
-!docs/config.py
+!docs/.gitkeep
+!docs/conf.py
 !docs/index.rst
 !docs/getting_started.rst
 !docs/requirements-docs.txt
@@ -70,6 +86,7 @@
 !docs/usage.rst
 !docs/faq.rst
 !.readthedocs.yaml
+# --- User interface ---
 !tkinter_app
 !tkinter_app/data_loader.py
 !tkinter_app/flag_mapper.py
