@@ -1,0 +1,19 @@
+# General
+#region parameters.
+
+study_region_name: Beijing
+scenario: new-smk-test
+technologies: ['onshorewind']
+
+#snakemake specific parameters
+cores: 4
+snakefile: snakemake/Snakefile_v2
+weather_years: [2015] #[str(y) for y in range(2010, 2011)]
+
+stages:
+  spatial_data_prep: true
+  exclusion: true
+  suitability: true
+  weather_data_prep: true
+  weather_bias_adjust: true
+  energy_profiles: true
