@@ -10,7 +10,7 @@ Before installing and running **LAVA**, ensure you have the following:
 
 - **Conda** (Anaconda or Miniconda) installed on your system for managing the environment.
 - **Git** (optional) if you plan to clone the repository using Git.
-- [**VSCode**](https://code.visualstudio.com/download) or another code editor for editing configuration files and scripts.
+- [VSCode](https://code.visualstudio.com/download) or another code editor for editing configuration files and scripts.
 - A system with sufficient disk space (min. 15 GB) and RAM (16 GB or higher), especially if processing large datasets.
 
 Setting up the Conda Environment
