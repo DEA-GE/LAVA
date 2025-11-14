@@ -103,6 +103,7 @@ Main folders important for user:
 LAVA data setup
 ------------------------
 Most input data is downloaded automatically in the workflow except the following two datasets which must be retrieved manually and placed in the right folder.
+
 - **DEM**: Download the DEM for your study region from `GEBCO <https://download.gebco.net/>`_. Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder **"DEM"** (digital elevation model) and name it ***gebco_cutout.tif***. This data provides the elevation in each pixel. It is also possible to use a different dataset.
 - **Coastlines**: On `marineregions.org/downloads <https://marineregions.org/downloads.php/>`_ click on "Global Oceans and Seas" and download the geopackage. Unzip, name the file ***"goas.gpkg"*** and put it into the folder **"GOAS"** in the **"Raw_Spatial_Data"** folder.
 
