@@ -56,7 +56,7 @@ Understanding the repository layout will help in navigating the project and conf
 
    LAVA/ 
    ├── Snakefile
-   ├── envs/requirements.yml       # Requirements for environment
+   ├── 📁envs/requirements.yml       # Requirements for environment
    ├── config/
    │   ├── config.yaml             # Main configuration file for the pipeline
    |   ├── onshore.yaml            # Technology specific configurations
