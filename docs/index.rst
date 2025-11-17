@@ -7,6 +7,7 @@ Welcome to the **LAVA_china** pipeline documentation. This documentation provide
    :maxdepth: 2
    :caption: Contents:
 
+   background 
    getting_started
    usage
    faq

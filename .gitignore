@@ -83,6 +83,7 @@
 !docs/.gitkeep
 !docs/conf.py
 !docs/index.rst
+!docs/background.rst
 !docs/getting_started.rst
 !docs/requirements-docs.txt
 !docs/troubleshooting.rst
