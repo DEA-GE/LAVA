@@ -14,7 +14,7 @@ Relevant Literature
 -------------
 .. list-table::
    :header-rows: 1
-   :widths: 40 10 15 35
+   :widths: 20 10 10 20
 
    * - Title
      - Year
