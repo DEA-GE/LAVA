@@ -1,7 +1,7 @@
-LAVA_china Documentation
+LAVA Documentation
 ========================
 
-Welcome to the **LAVA_china** pipeline documentation. This documentation provides a comprehensive guide on how to set up and use the LAVA_china Snakemake workflow for data analysis, as well as troubleshooting tips and answers to frequently asked questions.
+Welcome to the **LAVA** documentation. This documentation provides a comprehensive guide on how to set up and use the LAVA workflow.
 
 .. toctree::
    :maxdepth: 2
@@ -10,5 +10,4 @@ Welcome to the **LAVA_china** pipeline documentation. This documentation provide
    background 
    getting_started
    basic_workflow
-   full_workflow
    faq
