@@ -80,6 +80,18 @@ Installation of LAVA tool
       conda activate lava
 
 
+LAVA data setup
+------------------------
+There are three final steps to complete the tool setutp. Most input data is downloaded automatically in the workflow except the following two datasets which must be retrieved manually and placed in the right folder. Furthermore a Copernicus account for the automatic download of landcover data is required.
+
+- **DEM**: Download the DEM for your study region from `GEBCO <https://download.gebco.net/>`_. Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder **DEM** (digital elevation model) in the **Raw_Spatial_Data folder** and name it **gebco_cutout.tif**. This data provides the elevation in each pixel. It is also possible to use a different dataset.
+- **Coastlines**: On `marineregions.org/downloads.php <https://marineregions.org/downloads.php/>`_ click on "Global Oceans and Seas" and download the geopackage. Unzip, name the file **goas.gpkg** and put it into the folder **GOAS** in the in the **Raw_Spatial_Data folder**.
+- **ESAworldcover**: In order to automatically download landcover data you need to create an account `here <https://documentation.dataspace.copernicus.eu/Registration.html>`_. The very first time you run the LAVA tool you need to click on a link in the terminal and login to Copernicus. Afterwards, your login will be remembered. 
+
+The tool is now ready to be used. The first step is to fill out the configuration.yaml file.
+
+
+
 LAVA Folder Structure
 ------------------------
 
@@ -134,13 +146,5 @@ Main folders important for user:
 - **data/**: Outputs produced by the pipeline will be stored here. The pipeline will create subdirectories or files in this folder to organize results. This folder only appears after the first tool run.
 
 
-LAVA data setup
-------------------------
-There are three final steps to complete the tool setutp. Most input data is downloaded automatically in the workflow except the following two datasets which must be retrieved manually and placed in the right folder. Furthermore a Copernicus account for the automatic download of landcover data is required.
 
-- **DEM**: Download the DEM for your study region from `GEBCO <https://download.gebco.net/>`_. Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder **DEM** (digital elevation model) and name it **gebco_cutout.tif**. This data provides the elevation in each pixel. It is also possible to use a different dataset.
-- **Coastlines**: On `marineregions.org/downloads.php <https://marineregions.org/downloads.php/>`_ click on "Global Oceans and Seas" and download the geopackage. Unzip, name the file **goas.gpkg** and put it into the folder **GOAS** in the **Raw_Spatial_Data** folder.
-- **ESAworldcover**: In order to automatically download landcover data you need to create an account `here <https://documentation.dataspace.copernicus.eu/Registration.html>`_. The very first time you run the LAVA tool you need to click on a link in the terminal and login to Copernicus. Afterwards, your login will be remembered. 
-
-The tool is now ready to be used. The first step is to fill out the configuration.yaml file.
 
