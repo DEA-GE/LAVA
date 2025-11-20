@@ -4,14 +4,14 @@ Background
 This section will give you a brief overview on the general methodology of identifying suitable locations for renewable energy infrastructure (wind onshore and utility-scale solar PV) using the **LAVA** tool as well as a non exhaustive list of relevant literature. 
 
 General Methodology
--------------
+-------------------
 
 TBA
 
 
 
 Relevant Literature
--------------
+-------------------
 .. list-table::
    :header-rows: 1
    :widths: 20 10 10 20

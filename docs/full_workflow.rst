@@ -1,5 +1,5 @@
 Full workflow
-=====
+=============
 
 This guide walks through the end-to-end workflow for running the Land Availability Analysis (LAVA)
 tool on a new study region. 
@@ -9,7 +9,7 @@ tool on a new study region.
    :depth: 2
 
 Overview of the basic workflow
-------------------------
+-------------------------------
 
 0. Complete the tool and basic data setup.
 1. Create the study-region configuration files in ``configs/``.
@@ -82,7 +82,7 @@ for traceability.
 
 
 Suitability and resource grades
----------------------------
+--------------------------------
 
 Run :mod:`suitability.py` after both solar and wind exclusions are available. The script aligns
 resource layers, applies terrain and region modifiers, and exports cost multipliers together with
@@ -108,7 +108,7 @@ Outputs are written to ``data/<RegionName>/energy_profiles/`` and include resour
 as well as diagnostic plots documenting the available area shares.
 
 Batch processing with Snakemake
----------------------------
+---------------------------------
 
 For large-scale studies the ``snakemake/Snakefile`` orchestrates all stages across multiple regions,
 technologies, and weather years. The workflow creates ``snakemake_log`` sentinels to prevent reruns

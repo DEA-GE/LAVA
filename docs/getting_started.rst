@@ -9,6 +9,7 @@ Prerequisites
 Before installing and running **LAVA**, ensure you have the following:
 
 - `Conda <https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html>`_ (Anaconda or Miniconda) installed on your system for managing the environment and python.
+
 Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command ``conda --version``. Furthermore, make sure to add conda to your system PATH (search for the following folders in your machine).
 
 .. code-block:: console
@@ -19,7 +20,6 @@ Having installed Conda check that you have access to conda in your terminal (or 
 
 - `Git <https://git-scm.com/install/>`_ (optional) if you plan to clone the repository using Git.
 - `VSCode <https://code.visualstudio.com/download>`_ or another code editor for editing configuration files and scripts. In VSCode you should link the command prompt to the terminal by doing the following: a) Press *Ctrl + Shift + P* to show all commands. b) Type *Select Terminal: Select Default Profile* and click it. c) Click on "Command Prompt"
-
 - A system with sufficient disk space (min. 15 GB) and RAM (16 GB or higher), especially if processing large datasets.
 
 More information on the setup of conda and git can be found `here <https://fneum.github.io/data-science-for-esm/intro.html#git-option-more-advanced>`_. 

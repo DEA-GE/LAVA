@@ -1,5 +1,5 @@
 Basic workflow
-=====
+==============
 
 This guide walks through the end-to-end workflow for running the Land Availability Analysis (LAVA)
 tool on a new study region. 
@@ -9,7 +9,7 @@ tool on a new study region.
    :depth: 2
 
 Overview of the basic workflow
-------------------------
+------------------------------
 
 0. Complete the tool and basic data setup.
 1. Create the study-region configuration files in ``configs/``.
@@ -35,7 +35,7 @@ For the exclusion criterias copy the files ``onshorewind_template.yaml`` and ``s
 
 
 Prepare data
----------------------
+------------
 
 Run the preprocessing script  ``spatial_data_prep.yaml`` after having filled out ``config.yaml``. It downloads data, clips the raw inputs to the
 study area, aligns rasters, and computes helper layers such as slope, terrain ruggedness, and

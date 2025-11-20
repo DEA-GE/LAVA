@@ -1,0 +1,5 @@
+/* Add vertical spacing between list items */
+ul > li,
+ol > li {
+  margin-bottom: 0.6em;   /* increase the value as needed */
+}
