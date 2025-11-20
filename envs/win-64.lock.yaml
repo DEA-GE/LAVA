@@ -26,7 +26,7 @@ dependencies:
   - requests=2.32.4=pyhd8ed1ab_0
   - openpyxl=3.1.5=py312he70551f_1
   - xdem=0.1.6=pyhd8ed1ab_0
-  - snakemake=8.4.15=pyhdfd78af_0
+  - snakemake
   - pip=25.2=pyh8b19718_0
 
   - pip:
