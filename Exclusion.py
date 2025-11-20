@@ -22,28 +22,29 @@ config_file = os.path.join("configs", "config.yaml")
 with open(config_file, "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-region_name = config['study_region_name'] #if country is studied, then use country name
+# Always get region from config for default
+region_name = config['study_region_name']
 region_name_clean = clean_region_name(region_name)
-technology = config.get('technology') #technology, e.g., 'wind' or 'solar'
-scenario = config.get('scenario', 'ref') # scenario, e.g., 'ref' or 'high'
 
-
-#Initialize parser for command line arguments and define arguments
+# Set up argument parser with NO default for technology/scenario
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", default=region_name_clean, help="region name")
-parser.add_argument("--method",default="manual", help="method to run the script, e.g., snakemake or manual")
-parser.add_argument("--scenario", default=scenario, help="scenario name")
-parser.add_argument('--technology', default=f"{technology}")
+parser.add_argument("--method", default="manual", help="method to run the script, e.g., snakemake or manual")
+parser.add_argument("--scenario", help="scenario name (overrides config.yaml if provided)")
+parser.add_argument("--technology", help="technology (overrides config.yaml if provided)")
 args = parser.parse_args()
 
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
     region_name_clean = clean_region_name(args.region)
-    technology = args.technology
-    scenario = args.scenario
+    technology = args.technology if args.technology is not None else config.get('technology')
+    scenario = args.scenario if args.scenario is not None else config.get('scenario', 'ref')
     print(f'\nExclusion for {region_name_clean}')
     print(f"Running via snakemake - measures: region={region_name_clean}, technology={technology}, scenario={scenario}")
 else:
+    # If run from VS Code Run button or terminal (manual), use CLI args if provided, else config.yaml
+    technology = args.technology if args.technology is not None else config.get('technology')
+    scenario = args.scenario if args.scenario is not None else config.get('scenario', 'ref')
     print(f'\nExclusion for {region_name_clean}')
     print(f"Running manually - measures: region={region_name_clean}, technology={technology}, scenario={scenario}")
 
