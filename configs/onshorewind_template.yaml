@@ -57,7 +57,7 @@ max_wind_speed: null #m/s
 
 # inclusion filters (connected with AND logic) (meters)
 substations_inclusion_buffer: null
-transmission_inclusion_buffer: 10000
+transmission_inclusion_buffer: null
 roads_inclusion_buffer: null
 
 # area filter
