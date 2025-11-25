@@ -423,13 +423,13 @@ masked, transform = shape_availability(region.geometry, excluder)
 
 available_area = masked.sum() * excluder.res**2
 eligible_share = available_area / region.geometry.item().area
+available_area_km2 = available_area * 1e-6
 
 # print results
 print(f"\nThe eligibility share is: {eligible_share:.2%}")
-print(f'The available area is: {available_area:.2f} km²')
-
+print(f'The available area is: {available_area_km2:.2f} km²')
 if tech_config['deployment_density']:
-    power_potential = available_area*1e-6 * tech_config['deployment_density']
+    power_potential = available_area_km2 * tech_config['deployment_density']
     print(f'Power potential: {power_potential:.2} MW')
 
 print('\nfollowing data was considered during exclusion:')
