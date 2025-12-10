@@ -99,7 +99,6 @@ start_time = time.time()
 dirname = os.path.dirname(__file__)
 data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
-coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
 protected_areas_folder = os.path.join(data_path, 'protected_areas')
 additional_rasters_folder = os.path.join(data_path, 'additional_exclusion_rasters')
 wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
@@ -206,13 +205,16 @@ if consider_coastlines == 1:
     print('\nprocessing coastlines')
     goas_region_filePath = os.path.join(output_dir, f'goas_{region_name_clean}_{global_crs_tag}.gpkg')
     if not os.path.exists(goas_region_filePath): #process data if file not exists in output folder
+        goas_raw_filePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
+        if not os.path.exists(goas_raw_filePath):
+            print('downloading global oceans and seas (coastlines)')
+            goas_download(output_dir=os.path.join(data_path, 'GOAS'))
         try:
-            coastlines = gpd.read_file(coastlinesFilePath)
+            print('clipping coastlines to study region')
+            coastlines = gpd.read_file(goas_raw_filePath)
             coastlines_region = coastlines.clip(bounding_box)
             if not coastlines_region.empty:
                 coastlines_region.to_file(os.path.join(output_dir, f'goas_{region_name_clean}_{global_crs_tag}.gpkg'), driver='GPKG', encoding='utf-8')
-                #coastlines_region.to_crs(local_crs_obj, inplace=True)
-                #coastlines_region.to_file(goas_region_filePath, driver='GPKG', encoding='utf-8')
             else:
                 logging.info('no coastline in study region')
         except Exception as e:

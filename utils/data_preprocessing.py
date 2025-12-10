@@ -40,6 +40,29 @@ def get_country_bounds_from_code(country_code):
     return [bbox["minlng"], bbox["minlat"], bbox["maxlng"], bbox["maxlat"]]
 
 
+def goas_download(output_dir):
+    base_url = "https://geo.vliz.be/geoserver/MarineRegions/wfs"
+
+    # Parameters for WFS request - using GeoJSON output
+    params = {
+        'service': 'WFS',
+        'version': '2.0.0',
+        'request': 'GetFeature',
+        'typeNames': 'goas',
+        #'cql_filter': 'mrgid=3293',  # Filter by Marine Regions ID
+        'outputFormat': 'application/json'
+    }
+
+    response = requests.get(base_url, params=params, timeout=300)
+
+    if response.status_code == 200:
+        gdf = gpd.read_file(response.text)
+        gpkg_path = os.path.join(output_dir, "goas.gpkg")
+        gdf.to_file(gpkg_path, driver="GPKG")
+    else:
+        logging.error(f"GOAS download failed: {response.status_code}")
+
+
 def retrieve_wdpa_url(country_code):
     """
     Attempts to locate the latest available WDPA zip file by checking
