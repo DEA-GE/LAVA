@@ -199,7 +199,7 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
 
         ori_raster_crs = str(src.crs)
         ori_raster_crs = ori_raster_crs.replace(":", "")
-        print(f'original raster CRS: {src.crs}')
+        #print(f'original raster CRS: {src.crs}')
         # Save the clipped raster as a new GeoTIFF file
         if data_name is None:
             with rasterio.open(os.path.join(output_dir, f'{filename}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
@@ -259,7 +259,7 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
 
         ori_raster_crs = str(src.crs)
         ori_raster_crs = ori_raster_crs.replace(":", "")
-        print(f'original raster CRS: {src.crs}')
+        #print(f'original raster CRS: {src.crs}')
         # Save the clipped raster as a new GeoTIFF file
         with rasterio.open(os.path.join(output_dir, f'{data_name}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
             dest.write(out_image)
@@ -295,7 +295,7 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
                     dst_crs=target_crs,
                     resampling=resampling_options[resampling_method])
                 
-            print(f'reprojected raster CRS: {dst.crs}')
+            #print(f'reprojected raster CRS: {dst.crs}')
     
 
 
@@ -357,7 +357,7 @@ def reproject_raster(input_raster_path, region_name_clean, target_crs, resamplin
                 except (ValueError, KeyError):
                     pass  # No colormap present or band index invalid
                 
-            print(f'reprojected raster CRS: {dst.crs}')
+            #print(f'reprojected raster CRS: {dst.crs}')
 
 
 def co_register(infile, match, resampling_method, outfile, dtype): #source: https://pygis.io/docs/e_raster_resample.html
