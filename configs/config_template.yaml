@@ -48,7 +48,6 @@ solar_atlas_measure: LTAym_YearlyMonthlyTotals #[situational][string] check if t
 
 # protected areas
 protected_areas_source: WDPA #[mandatory][WDPA/file/0]
-wdpa_url: https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Nov2025_Public_DNK.zip #[mandatory][string]
 protected_areas_filename:  #[situational][string] include file ending (.gpkg or .geojson), needs to be in EPSG4326
 
 # forest density (optional; raster in Raw_Spatial_Data/Additional_layers)

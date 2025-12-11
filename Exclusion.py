@@ -164,7 +164,7 @@ excluder = atlite.ExclusionContainer(crs=local_crs_obj, res=res)
 if tech_config['landcover_codes']:   
     input_codes = tech_config['landcover_codes']
     for key, value in input_codes.items():
-        excluder.add_raster(landcoverPath, codes=key, buffer=value , crs=local_crs_obj)
+        excluder.add_raster(landcoverPath, codes=key, buffer=value , crs=global_crs_obj)
     info_list_exclusion.append(f"landcover codes which are excluded (code, buffer in meters): {input_codes}")
 else: print('landcover not selected in config.')
 

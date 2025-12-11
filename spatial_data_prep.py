@@ -29,19 +29,6 @@ from utils.proximity_calc import generate_distance_raster
 # Record the starting time
 start_time = time.time()
 
-# Create handlers
-file_handler = logging.FileHandler("data-prep.log", mode='w')
-file_handler.setLevel(logging.DEBUG)  # file can record everything
-
-stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.WARNING)  # terminal only shows WARNING and above
-
-logging.basicConfig(
-    handlers=[file_handler, stream_handler],
-    level=logging.INFO,  # minimum level for logger; handlers override this
-    format="%(levelname)s:%(name)s:%(message)s"
-    ) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
-
 # Suppress specific noisy INFO logs from openeo
 #logging.getLogger("openeo.config").setLevel(logging.WARNING)
 #logging.getLogger("openeo.rest.connection").setLevel(logging.WARNING)
@@ -112,7 +99,6 @@ start_time = time.time()
 dirname = os.path.dirname(__file__)
 data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 demRasterPath = os.path.join(data_path, 'DEM', DEM_filename)
-coastlinesFilePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
 protected_areas_folder = os.path.join(data_path, 'protected_areas')
 additional_rasters_folder = os.path.join(data_path, 'additional_exclusion_rasters')
 wind_solar_atlas_folder = os.path.join(data_path, 'global_solar_wind_atlas')
@@ -124,6 +110,19 @@ output_dir = os.path.join(dirname, 'data', f'{region_name_clean}')
 os.makedirs(output_dir, exist_ok=True)
 
 # Set up logging
+log_file_path = os.path.join(output_dir, "data-prep.log")
+file_handler = logging.FileHandler(log_file_path, mode='w')
+file_handler.setLevel(logging.DEBUG)  # file can record everything
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.WARNING)  # terminal only shows WARNING and above
+
+logging.basicConfig(
+    handlers=[file_handler, stream_handler],
+    level=logging.INFO,  # minimum level for logger; handlers override this
+    format="%(levelname)s:%(name)s:%(message)s"
+    ) #source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
+
 logging.info(f'\nPrepping {region_name_clean}...')
 
 #get region boundary
@@ -206,17 +205,20 @@ if consider_coastlines == 1:
     print('\nprocessing coastlines')
     goas_region_filePath = os.path.join(output_dir, f'goas_{region_name_clean}_{global_crs_tag}.gpkg')
     if not os.path.exists(goas_region_filePath): #process data if file not exists in output folder
+        goas_raw_filePath = os.path.join(data_path, 'GOAS', 'goas.gpkg')
+        if not os.path.exists(goas_raw_filePath):
+            print('downloading global oceans and seas (coastlines)')
+            goas_download(output_dir=os.path.join(data_path, 'GOAS'))
         try:
-            coastlines = gpd.read_file(coastlinesFilePath)
+            print('clipping coastlines to study region')
+            coastlines = gpd.read_file(goas_raw_filePath)
             coastlines_region = coastlines.clip(bounding_box)
             if not coastlines_region.empty:
                 coastlines_region.to_file(os.path.join(output_dir, f'goas_{region_name_clean}_{global_crs_tag}.gpkg'), driver='GPKG', encoding='utf-8')
-                #coastlines_region.to_crs(local_crs_obj, inplace=True)
-                #coastlines_region.to_file(goas_region_filePath, driver='GPKG', encoding='utf-8')
             else:
                 logging.info('no coastline in study region')
-        except:
-            logging.warning('error with global oceans and seas (coastlines)')
+        except Exception as e:
+            logging.error(f'global oceans and seas (coastlines) failed: {e}')
     else:
         print(f"GOAS data already exists for region")
 
@@ -227,13 +229,14 @@ region.to_crs(global_crs_obj, inplace=True)
 
 # OSM data
 if OSM_source == 'geofabrik':
-    OSM_output_dir = os.path.join(output_dir, 'OSM_Infrastructure')
-    os.makedirs(OSM_output_dir, exist_ok=True) 
-
-    process_all_local_osm_layer(config, region, region_name_clean, OSM_output_dir, OSM_data_path, target_crs=None)
+    try:
+        OSM_output_dir = os.path.join(output_dir, 'OSM_Infrastructure')
+        os.makedirs(OSM_output_dir, exist_ok=True) 
+        process_all_local_osm_layer(config, region, region_name_clean, OSM_output_dir, OSM_data_path, target_crs=None)
+    except Exception as e:
+        logging.error(f"local OSM shapefiles failed: {e}")
 
 elif OSM_source == 'overpass':
-
     print('\nprocessing OSM data')
 
     # Define OSM features to fetch
@@ -380,66 +383,70 @@ if consider_additional_exclusion_rasters:
 if config['landcover_source'] == 'openeo':
     print('\nprocessing landcover')
     logging.info('using openeo to get landcover')
-
     openeo_landcover_filePath = os.path.join(output_dir, f'landcover_openeo_{region_name_clean}_{global_crs_tag}.tif')
     
     if not os.path.exists(openeo_landcover_filePath):
-        connection = openeo.connect(url="openeo.dataspace.copernicus.eu").authenticate_oidc()
-
-        if custom_study_area_filename:
-            with open(custom_study_area_filepath, 'r', encoding="utf-8") as file: #use region file in EPSG 4326 because openeo default file is in 4326
-                aoi = json.load(file) #load polygon for clipping with openeo            
-        else:
-            with open(os.path.join(output_dir, f'{region_name_clean}_EPSG4326.geojson'), 'r') as file: #use region file in EPSG 4326 because openeo default file is in 4326
-                aoi = json.load(file)
-
-        datacube_landcover = connection.load_collection("ESA_WORLDCOVER_10M_2021_V2")
-        # clip landcover directly to area of interest 
-        landcover = datacube_landcover.mask_polygon(aoi)
-        
-        # change resolution if wanted (projection also possible, see documentation)
-        if config['resolution_landcover']:
-            landcover = landcover.resample_spatial(resolution=config['resolution_landcover']) #resolution=0 does not change resolution
-        
-        result = landcover.save_result('GTiFF')
-        job_options = {
-            "do_extent_check": False,
-            "executor-memory": "5G", #set executer-memory higher to process larger regions; see https://forum.dataspace.copernicus.eu/t/batch-process-error-when-using-certain-region/1454 
-            } #see also https://discuss.eodc.eu/t/memory-overhead-problem/424
-        # Creating a new batch job at the back-end by sending the datacube information.
-        job = result.create_job(job_options=job_options, title=f'landcover_openeo_{region_name_clean}_{global_crs_tag}')
-        # Starts the job and waits until it finished to download the result.
-        job.start_and_wait()
-        job.get_results().download_file(openeo_landcover_filePath) 
-
-        # color openeo landcover file
         try:
-            from utils import legends 
-            openeo_landcover_colored_filePath = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{global_crs_tag}.tif')
-            colors_dict_int = getattr(legends, 'colors_dict_esa_worldcover2021_int') #color codes as RGB integers
-            with rasterio.open(openeo_landcover_filePath) as landcover:
-                band = landcover.read(1, masked=True) # Read the first band, masked=True is masking no data values
-                meta = landcover.meta
-                colors_dict_int_sorted = dict(sorted(colors_dict_int.items())) #can only write color values as int with rasterio 
-                meta.update({'compress': 'DEFLATE', 'photometric': 'palette'}) # You can also try 'DEFLATE', 'JPEG', or 'PACKBITS'
-                # save colored version
-                with rasterio.open(openeo_landcover_colored_filePath, 'w', **meta) as dst:
-                    dst.write(band, indexes=1)
-                    dst.write_colormap(1, colors_dict_int_sorted) #be aware of dtype: landcover file is saved with int16, so RGB color values also needs to be an integer?
+
+            connection = openeo.connect(url="openeo.dataspace.copernicus.eu").authenticate_oidc()
+
+            if custom_study_area_filename:
+                with open(custom_study_area_filepath, 'r', encoding="utf-8") as file: #use region file in EPSG 4326 because openeo default file is in 4326
+                    aoi = json.load(file) #load polygon for clipping with openeo            
+            else:
+                with open(os.path.join(output_dir, f'{region_name_clean}_EPSG4326.geojson'), 'r') as file: #use region file in EPSG 4326 because openeo default file is in 4326
+                    aoi = json.load(file)
+
+            datacube_landcover = connection.load_collection("ESA_WORLDCOVER_10M_2021_V2")
+            # clip landcover directly to area of interest 
+            landcover = datacube_landcover.mask_polygon(aoi)
+            
+            # change resolution if wanted (projection also possible, see documentation)
+            if config['resolution_landcover']:
+                landcover = landcover.resample_spatial(resolution=config['resolution_landcover']) #resolution=0 does not change resolution
+            
+            result = landcover.save_result('GTiFF')
+            job_options = {
+                "do_extent_check": False,
+                "executor-memory": "5G", #set executer-memory higher to process larger regions; see https://forum.dataspace.copernicus.eu/t/batch-process-error-when-using-certain-region/1454 
+                } #see also https://discuss.eodc.eu/t/memory-overhead-problem/424
+            # Creating a new batch job at the back-end by sending the datacube information.
+            job = result.create_job(job_options=job_options, title=f'landcover_openeo_{region_name_clean}_{global_crs_tag}')
+            # Starts the job and waits until it finished to download the result.
+            job.start_and_wait()
+            job.get_results().download_file(openeo_landcover_filePath) 
+
+            # color openeo landcover file
+            try:
+                from utils import legends 
+                openeo_landcover_colored_filePath = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{global_crs_tag}.tif')
+                colors_dict_int = getattr(legends, 'colors_dict_esa_worldcover2021_int') #color codes as RGB integers
+                with rasterio.open(openeo_landcover_filePath) as landcover:
+                    band = landcover.read(1, masked=True) # Read the first band, masked=True is masking no data values
+                    meta = landcover.meta
+                    colors_dict_int_sorted = dict(sorted(colors_dict_int.items())) #can only write color values as int with rasterio 
+                    meta.update({'compress': 'DEFLATE', 'photometric': 'palette'}) # You can also try 'DEFLATE', 'JPEG', or 'PACKBITS'
+                    # save colored version
+                    with rasterio.open(openeo_landcover_colored_filePath, 'w', **meta) as dst:
+                        dst.write(band, indexes=1)
+                        dst.write_colormap(1, colors_dict_int_sorted) #be aware of dtype: landcover file is saved with int16, so RGB color values also needs to be an integer?
+            except Exception as e:
+                print(e)
+                logging.warning('Something went wrong with coloring the landcover data')
+
+            # reproject landcover to local CRS
+            # grayscale (for DEM calculations below)
+            landcover_openeo_local_CRS = os.path.join(output_dir, f'landcover_openeo_{region_name_clean}_{local_crs_tag}.tif')
+            reproject_raster(openeo_landcover_filePath, region_name_clean, local_crs_obj, 'mode', 'uint8', landcover_openeo_local_CRS)
+            # # colored
+            # landcover_openeo_local_CRS_colored = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{local_crs_tag}.tif')
+            # reproject_raster(openeo_landcover_colored_filePath, region_name_clean, local_crs_obj, 'mode', 'uint8', landcover_openeo_local_CRS_colored)
+
+            # save pixel size and unique land cover codes
+            landcover_information(landcover_openeo_local_CRS, output_dir, region_name_clean, local_crs_tag)
+        
         except Exception as e:
-            print(e)
-            logging.warning('Something went wrong with coloring the landcover data')
-
-        # reproject landcover to local CRS
-        # grayscale (for DEM calculations below)
-        landcover_openeo_local_CRS = os.path.join(output_dir, f'landcover_openeo_{region_name_clean}_{local_crs_tag}.tif')
-        reproject_raster(openeo_landcover_filePath, region_name_clean, local_crs_obj, 'mode', 'uint8', landcover_openeo_local_CRS)
-        # colored
-        landcover_openeo_local_CRS_colored = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{local_crs_tag}.tif')
-        reproject_raster(openeo_landcover_colored_filePath, region_name_clean, local_crs_obj, 'mode', 'uint8', landcover_openeo_local_CRS_colored)
-
-        # save pixel size and unique land cover codes
-        landcover_information(landcover_openeo_local_CRS, output_dir, region_name_clean, local_crs_tag)
+            logging.error(f"openeo landcover failed: {e}")
 
 
     elif os.path.exists(openeo_landcover_filePath):
@@ -463,11 +470,11 @@ if config['landcover_source'] == 'file':
             print(f"Local landcover already processed to region.")
         processed_landcover_filePath = os.path.join(output_dir, f'landcover_file_{region_name_clean}_{local_crs_tag}.tif')
     except Exception as e:
-        logging.error(f"Exception occurred: {e}")
-        print(f"Exception occurred: {e}")
+        logging.error(f"local landcover file failed: {e}")
+    
 
 
-print('processing DEM') #block comment: SHIFT+ALT+A, multiple line comment: STRG+#
+print('\nprocessing DEM') #block comment: SHIFT+ALT+A, multiple line comment: STRG+#
 try:
     clip_reproject_raster(demRasterPath, region_name_clean, region, 'DEM', local_crs_obj, 'bilinear', 'float32', output_dir)
     clip_reproject_raster(demRasterPath, region_name_clean, region_buffered_4000, 'DEM_buffered', local_crs_obj, 'bilinear', 'float32', output_dir)
@@ -528,8 +535,7 @@ try:
     create_north_facing_pixels(slopeFilePath4326, aspectFilePath4326, region_name_clean, richdem_helper_dir, X, Y, Z)
 
 except Exception as e:
-    print(e)
-    logging.warning('Something went wrong with DEM')
+    logging.error(f'DEM failed: {e}')
 
 
 #protected areas
@@ -541,17 +547,20 @@ if consider_protected_areas == 'WDPA' or consider_protected_areas == 'file':
 
         if consider_protected_areas == 'WDPA':    
             logging.info('using WDPA')
-            if find_folder(protected_areas_folder, string_in_name=country_code) is None:
-                # if there is no folder already existing then create one and download the WDPA
-                WDPA_country_folder = os.path.join(protected_areas_folder, f'WDPA_{country_code}')
-                os.makedirs(WDPA_country_folder, exist_ok=True)
-                if country_code in wdpa_url: #check if provided URL matches with country of study region
-                    #donwload and convert to geopackage
+            raw_WPDA_file = os.path.join(protected_areas_folder, f'WDPA_{country_code}', f'{country_code}_WDPA.gpkg')
+            if not os.path.exists(raw_WPDA_file):
+                try: 
+                    WDPA_country_folder = os.path.join(protected_areas_folder, f'WDPA_{country_code}')
+                    os.makedirs(WDPA_country_folder, exist_ok=True)
+
+                    wdpa_url, source_month = retrieve_wdpa_url(country_code)
                     download_unpack_zip(wdpa_url, WDPA_country_folder)
                     gdb_folder = find_folder(WDPA_country_folder, file_ending='.gdb') #gdb means geodatabase
                     convert_gdb_to_gpkg(gdb_folder, WDPA_country_folder, f'{country_code}_WDPA.gpkg')
-                else:
-                    logging.warning('No WDPA downloaded. URL and country code do not match')
+                    print(f'WDPA downloaded for {source_month}')
+
+                except Exception as e:
+                    logging.error(f'WDPA download and conversion failed: {e}')
             else:
                 logging.info('folder with protected areas of country of study region already exists')
                 WDPA_country_folder = os.path.join(protected_areas_folder, f'WDPA_{country_code}')
@@ -564,12 +573,15 @@ if consider_protected_areas == 'WDPA' or consider_protected_areas == 'file':
             raw_protected_areas_filepath = os.path.join(protected_areas_folder, protected_areas_filename)
 
         #clip to study region (WDPA or local file)
-        protected_areas_file = gpd.read_file(raw_protected_areas_filepath)
-        protected_areas_file = geopandas_clip_reproject(protected_areas_file, region, global_crs_obj)
-        if not protected_areas_file.empty:
-            protected_areas_file.to_file(protected_areas_filePath, driver='GPKG', encoding='utf-8')
-        else:
-            logging.info("No protected areas found in the region. File not saved.")
+        try:    
+            protected_areas_file = gpd.read_file(raw_protected_areas_filepath)
+            protected_areas_file = geopandas_clip_reproject(protected_areas_file, region, global_crs_obj)
+            if not protected_areas_file.empty:
+                protected_areas_file.to_file(protected_areas_filePath, driver='GPKG', encoding='utf-8')
+            else:
+                logging.info("No protected areas found in the region. File not saved.")
+        except Exception as e:
+            logging.error(f"processing protected areas failed: {e}")
     
     else:
         print(f"Protected areas file already exists for region.")
@@ -594,11 +606,14 @@ if consider_forest_density == 1:
 if consider_wind_atlas == 1:
     print('\nprocessing global wind atlas')
     wind_raster_filePath = os.path.join(wind_solar_atlas_folder, f'{country_code}_wind_speed_100.tif')
-
     if not os.path.exists(wind_raster_filePath):
-        download_global_wind_atlas(country_code=country_code, height=100, data_path=data_path) #global wind atlas apparently uses 3 letter ISO code
+        try:
+            download_global_wind_atlas(country_code=country_code, height=100, data_path=data_path) #global wind atlas apparently uses 3 letter ISO code
+        except Exception as e:
+            logging.error(f'global wind atlas download failed: {e}')
+    
     else:
-        print(f"Global wind atlas data already downloaded: {rel_path(wind_raster_filePath)}")
+        print(f"Global wind atlas data already downloaded")
 
     #clip raster
     # clip_raster(wind_raster_filePath, region_name_clean, region, output_dir, 'wind')
@@ -617,13 +632,19 @@ if consider_solar_atlas == 1:
     country_name_solar_atlas = config['country_name_solar_atlas']
     solar_atlas_folder_path = os.path.join(wind_solar_atlas_folder, f'{country_name_solar_atlas}_solar_atlas')
 
-    if not os.path.exists(solar_atlas_folder_path):
+    solar_atlas_data_exists = False
+    for root, dirs, files in os.walk(solar_atlas_folder_path):
+        if "PVOUT.tif" in files:
+            solar_atlas_data_exists = True
+            break  # Stop searching once found   
+
+    if solar_atlas_data_exists == False:        
         solar_atlas_measure = config['solar_atlas_measure']  
         solar_atlas_folder_name = download_global_solar_atlas(country_name=country_name_solar_atlas, data_path=data_path, measure = solar_atlas_measure)
     else:
-        print(f"Global solar atlas data already downloaded: {rel_path(solar_atlas_folder_path)}")
+        print(f"Global solar atlas data already downloaded")
     
-    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, os.listdir(solar_atlas_folder_path)[0], 'GHI.tif')
+    solar_raster_filePath = os.path.join(wind_solar_atlas_folder, solar_atlas_folder_path, os.listdir(solar_atlas_folder_path)[0], 'PVOUT.tif')
     #clip raster
     # clip_raster(solar_raster_filePath, region_name_clean, region, output_dir, 'solar')
     #clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
@@ -640,3 +661,13 @@ print("\nDone!")
 elapsed = time.time() - start_time
 logging.info(f'elapsed seconds: {round(elapsed,2)}')
 print(f'elapsed time: {elapsed}')
+
+# Print all error messages from the log file
+with open(log_file_path, "r") as log_file:
+    content = log_file.read()
+    if "ERROR" in content:
+        print("\nErrors for following data:")
+        log_file.seek(0)
+        for line in log_file:
+            if "ERROR" in line:
+                print(line.strip())
