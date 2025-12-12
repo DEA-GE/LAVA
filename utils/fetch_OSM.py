@@ -150,6 +150,13 @@ def osm_to_gpkg(
         if not features:
             continue
         gdf = gpd.GeoDataFrame(features, crs=f"EPSG:{EPSG}")  # Create GeoDataFrame for this geometry
+        
+        # Drop problematic columns that cause issues with GPKG driver
+        problematic_cols = {'FIXME', 'fixme'}
+        cols_to_drop = [col for col in gdf.columns if col in problematic_cols]
+        if cols_to_drop:
+            gdf = gdf.drop(columns=cols_to_drop)
+        
         gpkg_path = os.path.join(
             output_dir, f"overpass_{feature_key}.gpkg"
         )

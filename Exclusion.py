@@ -511,7 +511,7 @@ with open(os.path.join(output_dir, f"{region_name_clean}_{scenario}_{technology}
     for item in info_list_exclusion:
         file.write(f"{item}\n")
     file.write(f"\neligibility share: {eligible_share:.2%}")
-    file.write(f"\navailable area: {available_area:.2f} m2")
+    file.write(f"\navailable area: {available_area_km2:.2f} km2")
     file.write(f"\npower potential: {power_potential:.2} MW")
 
     if config['model_areas_filename']:
@@ -524,11 +524,11 @@ with open(os.path.join(output_dir, f"{region_name_clean}_{scenario}_{technology}
 info_data = {
     "technology": technology,
     "scenario": scenario,
-    "min_pixels_connected": min_pixels_connected,
+    "min_pixels_connected": int(min_pixels_connected),
     "info_list": info_list_exclusion,
-    "eligibility_share": eligible_share,
-    "available_area_m2": available_area,
-    "power_potential_MW": power_potential,
+    "eligibility_share": float(eligible_share),
+    "available_area_km2": float(available_area_km2),
+    "power_potential_MW": float(power_potential),
 }
 
 if config['model_areas_filename']:
