@@ -2,7 +2,9 @@ Basic workflow
 ==============
 
 This guide walks through the end-to-end workflow for running the Land Availability Analysis (LAVA)
-tool on a new study region. 
+tool on a new study region. The steps below assume that you have already cloned the repository, created the
+``lava`` Conda environment from ``envs/requirements.yaml``, and downloaded the manual datasets. Those steps are documented in the
+``Getting Started`` instructions.
 
 .. contents:: Table of contents
    :local:
@@ -11,19 +13,12 @@ tool on a new study region.
 Overview of the basic workflow
 ------------------------------
 
-0. Complete the tool and basic data setup.
 1. Create the study-region configuration files in ``configs/``.
 2. Run :mod:`spatial_data_prep.py` to download and prepare necessary data.
 3. Inspect the pre-processed data (optional but recommended) with ``data_explore.ipynb``.
 4. Run :mod:`Exclusion.py` for each technology to create available-land rasters.
 
 
-Prerequisites
--------------
-
-The Usage steps below assume that you have already cloned the repository, created the
-``lava`` Conda environment from ``envs/requirements.yaml``, and downloaded the manual datasets. Those steps are documented in the
-``Getting Started`` instructions.
 
 Configuration files
 -------------------
