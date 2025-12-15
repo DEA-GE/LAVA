@@ -3,8 +3,9 @@
 # deployment density
 deployment_density: 50 # MW/km²
 
-# exclusion container resolution manual
-resolution_manual: null
+# exclusion container manual resolution and projection 
+resolution_manual: Null # meters
+projection_manual: Null # e.g. 'ESRI:54009' Mollweide (if used, then resolution needs to be set manually as well)
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters

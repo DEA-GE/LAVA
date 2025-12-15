@@ -1,6 +1,6 @@
 import atlite
+from pyproj import CRS
 import time
-import matplotlib.pyplot as plt
 from scipy.ndimage import label
 import numpy as np
 import json 
@@ -9,7 +9,6 @@ import os
 import argparse
 import geopandas as gpd
 from atlite.gis import shape_availability
-from atlite.gis import shape_availability_reprojected
 import rasterio
 import yaml
 from utils.data_preprocessing import clean_region_name, log_scenario_run
@@ -69,6 +68,8 @@ data_from_DEM = os.path.join(data_path, 'derived_from_DEM')
 OSM_source = config['OSM_source']
 raw_data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 
+
+
 # Load the CRS
 # geo CRS
 with open(os.path.join(data_path, region_name_clean+'_global_CRS.pkl'), 'rb') as file:
@@ -76,6 +77,10 @@ with open(os.path.join(data_path, region_name_clean+'_global_CRS.pkl'), 'rb') as
 # projected CRS
 with open(os.path.join(data_path, region_name_clean+'_local_CRS.pkl'), 'rb') as file:
         local_crs_obj = pickle.load(file)
+# overwrite local CRS if specified in tech_config
+if tech_config['projection_manual'] is not None:
+    local_crs_obj = CRS.from_user_input(tech_config['projection_manual'])
+
 
 print(f'geo CRS: {global_crs_obj}; projected CRS: {local_crs_obj}')
 
@@ -86,22 +91,31 @@ auth = local_crs_obj.to_authority()
 local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":", "_")
 
 
+# load pixel size
+if tech_config['resolution_manual'] is not None:
+    res = tech_config['resolution_manual']
+else:
+    with open(os.path.join(data_path, f'pixel_size_{region_name_clean}_{local_crs_tag}.json'), 'r') as fp:
+        res = json.load(fp)
+
+
 # Paths and existence checks
-landcoverPath = os.path.join(data_path, f"landcover_{config['landcover_source']}_{region_name_clean}_{local_crs_tag}.tif")
+landcoverPath = os.path.join(data_path, f"landcover_{config['landcover_source']}_{region_name_clean}_{global_crs_tag}.tif")
 landcover = 1 if os.path.isfile(landcoverPath) else 0
 demRasterPath = os.path.join(data_path, f'DEM_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 dem = 1 if os.path.isfile(demRasterPath) else 0
 slopeRasterPath = os.path.join(data_from_DEM, f'slope_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 slope = 1 if os.path.isfile(slopeRasterPath) else 0
-terrain_ruggedness_path = os.path.join(data_from_DEM, f'TerrainRuggednessIndex_{region_name_clean}_{local_crs_tag}.tif')
+terrain_ruggedness_path = os.path.join(data_from_DEM, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
 terrain_ruggedness = 1 if os.path.isfile(terrain_ruggedness_path) else 0
 windRasterPath = os.path.join(data_path, f'wind_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 wind = 1 if os.path.isfile(windRasterPath) else 0
 solarRasterPath = os.path.join(data_path, f'solar_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 solar = 1 if os.path.isfile(solarRasterPath) else 0
 
-regionPath = os.path.join(data_path, f'{region_name_clean}_{local_crs_tag}.geojson')
+regionPath = os.path.join(data_path, f'{region_name_clean}_{global_crs_tag}.geojson')
 region = gpd.read_file(regionPath)
+region = region.to_crs(local_crs_obj)
 
 northfacingRasterPath = os.path.join(data_from_DEM, f'north_facing_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 nfacing = 1 if os.path.isfile(northfacingRasterPath) else 0
@@ -143,12 +157,6 @@ additional_exclusion_rasters = 1 if os.path.exists(additional_exclusion_rasters_
 with open(os.path.join(data_path, f'landuses_{region_name_clean}.json'), 'r') as fp:
     landuses = json.load(fp)
 
-# load pixel size
-if tech_config['resolution_manual'] is not None:
-    res = tech_config['resolution_manual']
-else:
-    with open(os.path.join(data_path, f'pixel_size_{region_name_clean}_{local_crs_tag}.json'), 'r') as fp:
-        res = json.load(fp)
     
 
 #perform exclusions
@@ -413,12 +421,6 @@ print('\nfollowing data was not selected in config:')
 for item in info_list_not_selected:
     print('- ', item)
 
-# test
-with rasterio.open(landcoverPath, 'r+') as src:
-    transform_lc = src.transform  # Only works in 'r+' or 'w' modes
-    height = src.height
-    width = src.width
-    shape = (height, width)
 
 # calculate available areas
 print('\nperforming exclusions...')

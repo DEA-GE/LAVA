@@ -3,8 +3,9 @@
 # deployment density
 deployment_density: 10 # MW/km²
 
-# exclusion container resolution manual
-resolution_manual: null
+# exclusion container manual resolution and projection 
+resolution_manual: null # meters
+projection_manual: null # e.g. 'ESRI:54009' Mollweide (if used, then resolution needs to be set manually as well)
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
@@ -32,7 +33,7 @@ landcover_codes: #dictionary of landcover code with corresponding buffer in mete
 max_elevation: 2000 #meters
 max_slope: 15 #degrees
 max_terrain_ruggedness: Null #terrain ruggedness index
-north_facing_pixels: Null # 1 (on) or 0 (off)
+north_facing_pixels: null # 1 (on) or 0 (off)
 
 # spatial elements (buffer in meters)
 railways_buffer: 100
