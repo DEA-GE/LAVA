@@ -25,9 +25,10 @@ fclass:
 # all OSM keys with its values: https://wiki.openstreetmap.org/wiki/Map_features
 overpass_features:
   railways: &railways ['rail']
-  roads: &roads ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link']
+  roads: &roads ['motorway', 'trunk', 'primary', 'secondary',  'motorway_link', 'trunk_link', 'primary_link', 'secondary_link'] # more smaller roads: 'tertiary', 'unclassified', 'tertiary_link'
   airports: &airports ['aerodrome']
-  waterbodies: &waterbodies ['water']
+  waterways: &waterways ['river', 'canal']
+  water: &water ['lake']
   military: &military ['military']
   substations: &substations ['substation']
   plants: &plants ['plant']
@@ -42,7 +43,7 @@ osm_features_config:
   roads: ["highway", *roads, "way"]
   railways: ["railway", *railways, "way"]
   airports: ["aeroway", *airports, ["way", "relation"]]
-  waterbodies: ["natural", *waterbodies, ["way", "relation"]]
+  waterbodies: [["waterway", *waterways, ["way", "relation"]], ["water", *water, ["way", "relation"]]]
   military: ["landuse", *military, "way"]
 
 
