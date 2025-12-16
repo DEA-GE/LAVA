@@ -90,6 +90,7 @@
 !docs/basic_workflow.rst
 !docs/full_workflow.rst
 !docs/faq.rst
+!docs/faq.md
 !.readthedocs.yaml
 # --- User interface ---
 !tkinter_app
