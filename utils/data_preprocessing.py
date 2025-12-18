@@ -21,6 +21,58 @@ from datetime import datetime, timedelta
 
 import logging
 
+
+def download_worldpop(country_code: str, year: int, output_dir: str):
+    """
+    Downloads WorldPop population data for a given country and year.
+    
+    Parameters:
+        country_code (str): ISO 3166-1 alpha-3 country code (e.g., "DEU", "KEN").
+        year (int): Year of the population data (e.g., 2020).
+        output_dir (str): Directory where the file will be saved.
+    
+    Returns:
+        str: Path to the downloaded file if successful, None otherwise.
+    """
+    # Convert country code to lowercase for filename
+    country_lower = country_code.lower()
+    country_upper = country_code.upper()
+    
+    # Hardcoded defaults
+    release = "2025A"
+    version = "1"
+    resolution = "100m"
+    data_type = "constrained"
+    
+    # Construct the URL
+    url = (f"https://data.worldpop.org/GIS/Population/Global_2015_2030/R{release}/"
+           f"{year}/{country_upper}/v{version}/{resolution}/{data_type}/"
+           f"{country_lower}_pop_{year}_CN_{resolution}_R{release}_v{version}.tif")
+    
+    # Construct output filepath
+    os.makedirs(output_dir, exist_ok=True)
+    filename = f"population_{country_upper}_{year}.tif"
+    output_path = os.path.join(output_dir, filename)
+    
+    try:
+        response = requests.get(url, timeout=300)
+        
+        if response.status_code == 200:
+            with open(output_path, "wb") as f:
+                f.write(response.content)
+            return output_path
+        else:
+            logging.error(f"Failed to download. HTTP status: {response.status_code}")
+            return None
+            
+    except requests.Timeout:
+        logging.error(f"Download timed out after 300 seconds for '{country_code}'.")
+        return None
+    except Exception as e:
+        logging.error(f"Error downloading WorldPop data: {e}")
+        return None
+
+
 def get_country_bounds_from_code(country_code):
     """
     Retrieve bounding box [minx, miny, maxx, maxy] for a country ISO2/ISO3 code.

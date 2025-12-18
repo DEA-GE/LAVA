@@ -51,9 +51,10 @@ consider_roads = config['roads']
 consider_airports = config['airports']
 consider_waterbodies = config['waterbodies']
 consider_military = config['military']
+population_data = config.get('population_source', 0)
 consider_wind_atlas = config['wind_atlas']
 consider_solar_atlas = config['solar_atlas']
-compute_substation_proximity = config.get('compute_substation_proximity', 0)
+compute_substation_proximity = config.get('compute_substation_proximity', 0) 
 compute_road_proximity = config.get('compute_road_proximity', 0)
 compute_terrain_ruggedness = config.get('compute_terrain_ruggedness', 0)
 consider_additional_exclusion_polygons = config['additional_exclusion_polygons_folder_name']
@@ -117,7 +118,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 # Set up logging
 log_file_path = os.path.join(output_dir, "data-prep.log")
-file_handler = logging.FileHandler(log_file_path, mode='a')
+file_handler = logging.FileHandler(log_file_path, mode='w')
 file_handler.setLevel(logging.DEBUG)  # file can record everything
 
 stream_handler = logging.StreamHandler()
@@ -383,6 +384,29 @@ if consider_additional_exclusion_rasters:
             data_name = os.path.splitext(filename)[0]
             clip_raster(filepath, region_name_clean, region, add_excl_rasters_dir, data_name)
             counter = counter + 1
+
+
+#population data
+if population_data == 'worldpop':
+    print('\nprocessing population data')
+    try:
+        population_filePath = os.path.join(output_dir, f'population_{region_name_clean}_EPSG4326.tif') 
+        if not os.path.exists(population_filePath): #process data if file not exists in output folder
+            population_raw_filePath = os.path.join(data_path, 'population', f"population_{country_code}_{config['population_year']}.tif")
+            if not os.path.exists(population_raw_filePath):
+                download_worldpop(country_code=country_code, year=config['population_year'], output_dir=os.path.join(data_path, 'population'))
+            clip_raster(population_raw_filePath, region_name_clean, region, output_dir, 'population')
+    except Exception as e:
+        logging.error(f"population data failed: {e}")
+if population_data == 'file':
+    print('\nprocessing local population data')
+    try:
+        population_filePath = os.path.join(output_dir, f'population_{region_name_clean}_EPSG4326.tif')
+        if not os.path.exists(population_filePath): #process data if file not exists in output folder
+            population_raw_filePath = os.path.join(data_path, 'population', f"population_{country_code}_{config['population_year']}.tif")
+            clip_raster(population_raw_filePath, region_name_clean, region, output_dir, 'population')
+    except Exception as e:
+        logging.error(f"population data failed: {e}")
 
 
 

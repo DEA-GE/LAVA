@@ -48,6 +48,8 @@
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !weather_data
 !weather_data/wind_speed_regions.ipynb
+!Raw_Spatial_Data/population
+!Raw_Spatial_Data/population/.gitkeep
 # --- Config files ---
 !configs
 !configs/config_template.yaml

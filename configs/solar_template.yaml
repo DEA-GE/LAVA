@@ -1,4 +1,4 @@
-#--exclusions----------------------------------------------------------------------
+#--exclusions------------------Odense default: 16.98%, 51.90km²---------------------------------------------
 
 # deployment density
 deployment_density: 50 # MW/km²
@@ -33,6 +33,9 @@ max_elevation: 2000 #meters
 max_slope: 15 #degrees
 max_terrain_ruggedness: Null #terrain ruggedness index
 north_facing_pixels: Null # 1 (on) or 0 (off)
+
+# population
+max_population: 3 #people per pixel
 
 # spatial elements (buffer in meters)
 railways_buffer: 100

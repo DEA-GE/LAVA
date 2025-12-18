@@ -35,6 +35,9 @@ max_slope: 15 #degrees
 max_terrain_ruggedness: Null #terrain ruggedness index
 north_facing_pixels: null # 1 (on) or 0 (off)
 
+# population
+max_population: 3 #people per pixel
+
 # spatial elements (buffer in meters)
 railways_buffer: 100
 roads_buffer: 100

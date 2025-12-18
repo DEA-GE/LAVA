@@ -108,6 +108,8 @@ slopeRasterPath = os.path.join(data_from_DEM, f'slope_{region_name_clean}_{globa
 slope = 1 if os.path.isfile(slopeRasterPath) else 0
 terrain_ruggedness_path = os.path.join(data_from_DEM, f'TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif')
 terrain_ruggedness = 1 if os.path.isfile(terrain_ruggedness_path) else 0
+populationPath = os.path.join(data_path, f'population_{region_name_clean}_{global_crs_tag}.tif')
+population = 1 if os.path.isfile(populationPath) else 0
 windRasterPath = os.path.join(data_path, f'wind_{region_name_clean}_{global_crs_tag}{resampled}.tif')
 wind = 1 if os.path.isfile(windRasterPath) else 0
 solarRasterPath = os.path.join(data_path, f'solar_{region_name_clean}_{global_crs_tag}{resampled}.tif')
@@ -198,6 +200,18 @@ if terrain_ruggedness==1 and param is not None:
     info_list_exclusion.append(f"max terrain ruggedness: {param}")
 elif terrain_ruggedness==1 and param is None: info_list_not_selected.append(f"terrain_ruggedness")
 elif terrain_ruggedness==0: info_list_not_available.append(f"terrain_ruggedness")
+
+# add population exclusions
+def lower_end_filter(mask):
+    """Filter out values below a lower end."""
+    lower_end = tech_config['max_population']
+    return mask > lower_end
+param = tech_config.get('max_population')
+if population==1 and param is not None:
+    excluder.add_raster(populationPath, codes=lower_end_filter, crs=global_crs_obj, nodata=None) # nodata=None, otherwise no data values get excluded (assumption: in no data pixels there is no population)
+    info_list_exclusion.append(f"max population per pixel: {param}")
+elif population==1 and param is None: info_list_not_selected.append(f"population")
+elif population==0: info_list_not_available.append(f"population")
 
 # add north facing exclusion
 param = tech_config['north_facing_pixels']

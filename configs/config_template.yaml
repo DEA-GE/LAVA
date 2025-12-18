@@ -40,6 +40,10 @@ plants: 1
 # coastlines 
 coastlines: 1
 
+# population data
+population_source: worldpop #[mandatory][string: worldpop/file/0] if local file is used follow this naming convention: population_{country_code}_{population_year}.tif
+population_year: 2020 #[situational][integer] year of population data (2015-2030), only needed if worldpop is selected as source
+
 # wind and solar resources (GWA and GSA)
 wind_atlas: 1
 solar_atlas: 1
