@@ -100,8 +100,12 @@ Following data must be downloaded (partly manually ðŸ”§, partly automatically ðŸ
 
 
 **additional ideas for data to be included if available:**
+
 - historical and touristic monuments
 - archaeological sites
 - earthquake zones
 - landslide zones
+- indigenous areas
+- seismological stations
+- radar and rotating beacon
 - ...
