@@ -1,4 +1,4 @@
-# LAVA - *LA*nd a*V*ailability *A*nalysis 
+# LAVA - *L*and *AV*ailability *A*nalysis 
 
 LAVA is a tool to calculate the available area in a user defined study region for building renewable energy generators like utility-scale ground-mounted solar PV and wind onshore.
 First, all needed data is downloaded and preprocessed to bring it into the right format. Then the land eligibility analysis is done with the help of [`atlite`](https://github.com/PyPSA/atlite). Additionally, a suitable analysis can be performed and timeseries data for the available area derived.
@@ -76,6 +76,7 @@ For a more nuanced assessment read the articel (for some applications FABDEM mig
 ## Interesting additional datasets
 * [GEDTM30](https://github.com/openlandmap/GEDTM30): GEDTM30 is a global 1-arc-second (~30m) Digital Terrain Model (DTM) built using a machine-learning-based data fusion approach. It can be used as an alternative to the GEBCO DEM. GEDTM30 will hopefully integrated with openeo soon.
 * [Global Lakes and Wetlands Database](https://essd.copernicus.org/articles/17/2277/2025/#section6): comprehensive global map of 33 different types of wetlands around the world.
+* [LCM-10](https://land.copernicus.eu/en/products/global-dynamic-land-cover/land-cover-2020-raster-10-m-global-annual#general_info): Land Cover 2020 (raster 10 m), global, annual - version 1. See this [LinkedIn post](https://www.linkedin.com/posts/activity-7427245076168323072-RDP4?utm_source=share&utm_medium=member_desktop&rcm=ACoAACUh41YBBCZkBQ_CcPYGaBOBZTkcbQ70IbA). Soon to be available on CDSE via openEO.
 
 __useful to identify residential areas__:
 * [World Settlement Footprint (WSF®) 2019](https://geoservice.dlr.de/web/datasets/wsf_2019): 10m resolution binary mask outlining the extent of human settlements globally derived by means of 2019 multitemporal Sentinel-1 (S1) and Sentinel-2 (S2) imagery.
