@@ -80,5 +80,6 @@ For a more nuanced assessment read the articel (for some applications FABDEM mig
 
 __useful to identify residential areas__:
 * [World Settlement Footprint (WSF®) 2019](https://geoservice.dlr.de/web/datasets/wsf_2019): 10m resolution binary mask outlining the extent of human settlements globally derived by means of 2019 multitemporal Sentinel-1 (S1) and Sentinel-2 (S2) imagery.
-* [GHS-BUILT-C - R2023A](https://human-settlement.emergency.copernicus.eu/ghs_buC2023.php): The spatial raster dataset delineates the boundaries of the human settlements at 10m resolution, and describe their inner characteristics in terms of the morphology of the built environment and the functional use. Derived from Sentinel2 composite and Landsat, multitemporal (1975-2030).
+* [GHS-BUILT-C - R2023A](https://human-settlement.emergency.copernicus.eu/ghs_buC2023.php): The spatial raster dataset delineates the boundaries of the human settlements at 10m resolution, and describe their inner characteristics in terms of the morphology of the built environment and the functional use. Derived from Sentinel2 composite and Landsat, multitemporal (1975-2030). (Might have higher accuracy than WSF accrording to [this paper](https://doi.org/10.1080/17538947.2024.2390454))
+* [EMC-BUILT - R2025A](https://human-settlement.emergency.copernicus.eu/emc_built_s.php): Exposure Mapping Component built-up surface grid, derived from Sentinel-2 year 2022 (more accurate than GHS-BUILT-C - R2023A)
 
