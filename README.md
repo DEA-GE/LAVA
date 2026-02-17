@@ -51,7 +51,7 @@ With the advanced workflow it is also possible to perform a suitability analysis
 |----------------------|-------------|
 | DEM (Elevation)      | [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) |
 | Landcover            | [ESA WorldCover](https://esa-worldcover.org/en) via openEO API (Copernicus Data Space)|
-| Population raster    | [worldpop](https://hub.worldpop.org/project/categories?id=3)) |
+| Population raster    | [worldpop](https://hub.worldpop.org/project/categories?id=3) |
 | Spatial features <br>(road, railways, airports, waterbodies,<br>military, substations, power lines, generators)     | OpenStreetMap via overpass or [Geofabrik](https://download.geofabrik.de/) |
 | Coastlines           | Global Oceans and Seas ([Marine Regions](https://marineregions.org/downloads.php)) |
 | Protected Areas      | [World Database of Protected Areas (WDPA) – Protected Planet](https://www.protectedplanet.net/) |
@@ -80,5 +80,6 @@ For a more nuanced assessment read the articel (for some applications FABDEM mig
 
 __useful to identify residential areas__:
 * [World Settlement Footprint (WSF®) 2019](https://geoservice.dlr.de/web/datasets/wsf_2019): 10m resolution binary mask outlining the extent of human settlements globally derived by means of 2019 multitemporal Sentinel-1 (S1) and Sentinel-2 (S2) imagery.
-* [GHS-BUILT-C - R2023A](https://human-settlement.emergency.copernicus.eu/ghs_buC2023.php): The spatial raster dataset delineates the boundaries of the human settlements at 10m resolution, and describe their inner characteristics in terms of the morphology of the built environment and the functional use. Derived from Sentinel2 composite and Landsat, multitemporal (1975-2030).
+* [GHS-BUILT-C - R2023A](https://human-settlement.emergency.copernicus.eu/ghs_buC2023.php): The spatial raster dataset delineates the boundaries of the human settlements at 10m resolution, and describe their inner characteristics in terms of the morphology of the built environment and the functional use. Derived from Sentinel2 composite and Landsat, multitemporal (1975-2030). (Might have higher accuracy than WSF accrording to [this paper](https://doi.org/10.1080/17538947.2024.2390454))
+* [EMC-BUILT - R2025A](https://human-settlement.emergency.copernicus.eu/emc_built_s.php): Exposure Mapping Component built-up surface grid, derived from Sentinel-2 year 2022. EMC-BUILT-R2025A is more accurate than GHS-BUILT-C-R2023A: "*Compared to its predecessor, the GHSL R2023 built-up product (epoch 2018), the new product [EMC-BUILT-R2025A] shows less issues with overestimation while buildings are delineated more precisely. When comparing quality metrics (both total built-up surface and non-residential built-up surface) the new products show improved results.*" (see products [documentation](https://human-settlement.emergency.copernicus.eu/documents/EMC-BUILT_R2025.pdf?t=1764778621) page 6)
 
