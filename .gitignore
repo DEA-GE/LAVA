@@ -15,6 +15,7 @@
 !create_cutout.py
 !bias_correction_factors
 !bias_correction_factors/ERA5_wnd100m_bias.nc
+!timeseries.py
 # --- Supporting scripts ---
 !utils
 !utils/legends.py

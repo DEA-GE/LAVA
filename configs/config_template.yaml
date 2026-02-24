@@ -79,20 +79,64 @@ scenario: ref
 technology: solar #onshorewind or solar, used for the filename of the available area
 
 # model areas 
-model_areas_filename:
+model_areas_filename: 
 
 
+
+#--Weather data  -------------------------------------------------------------
+# download settings
+weather_data_folder: Raw_Spatial_Data/weather_data #[mandatory][string] folder where weather data cutout will be stored
+weather_years: 
+    years: [2019] # list of historical weather years 
+    start: 01-01 # start date for weather data download in MM-DD format
+    end: 01-31 # end date for weather data download in MM-DD format
+ERA5_variables: [wind, influx, temperature] # list of ERA5 variables to download; wind energy: wind; solar energy: influx, temperature
+weather_data_extend: gadm_region # [mandatory][gadm_country/gadm_region/custom_study_area/bbox]
+bbox: [xmin, ymin, xmax, ymax] # [situational][xmin, ymin, xmax, ymax] only needed if weather_data_extend is set to bbox; in EPSG4326; Odense: [9.8828, 54.9881, 10.876700000000001, 55.780899999999995]
 
 weather_bias_range: [0.5, 2.0] # Limit min and max bias correction factors to this range 
 
+# timeseries settings
+available_land: # lava_scenarios/external_vector
+    scenarios: [ref]
+    vector_filename: 
 
-#--Weather and energy data assumptions-------------------------------------------------------------
-weather_data_path: Raw_Spatial_Data 
-
-weather_years: [2019] # list of years 
-
-weather_data_extend: country # 'study_region' or 'geo_bounds'
-
+weather_year: 2019 # Weather year for timeseries generation
+cutout_name: KEN-{year}-era5 # Cutout file name template
+cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files
+drop_leap_day: True # Whether to drop February 29 in leap years
+test_mode: False # Quick test mode: only compute the first week (168 hours)
+shapes_path: data/Kilifi/Kilifi_EPSG4326.geojson # Path to a GeoJSON file with region polygons
+shapes_name_column: NAME_1 #  Name of the column in the GeoJSON that identifies each region
+output_dir: data/Kilifi/0_profiles # Directory for output CSV files
+show_progress: False # Show atlite progress bars
+technologies:
+    onwind:
+        resource:
+            method: wind
+            turbine: Vestas_V112_3MW
+            smooth: False
+            add_cutout_windspeed: True
+        correction_factor: 1.0
+        clip_p_max_pu: 0.01
+    # offwind:
+    #     resource:
+    #         method: wind
+    #         turbine: NREL_ReferenceTurbine_2020ATB_5.5MW
+    #         smooth: False
+    #         add_cutout_windspeed: True
+    #     correction_factor: 0.8855
+    #     clip_p_max_pu: 0.01
+    solar:
+        resource:
+            method: pv
+            panel: CSi
+            orientation:
+                slope: 35.0
+                azimuth: 180.0
+            tracking: null
+        correction_factor: 1.0
+        clip_p_max_pu: 0.01
 
 #--Suitability cost assumptions----------------------------------------------------------------------
 
