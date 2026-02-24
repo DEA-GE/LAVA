@@ -49,6 +49,7 @@
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !weather_data
 !weather_data/wind_speed_regions.ipynb
+!weather_data/ERA5_wind_app.py
 !Raw_Spatial_Data/population
 !Raw_Spatial_Data/population/.gitkeep
 # --- Config files ---
