@@ -102,13 +102,13 @@ available_land: # lava_scenarios/external_vector
     vector_filename: 
 
 weather_year: 2019 # Weather year for timeseries generation
-cutout_name: KEN-{year}-era5 # Cutout file name template
+cutout_name: Odense-{year}-era5 # Cutout file name template
 cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files
 drop_leap_day: True # Whether to drop February 29 in leap years
-test_mode: False # Quick test mode: only compute the first week (168 hours)
-shapes_path: data/Kilifi/Kilifi_EPSG4326.geojson # Path to a GeoJSON file with region polygons
-shapes_name_column: NAME_1 #  Name of the column in the GeoJSON that identifies each region
-output_dir: data/Kilifi/0_profiles # Directory for output CSV files
+test_mode: True # Quick test mode: only compute the first week (168 hours)
+shapes_path: data/odense_square.geojson # Path to a GeoJSON file with region polygons
+shapes_name_column: fid #  Name of the column in the GeoJSON that identifies each region
+output_dir: data/Odense/0_profiles # Directory for output CSV files
 show_progress: False # Show atlite progress bars
 technologies:
     onwind:
@@ -127,16 +127,24 @@ technologies:
     #         add_cutout_windspeed: True
     #     correction_factor: 0.8855
     #     clip_p_max_pu: 0.01
-    solar:
+    windspeeds:
         resource:
-            method: pv
-            panel: CSi
-            orientation:
-                slope: 35.0
-                azimuth: 180.0
-            tracking: null
+            method: wind
+            turbine: null # helper turbine with power curve where wind speeds are mapped to themselves defined in timeseries.py
+            smooth: False
+            add_cutout_windspeed: False
         correction_factor: 1.0
-        clip_p_max_pu: 0.01
+        clip_p_max_pu: null
+    # solar:
+    #     resource:
+    #         method: pv
+    #         panel: CSi
+    #         orientation:
+    #             slope: 35.0
+    #             azimuth: 180.0
+    #         tracking: null
+    #     correction_factor: 1.0
+    #     clip_p_max_pu: 0.01
 
 #--Suitability cost assumptions----------------------------------------------------------------------
 

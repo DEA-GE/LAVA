@@ -10,6 +10,7 @@ import os
 import yaml
 import logging
 from utils.data_preprocessing import *
+from atlite.gis import ExclusionContainer
 
 
 logging.basicConfig(level=logging.INFO)
@@ -73,7 +74,7 @@ logging.info(
 
 # --- Compute indicator matrix: which grid cells belong to which region ---
 logging.info("  Computing region-grid indicator matrix...")
-from atlite.gis import ExclusionContainer
+
 indicator = cutout.availabilitymatrix(
     regions, ExclusionContainer(), disable_progressbar=not show_progress
 )
@@ -102,6 +103,14 @@ for tech_name, tech_params in technologies.items():
     func = getattr(cutout, method)
     resource["show_progress"] = show_progress
 
+    ##### Custom turbine for windspeeds technology
+    if tech_name == "windspeeds":
+        wind_speed = np.arange(0, 100, 1)
+        max_wind_speed = float(cutout.data["wnd100m"].max().values)
+        helper_turbine = {'V': wind_speed, 'POW': wind_speed, 'hub_height': 100, 'P': max_wind_speed}
+        resource["turbine"] = helper_turbine
+    #####
+
     profile = func(
         matrix=matrix,
         layout=layout,
@@ -111,12 +120,19 @@ for tech_name, tech_params in technologies.items():
         **resource,
     )
 
+
     if correction_factor != 1.0:
         profile = correction_factor * profile
     if clip_threshold is not None:
         profile = profile.where(profile >= clip_threshold, 0)
 
     df = profile.to_pandas()
+
+    #### For windspeeds technology, multiply by max_wind_speed before exporting
+    if tech_name == "windspeeds":
+        df = df * max_wind_speed
+    ####
+
     out_file = os.path.join(output_dir, f"profile_{tech_name}_{year}.csv")
     df.to_csv(out_file)
 
