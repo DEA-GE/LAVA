@@ -143,12 +143,15 @@ for tech_name, tech_params in technologies.items():
         f"{duration:.1f}s)"
     )
 
+
 logging.info("Done — all profiles generated.")
 
-
-
-
-
-
-
-
+# --- Save technologies dictionary, shapes filename, and cutout name to a text file ---
+tech_file = os.path.join(output_dir, f"technologies_{year}.txt")
+with open(tech_file, "w", encoding="utf-8") as f:
+    f.write(f"shapes_file: {os.path.basename(shapes_path)}\n")
+    f.write(f"cutout_file: {os.path.basename(cutout_path)}\n\n")
+    f.write("technologies:\n")
+    import yaml
+    yaml.dump(technologies, f, allow_unicode=True, default_flow_style=False)
+logging.info(f"Saved technologies dictionary, shapes filename, and cutout name to {tech_file}")

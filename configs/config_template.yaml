@@ -1,12 +1,12 @@
 
-study_region_name: Odense #[mandatory][string] all files and the results folder will be named like that
+study_region_name: Denmark #[mandatory][string] all files and the results folder will be named like that
 country_code: DNK #[mandatory][string: 3-letter ISO code] also needed for global wind atlas
 
 
 #--define study region----------------------------------------------------------------------
 # use GADM boundary (https://gadm.org/maps.html)
-GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{gadm_level})
-GADM_level: 2 #[situational][integer]
+GADM_region_name: Denmark #[situational][string] exact name as in GADM file (NAME_{gadm_level})
+GADM_level: 0 #[situational][integer]
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
 custom_study_area_filename: #[situational][string] if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
@@ -86,30 +86,32 @@ model_areas_filename:
 #--Weather data  -------------------------------------------------------------
 # download settings
 weather_data_folder: Raw_Spatial_Data/weather_data #[mandatory][string] folder where weather data cutout will be stored
+weather_data_extend: gadm_country # [mandatory][gadm_country/gadm_region/custom_study_area/bbox]
+bbox: [xmin, ymin, xmax, ymax] # [situational][xmin, ymin, xmax, ymax] only needed if weather_data_extend is set to bbox; in EPSG4326; Odense: [9.8828, 54.9881, 10.876700000000001, 55.780899999999995]
 weather_years: 
     years: [2019] # list of historical weather years 
     start: 01-01 # start date for weather data download in MM-DD format
-    end: 01-31 # end date for weather data download in MM-DD format
-ERA5_variables: [wind, influx, temperature] # list of ERA5 variables to download; wind energy: wind; solar energy: influx, temperature
-weather_data_extend: gadm_region # [mandatory][gadm_country/gadm_region/custom_study_area/bbox]
-bbox: [xmin, ymin, xmax, ymax] # [situational][xmin, ymin, xmax, ymax] only needed if weather_data_extend is set to bbox; in EPSG4326; Odense: [9.8828, 54.9881, 10.876700000000001, 55.780899999999995]
+    end: 12-31 # end date for weather data download in MM-DD format
+ERA5_variables: [wind, influx, temperature] # [mandatory][wind, influx, temperature] list of ERA5 variables to download; wind energy: wind; solar energy: influx, temperature
 
 weather_bias_range: [0.5, 2.0] # Limit min and max bias correction factors to this range 
 
 # timeseries settings
 available_land: # lava_scenarios/external_vector
+    raster: # 
     scenarios: [ref]
-    vector_filename: 
+
 
 weather_year: 2019 # Weather year for timeseries generation
-cutout_name: Odense-{year}-era5 # Cutout file name template
+cutout_name: DNK-{year}-era5 # Cutout file name template
 cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files
 drop_leap_day: True # Whether to drop February 29 in leap years
-test_mode: True # Quick test mode: only compute the first week (168 hours)
-shapes_path: data/odense_square.geojson # Path to a GeoJSON file with region polygons
-shapes_name_column: fid #  Name of the column in the GeoJSON that identifies each region
-output_dir: data/Odense/0_profiles # Directory for output CSV files
+test_mode: False # Quick test mode: only compute the first week (168 hours)
+shapes_path: data/DK_w_e.geojson # Path to a GeoJSON file with region polygons
+shapes_name_column: NAME #  Name of the column in the GeoJSON that identifies each region
+output_dir: data/Denmark/0_profiles # Directory for output CSV files
 show_progress: False # Show atlite progress bars
+
 technologies:
     onwind:
         resource:
