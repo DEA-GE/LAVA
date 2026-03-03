@@ -1,0 +1,5 @@
+/* Only lists inside the container "relaxed-list" have more spacing between bullet point entries, see data_sources.rst */
+.relaxed-list ul > li,
+.relaxed-list ol > li {
+    margin-bottom: 0.6em;
+}
