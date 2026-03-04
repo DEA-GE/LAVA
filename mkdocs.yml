@@ -1,0 +1,43 @@
+site_name: LAVA Documentation
+repo_url: https://github.com/DEA-GE/LAVA
+docs_dir: docs
+
+nav:
+  - Home: index.md
+  - Getting Started: getting_started.md
+  - Background: background.md
+  - Basic Workflow: basic_workflow.md
+  - Full Workflow: full_workflow.md
+  - Data Sources: data_sources.md
+  - FAQ: faq.md
+  - Troubleshooting: troubleshooting.md
+
+theme:
+  name: material
+  features:
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+  palette:
+  - media: "(prefers-color-scheme: light)"
+    primary: custom
+    scheme: default
+    toggle:
+      icon: material/weather-sunny
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    primary: custom
+    scheme: slate
+    toggle:
+      icon: material/weather-night
+      name: Switch to light mode
+
+extra_css:
+  - assets/custom.css
+
+markdown_extensions:
+  - admonition
+  - toc:
+      title: On this page
+      permalink: true
