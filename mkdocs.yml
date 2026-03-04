@@ -13,7 +13,7 @@ nav:
     - FAQ: home/faq.md
     - Troubleshooting: home/troubleshooting.md
   - Knowledge Base:
-    - Knowledge Base: knowledge_base/general_methodology.md
+    - General Methodology: knowledge_base/general_methodology.md
     - Recommendations for Parameters: knowledge_base/recommendations_for_parameters.md
 
 theme:
