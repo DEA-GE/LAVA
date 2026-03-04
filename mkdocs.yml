@@ -3,18 +3,25 @@ repo_url: https://github.com/DEA-GE/LAVA
 docs_dir: docs
 
 nav:
-  - Home: index.md
-  - Getting Started: getting_started.md
-  - Background: background.md
-  - Basic Workflow: basic_workflow.md
-  - Full Workflow: full_workflow.md
-  - Data Sources: data_sources.md
-  - FAQ: faq.md
-  - Troubleshooting: troubleshooting.md
+  - Home: 
+    - Home: index.md
+    - Getting Started: home/getting_started.md
+    - Background: home/background.md
+    - Basic Workflow: home/basic_workflow.md
+    - Full Workflow: home/full_workflow.md
+    - Data Sources: home/data_sources.md
+    - FAQ: home/faq.md
+    - Troubleshooting: home/troubleshooting.md
+  - Knowledge Base:
+    - Knowledge Base: knowledge_base/general_methodology.md
+    - Recommendations for Parameters: knowledge_base/recommendations_for_parameters.md
 
 theme:
   name: material
   features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
     - navigation.top
     - content.code.copy
     - search.suggest

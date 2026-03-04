@@ -84,20 +84,16 @@
 !mkdocs.yml
 !docs
 !docs/.gitkeep
-!docs/conf.py
-!docs/index.md
-!docs/background.md
-!docs/getting_started.md
 !docs/requirements-docs.txt
-!docs/troubleshooting.md
-!docs/basic_workflow.md
-!docs/full_workflow.md
-!docs/faq.md
-!docs/data_sources.md
+!docs/index.md
 !docs/assets
 !docs/assets/custom.css
 !docs/assets/literature_overview.xlsx
 !docs/assets/exclusion_parameters_overview.xlsx
+!docs/home/
+!docs/home/**
+!docs/knowledge_base/
+!docs/knowledge_base/**
 !.readthedocs.yaml
 # --- User interface ---
 !tkinter_app
