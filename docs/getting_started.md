@@ -21,18 +21,17 @@ set PATH=C:\users\miniconda\Scripts
 
 More information on the setup of conda and git can be found [here](https://fneum.github.io/data-science-for-esm/dsesm/setup/#git-option-more-advanced).
 
-> **Note — Command line navigation:**
->
-> The command line (also known as terminal, shell, or console) is a text-based interface that allows you to interact with your computer's operating system by typing commands. The following are some basic commands:
->
-> - `cd my_directory` — change directory to `my_directory`
-> - `cd ..` — move up one directory
-> - `ls` (Linux/Mac) or `dir` (Windows) — list files and directories in the current directory
-> - `mkdir my_new_directory` — create a new directory named `my_new_directory`
->
-> Paths can be **absolute** (e.g., `C:\Users\YourName\Documents` on Windows or `/home/yourname/documents` on Linux/Mac) or **relative** to the current directory. On Windows, you use backslashes `\` to separate directories, while on Linux and macOS you use forward slashes `/`.
->
-> For a more detailed introduction, see [this tutorial](https://tutorials.codebar.io/command-line/introduction/tutorial.html).
+!!! note "Command line navigation"
+    The command line (also known as terminal, shell, or console) is a text-based interface that allows you to interact with your computer's operating system by typing commands. The following are some basic commands:
+
+    - `cd my_directory` — change directory to `my_directory`
+    - `cd ..` — move up one directory
+    - `ls` (Linux/Mac) or `dir` (Windows) — list files and directories in the current directory
+    - `mkdir my_new_directory` — create a new directory named `my_new_directory`
+
+    Paths can be **absolute** (e.g., `C:\Users\YourName\Documents` on Windows or `/home/yourname/documents` on Linux/Mac) or **relative** to the current directory. On Windows, you use backslashes `\` to separate directories, while on Linux and macOS you use forward slashes `/`.
+
+    For a more detailed introduction, see [this tutorial](https://tutorials.codebar.io/command-line/introduction/tutorial.html).
 
 ## Installation
 
@@ -46,14 +45,14 @@ You can find the LAVA GitHub repository [here](https://github.com/DEA-GE/LAVA).
     cd LAVA
 ```
 
-    This will create a local copy of the project in a folder named `LAVA` and opens that folder in the terminal.
+This will create a local copy of the project in a folder named `LAVA` and opens that folder in the terminal.
 
 2. **Create the Conda environment** using the provided environment file that lists all necessary dependencies:
 ```bash
     conda env create -f envs/win-64.lock.yaml
 ```
 
-    This will create a new Conda environment (named `lava`) with all required packages.
+This will create a new Conda environment (named `lava`) with all required packages.
 
 3. **Activate the environment**:
 ```bash

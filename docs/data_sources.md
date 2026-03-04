@@ -24,43 +24,41 @@ Following data must be downloaded (partly manually 🔧, partly automatically �
 
 ---
 
-> **Note — Landcover data and openEO:**
->
-> Landcover data can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/). This powerful API can connect to multiple back-ends. Data processing can be done on the back-end if wanted. Here is some general information about openEO:
->
-> - [API documentation](https://open-eo.github.io/openeo-python-client/)
-> - [openEO recorded Webinar](https://terrascope.be/en/news-events/joint-openeo-terrascope-webinar), [another webinar](https://www.youtube.com/watch?v=A35JHj8LM2k&list=PLNxdHvTE74Jy18qTecMcNruUjODMCiEf_&index=3)
->
-> In the LAVA-tool, the openEO-connection to ESA WorldCover data is implemented. In order to use it, one needs to be registered with the Copernicus Data Space Ecosystem. Follow [these instructions](https://documentation.dataspace.copernicus.eu/Registration.html) to register.
->
-> When running the LAVA-tool for the first time, you will be asked to authenticate using your Copernicus account. Click on the link printed by the script and login to authenticate. When running the tool again, a locally stored refresh token is used for authentication.
->
-> More information about the openEO connection with Copernicus:
->
-> - Every user gets [10000 credits per month](https://dataspace.copernicus.eu/analyse/openeo) to carry out processes on this backend. In your [Copernicus Data Space account](https://marketplace-portal.dataspace.copernicus.eu/billing) you can see your credits balance.
-> - [Copernicus Dataspace Forum](https://forum.dataspace.copernicus.eu/)
-> - [General limitations openEO](https://documentation.dataspace.copernicus.eu/APIs/openEO/openEO.html): tested up to 100x100km at 10m resolution; free tier synchronous requests and batch jobs limited to 2 concurrent requests.
-> - [openEO Web Editor](https://editor.openeo.org/?server=openeo.dataspace.copernicus.eu) where you can see all your batch jobs.
+!!! note "Landcover data and openEO"
+    Landcover data can be read from a local file or automatically fetched via the [openEO API](https://openeo.org/). This powerful API can connect to multiple back-ends. Data processing can be done on the back-end if wanted. Here is some general information about openEO:
 
-> **Note — DEM:**
->
-> DEM (digital elevation model) is a generic term. More precisely, one can distinguish between Digital Surface Models (DSM) and Digital Terrain Models (DTM). Since ground-mounted PV and wind turbines are built on the ground, a DTM is more suitable.
->
-> The [Copernicus Global 30 meter DEM](https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM) is available through the openEO-API but is only a DSM.
->
-> The [MERIT DEM](https://hydro.iis.u-tokyo.ac.jp/~yamadai/MERIT_DEM/) is close to a global DTM (SRTM with forest removed but no buildings removed). The best global DTM is [FABDEM](https://www.fathom.global/product/global-terrain-data-fabdem/), based on the Copernicus Global 30m DEM with forests and buildings removed. Free API access may be possible under some circumstances ([details](https://www.fathom.global/insight/fabdem-download/)).
->
-> The tiles are freely accessible here: [University of Bristol data](https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn).
->
-> Because the FABDEM API is not always freely accessible, it is not implemented in the LAVA tool.
+    - [API documentation](https://open-eo.github.io/openeo-python-client/)
+    - [openEO recorded Webinar](https://terrascope.be/en/news-events/joint-openeo-terrascope-webinar), [another webinar](https://www.youtube.com/watch?v=A35JHj8LM2k&list=PLNxdHvTE74Jy18qTecMcNruUjODMCiEf_&index=3)
 
-> **Note — Landcover data accuracy:**
->
-> This type of data is good for estimating potential but far from precise local measurements. Landcover data is derived from satellite images and prone to errors. Often the only category is *"built-up area"*, which mixes urban areas with isolated industrial or agricultural sites. Even parts of roads or PV parks may be classified as "built-up area".
->
-> For detailed renewable energy site analysis, high-resolution local geospatial data is needed. It is possible to use gridded population data as a proxy, but this may miss some housing areas.
+    In the LAVA-tool, the openEO-connection to ESA WorldCover data is implemented. In order to use it, one needs to be registered with the Copernicus Data Space Ecosystem. Follow [these instructions](https://documentation.dataspace.copernicus.eu/Registration.html) to register.
 
-> **Note:** Take additional care when using a study region with a **coastline**. Coastlines can be very complex. Always cross-check the results.
+    When running the LAVA-tool for the first time, you will be asked to authenticate using your Copernicus account. Click on the link printed by the script and login to authenticate. When running the tool again, a locally stored refresh token is used for authentication.
+
+    More information about the openEO connection with Copernicus:
+
+    - Every user gets [10000 credits per month](https://dataspace.copernicus.eu/analyse/openeo) to carry out processes on this backend. In your [Copernicus Data Space account](https://marketplace-portal.dataspace.copernicus.eu/billing) you can see your credits balance.
+    - [Copernicus Dataspace Forum](https://forum.dataspace.copernicus.eu/)
+    - [General limitations openEO](https://documentation.dataspace.copernicus.eu/APIs/openEO/openEO.html): tested up to 100x100km at 10m resolution; free tier synchronous requests and batch jobs limited to 2 concurrent requests.
+    - [openEO Web Editor](https://editor.openeo.org/?server=openeo.dataspace.copernicus.eu) where you can see all your batch jobs.
+
+!!! note "DEM"
+    DEM (digital elevation model) is a generic term. More precisely, one can distinguish between Digital Surface Models (DSM) and Digital Terrain Models (DTM). Since ground-mounted PV and wind turbines are built on the ground, a DTM is more suitable.
+
+    The [Copernicus Global 30 meter DEM](https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM) is available through the openEO-API but is only a DSM.
+
+    The [MERIT DEM](https://hydro.iis.u-tokyo.ac.jp/~yamadai/MERIT_DEM/) is close to a global DTM (SRTM with forest removed but no buildings removed). The best global DTM is [FABDEM](https://www.fathom.global/product/global-terrain-data-fabdem/), based on the Copernicus Global 30m DEM with forests and buildings removed. Free API access may be possible under some circumstances ([details](https://www.fathom.global/insight/fabdem-download/)).
+
+    The tiles are freely accessible here: [University of Bristol data](https://data.bris.ac.uk/data/dataset/s5hqmjcdj8yo2ibzi9b4ew3sn).
+
+    Because the FABDEM API is not always freely accessible, it is not implemented in the LAVA tool.
+
+!!! note "Landcover data accuracy"
+    This type of data is good for estimating potential but far from precise local measurements. Landcover data is derived from satellite images and prone to errors. Often the only category is *"built-up area"*, which mixes urban areas with isolated industrial or agricultural sites. Even parts of roads or PV parks may be classified as "built-up area".
+
+    For detailed renewable energy site analysis, high-resolution local geospatial data is needed. It is possible to use gridded population data as a proxy, but this may miss some housing areas.
+
+!!! note "Coastlines"
+    Take additional care when using a study region with a **coastline**. Coastlines can be very complex. Always cross-check the results.
 
 ---
 
