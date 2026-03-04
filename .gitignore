@@ -80,7 +80,8 @@
 !snakemake/rules/energy_profiles.smk
 !snakemake/rules/weather_data_prep.smk
 !snakemake/rules/weather_bias_adjust.smk
-# --- Sphinx docs ---
+# --- MkDocs docs ---
+!mkdocs.yml
 !docs
 !docs/.gitkeep
 !docs/conf.py
