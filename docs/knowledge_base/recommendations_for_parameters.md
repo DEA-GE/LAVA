@@ -9,6 +9,8 @@ An overview of possible exclusion criterias found in selected literature can be 
 
 ### Solar PV utility-scale ground-mounted (fixed tilt, south facing)
 
+You can calculate the deployment density of existing solar farms in your study area and take the table below as an orientation.
+
 | Deployment density | Source | Quote from source |
 |--------------------|--------|------------------|
 | 35 MW/km² | Benalcazar et al. (2024) | "Conservative assumption for practical implementation and corresponds to the 95th percentile of the global average land-use efficiency of utility-scale photovoltaic systems [63,88]." |
