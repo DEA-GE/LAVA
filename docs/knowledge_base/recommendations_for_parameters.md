@@ -30,3 +30,10 @@ References
 - Sterl, S., Hussain, B., Miketa, A., Li, Y., Merven, B., Ben Ticha, M. B., Elabbas, M. A. E., Thiery, W., & Russo, D. (2022). *An all-Africa dataset of energy model “supply regions” for solar photovoltaic and wind power*. Scientific Data, 9(1), 664. https://doi.org/10.1038/s41597-022-01786-5  
 - Wang, Y., Chao, Q., Zhao, L., & Chang, R. (2022). *Assessment of wind and photovoltaic power potential in China*. Carbon Neutrality, 1(1), 15. https://doi.org/10.1007/s43979-022-00020-w  
 - Von Krauland, A.-K., & Jacobson, M. Z. (2024). *India onshore wind energy atlas accounting for altitude and land use restrictions and co-located solar*. Cell Reports Sustainability, 1(5), 100083. https://doi.org/10.1016/j.crsus.2024.100083
+
+
+## Technology parameters
+
+### Solar PV
+
+Information on optimal tilt: https://www.solarpaneltilt.com/ 
