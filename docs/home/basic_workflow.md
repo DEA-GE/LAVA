@@ -58,5 +58,3 @@ for traceability.
 
 !!! note 
     A template to document the exclusion parameters and data sources can be downloaded [here](../assets/exclusion_parameters_overview.xlsx).
-
-    Keep in mind that for every scenario output of available land, the applied exclusion parameters are written in a separate file as well.
