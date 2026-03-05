@@ -7,9 +7,9 @@ An overview of possible exclusion criterias found in selected literature can be 
 
 ## Deployment Densities
 
-### Solar PV utility-scale ground-mounted (fixed tilt, south facing)
+You can calculate the deployment density of existing solar and wind farms in your study area and take the tables below as an orientation.
 
-You can calculate the deployment density of existing solar farms in your study area and take the table below as an orientation.
+### Solar PV
 
 | Deployment density | Source | Quote from source |
 |--------------------|--------|------------------|
@@ -17,6 +17,12 @@ You can calculate the deployment density of existing solar farms in your study a
 | 50 MW/km² | Benalcazar et al. (2024) | "Reflects the average land-use efficiency of existing and ongoing utility-scale PV installations in Poland [90–92] and is close to the global average land use reported in the literature [63]." |
 | 33 MW/km² | Sterl et al. (2022) | — |
 | 30 MW/km² | Wang et al. (2022) | "Based on interview with solar project developers." |
+
+
+### Wind onshore
+
+tba
+
 
 References
 
