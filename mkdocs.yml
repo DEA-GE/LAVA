@@ -6,7 +6,6 @@ nav:
   - Home: 
     - Home: index.md
     - Getting Started: home/getting_started.md
-    - Background: home/background.md
     - Basic Workflow: home/basic_workflow.md
     - Full Workflow: home/full_workflow.md
     - Data Sources: home/data_sources.md
