@@ -15,6 +15,7 @@ nav:
   - Knowledge Base:
     - General Methodology: knowledge_base/general_methodology.md
     - Recommendations for Parameters: knowledge_base/recommendations_for_parameters.md
+    - Literature: knowledge_base/literature.md
 
 theme:
   name: material
