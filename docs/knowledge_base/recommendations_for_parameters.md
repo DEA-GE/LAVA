@@ -4,12 +4,12 @@
 
 An overview of possible exclusion criterias found in selected literature can be downloaded [here](../assets/literature_overview.xlsx).
 
+You can use [this template](../assets/exclusion_parameters_overview.xlsx) to document the exclusion parameters you want to apply including their data sources.
 
 ## Deployment Densities
 
 You can calculate the deployment density of existing solar and wind farms in your study area and take the tables below as an orientation.
 
-You can use [this template](../assets/exclusion_parameters_overview.xlsx) to document the exclusion parameters you want to apply including their data sources.
 
 ### Solar PV
 
