@@ -98,8 +98,8 @@ weather_bias_range: [0.5, 2.0] # Limit min and max bias correction factors to th
 
 # timeseries settings
 available_land: # lava_scenarios/external_vector
-    raster: # 
-    scenarios: [ref]
+    enable: False
+    raster: data/Odense/available_land/Odense_solar_ref_available_land_EPSG32632.tif
 
 
 weather_year: 2019 # Weather year for timeseries generation
