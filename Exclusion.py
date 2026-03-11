@@ -214,7 +214,7 @@ elif population==1 and param is None: info_list_not_selected.append(f"population
 elif population==0: info_list_not_available.append(f"population")
 
 # add north facing exclusion
-param = tech_config['north_facing_pixels']
+param = tech_config.get('north_facing_pixels', None) 
 if nfacing==1  and param is not None:
     excluder.add_raster(northfacingRasterPath, codes=1, crs=global_crs_obj)
     info_list_exclusion.append(f'north facing pixels')
