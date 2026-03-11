@@ -11,6 +11,7 @@ import yaml
 import logging
 from utils.data_preprocessing import *
 from atlite.gis import ExclusionContainer
+import rasterio
 
 
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 dirname = os.getcwd() 
 
 # --- Load timeseries settings from config ---
-with open(os.path.join(dirname, "configs/config_template.yaml"), "r", encoding="utf-8") as f:
+with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Set variables from config (prepend dirname to all constructed paths)
@@ -32,6 +33,7 @@ shapes_path = os.path.join(dirname, config["shapes_path"])
 output_dir = os.path.join(dirname, config["output_dir"])
 show_progress = config["show_progress"]
 technologies = config["technologies"]
+available_land_raster = config["available_land"]["raster"]
 os.makedirs(output_dir, exist_ok=True)
 
 # --- Load region shapes ---
@@ -72,13 +74,26 @@ logging.info(
     f"y=[{float(cutout.coords['y'].min()):.1f}, {float(cutout.coords['y'].max()):.1f}]"
 )
 
-# --- Compute indicator matrix: which grid cells belong to which region ---
-logging.info("  Computing region-grid indicator matrix...")
 
-indicator = cutout.availabilitymatrix(
-    regions, ExclusionContainer(), disable_progressbar=not show_progress
-)
-indicator = np.ceil(indicator)  # binary 0/1
+if config["available_land"]["enable"]:
+    # --- Raster: how much of each grid cell is eligible, i.e. availbale land 
+    with rasterio.open(available_land_raster) as src:
+        crs = src.crs
+        res = src.res[0]
+
+    excluder = ExclusionContainer(crs=crs, res=res, ) # crs and resolution  
+    excluder.add_raster(available_land_raster, codes=1, invert=True, crs=crs)
+
+    indicator = cutout.availabilitymatrix(regions, excluder)
+
+else: 
+    # --- Compute indicator matrix: which grid cells belong to which region ---
+    logging.info("  Computing region-grid indicator matrix...")
+
+    indicator = cutout.availabilitymatrix(
+        regions, ExclusionContainer(), disable_progressbar=not show_progress
+    )
+    indicator = np.ceil(indicator)  # binary 0/1
 
 # Uniform layout: equal weight per grid cell
 layout = xr.DataArray(
@@ -147,11 +162,12 @@ for tech_name, tech_params in technologies.items():
 logging.info("Done — all profiles generated.")
 
 # --- Save technologies dictionary, shapes filename, and cutout name to a text file ---
-tech_file = os.path.join(output_dir, f"technologies_{year}.txt")
-with open(tech_file, "w", encoding="utf-8") as f:
-    f.write(f"shapes_file: {os.path.basename(shapes_path)}\n")
-    f.write(f"cutout_file: {os.path.basename(cutout_path)}\n\n")
-    f.write("technologies:\n")
-    import yaml
-    yaml.dump(technologies, f, allow_unicode=True, default_flow_style=False)
-logging.info(f"Saved technologies dictionary, shapes filename, and cutout name to {tech_file}")
+if False:
+    tech_file = os.path.join(output_dir, f"technologies_{year}.txt")
+    with open(tech_file, "w", encoding="utf-8") as f:
+        f.write(f"shapes_file: {os.path.basename(shapes_path)}\n")
+        f.write(f"cutout_file: {os.path.basename(cutout_path)}\n\n")
+        f.write("technologies:\n")
+        import yaml
+        yaml.dump(technologies, f, allow_unicode=True, default_flow_style=False)
+    logging.info(f"Saved technologies dictionary, shapes filename, and cutout name to {tech_file}")
