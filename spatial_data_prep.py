@@ -70,10 +70,11 @@ region_name_clean = clean_region_name(study_region_name)
 OSM_folder_name = config['OSM_folder_name'] #usually same as country_code, only needed if OSM is to be considered
 DEM_filename = config['DEM_filename']
 
-#use GADM boundary
-gadm_region_name = config['GADM_region_name'] #if country is studied, then use country name
+#use ADM boundary
+adm_source = config.get('GADM_source', 'gadm')  #gadm or wb (WorldBank via space2stats)
+adm_region_name = config.get('GADM_region_name') #if country is studied, then use country name
 country_code = config['country_code']  #3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
-gadm_level = config['GADM_level']
+adm_level = config.get('GADM_level')
 #or use custom region
 custom_study_area_filename = config.get('custom_study_area_filename', None)
 
@@ -143,16 +144,26 @@ if custom_study_area_filename:
     if region.crs != 4326:
         logging.warning('crs of custom polygon file for study region is not in EPSG 4326')
     logging.info('using custom polygon for study area')
-elif gadm_level==0:
-    gadm_data = pygadm.Items(admin=country_code)
-    region = gadm_data
-    region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
-    logging.info('using whole country as study area')
+elif adm_source == 'gadm':
+    # Use GADM via pygadm library
+    if adm_level == 0:
+        adm_data = pygadm.Items(admin=country_code)
+        region = adm_data
+        region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
+        logging.info('using whole country as study area (source: GADM)')
+    else:
+        adm_data = pygadm.Items(admin=country_code, content_level=adm_level)
+        region = adm_data.loc[adm_data[f'NAME_{adm_level}']==adm_region_name].copy()
+        region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
+        logging.info('using admin area within country as study area (source: GADM)')
+elif adm_source == 'wb':
+    # Use World Bank boundaries via Space2Stats client
+    region = download_admin_boundary_WB(iso3_code=country_code, level=adm_level, region_name=adm_region_name)
+    if region.empty:
+        raise ValueError(f"No administrative boundary found for {country_code} at level {adm_level} with name '{adm_region_name}'")
+    logging.info('using admin area within country as study area (source: World Bank)')
 else:
-    gadm_data = pygadm.Items(admin=country_code, content_level=gadm_level)
-    region = gadm_data.loc[gadm_data[f'NAME_{gadm_level}']==gadm_region_name].copy()
-    region.set_crs('epsg:4326', inplace=True) #pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
-    logging.info('using admin area within country as study area')
+    raise ValueError(f"ADM_source must be 'gadm' or 'wb', got: {adm_source}")
 
 # simplify polygon of study area (openeo can only handle polygons up to a certain size)
 try:

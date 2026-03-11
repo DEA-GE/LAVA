@@ -8,6 +8,7 @@ from shapely.geometry import mapping
 from unidecode import unidecode
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 import numpy as np
+from space2stats_client import Space2StatsClient
 
 import zipfile
 import requests
@@ -21,6 +22,77 @@ from datetime import datetime, timedelta
 
 import logging
 
+def download_admin_boundary_WB(
+    iso3_code: str, 
+    level: int = 0, 
+    region_name: str = None
+) -> gpd.GeoDataFrame:
+    """
+    Download administrative boundaries using Space2Stats client (WorldBank). 
+    
+    Parameters:
+    -----------
+    iso3_code : str
+        ISO 3166-1 alpha-3 country code (e.g., 'KEN', 'TUR', 'DEU')
+    level : int, default=0
+        Administrative level:
+        - 0: Country boundary (entire country)
+        - 1: Level 1 subdivisions (NAM_1) - e.g., states, provinces
+        - 2: Level 2 subdivisions (NAM_2) - e.g., districts, counties
+    region_name : str, optional
+        Name of specific region to filter (NAM_1 or NAM_2 value).
+        If None, returns all regions at the specified level.
+    
+    Returns:
+    --------
+    gpd.GeoDataFrame
+        GeoDataFrame containing the requested administrative boundaries.
+    
+    Examples:
+    ---------
+    # Get entire country boundary
+    country_boundary = download_admin_boundary('KEN')
+    
+    # Get all level 1 regions
+    level1_regions = download_admin_boundary('KEN', level=1)
+    
+    # Get specific level 1 region
+    nairobi = download_admin_boundary('KEN', level=1, region_name='Nairobi')
+    
+    # Get specific level 2 region
+    specific_district = download_admin_boundary('KEN', level=2, region_name='Mombasa')
+    """
+    client = Space2StatsClient()
+    
+    # Map level to ADM string
+    if level == 0:
+        adm_string = "ADM0"
+    elif level == 1:
+        adm_string = "ADM1"
+    elif level == 2:
+        adm_string = "ADM2"
+    else:
+        raise ValueError(f"Level must be 0, 1, or 2. Got {level}")
+    
+    # Fetch boundaries from Space2Stats
+    boundaries = client.fetch_admin_boundaries(iso3_code, adm_string)
+    
+    # Filter by region name if specified
+    if region_name is not None:
+        if level == 0:
+            print("Warning: region_name is ignored when level=0 (country boundary)")
+        else:
+            name_col = f'NAM_{level}'
+            if name_col not in boundaries.columns:
+                raise ValueError(f"Column '{name_col}' not found in boundaries. Available columns: {boundaries.columns.tolist()}")
+            
+            boundaries = boundaries[boundaries[name_col] == region_name]
+            
+            if boundaries.empty:
+                print(f"Warning: No region found with NAME_{level}='{region_name}'")
+                print(f"Available regions: {boundaries[name_col].unique().tolist()}")
+    
+    return boundaries
 
 def download_worldpop(country_code: str, year: int, output_dir: str):
     """
