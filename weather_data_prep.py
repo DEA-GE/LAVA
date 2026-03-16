@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 dirname = os.getcwd() 
 
-with open(os.path.join(dirname, "configs/config_template.yaml"), "r", encoding="utf-8") as f:
+with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)  
 
 #---set variables for script----------------------------------------------------------
