@@ -103,10 +103,10 @@ available_land: # lava_scenarios/external_vector
 
 weather_year: 2019 # Weather year for timeseries generation
 cutout_name: DNK-{year}-era5 # Cutout file name template
-cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files
+cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files 
 drop_leap_day: True # Whether to drop February 29 in leap years
 test_mode: False # Quick test mode: only compute the first week (168 hours)
-shapes_path: data/DK_w_e.geojson # Path to a GeoJSON file with region polygons
+shapes_path: data/{study_region_name}/{study_region_name}_EPSG4326.geojson # Path to a GeoJSON file with region polygons
 shapes_name_column: NAME #  Name of the column in the GeoJSON that identifies each region
 show_progress: False # Show atlite progress bars
 
