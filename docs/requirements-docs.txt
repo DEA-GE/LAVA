@@ -1,2 +1,2 @@
-sphinx
-sphinx-rtd-theme
+mkdocs-material
+mkdocs<2.0
