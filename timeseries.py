@@ -12,17 +12,47 @@ import logging
 from utils.data_preprocessing import *
 from atlite.gis import ExclusionContainer
 import rasterio
+from pathlib import Path
 
 
 logging.basicConfig(level=logging.INFO)
 
 dirname = os.getcwd() 
 
+
+# --- Helper function to load custom or atlite turbine/panel files ---
+def load_turbine_or_panel(name, dirname):
+    """
+    Load turbine or panel from custom configs/advanced_settings folder first,
+    then fall back to atlite's internal files.
+    
+    Args:
+        name: Name of the turbine/panel (e.g., "HW_farm", "Vestas_V112_3MW", "CSi")
+        dirname: Working directory path
+    
+    Returns:
+        Path to custom yaml file, or original name string if using atlite internal files
+    """
+    if name is None:
+        return None
+    
+    # Check if custom file exists in advanced_settings folder
+    custom_path = os.path.join(dirname, "configs/advanced_settings", f"{name}.yaml")
+    if os.path.exists(custom_path):
+        logging.info(f"    Loading custom turbine/panel from: {custom_path}")
+        return Path(custom_path)
+    
+    # Fall back to atlite's internal files (pass name as string)
+    logging.info(f"    Using atlite internal turbine/panel: {name}")
+    return name
+
+
 # --- Load timeseries settings from config ---
 with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Set variables from config (prepend dirname to all constructed paths)
+study_region_name = config["study_region_name"]
 year = config["weather_year"]
 cutout_name = config["cutout_name"].format(year=year)
 cutout_dir = os.path.join(dirname, config["cutout_dir"])
@@ -30,11 +60,14 @@ cutout_path = os.path.join(cutout_dir, f"{cutout_name}.nc")
 drop_leap_day = config["drop_leap_day"]
 test_mode = config["test_mode"]
 shapes_path = os.path.join(dirname, config["shapes_path"])
-output_dir = os.path.join(dirname, config["output_dir"])
+output_dir = os.path.join(dirname, "data", study_region_name, "0_profiles")
+os.makedirs(output_dir, exist_ok=True)
 show_progress = config["show_progress"]
 technologies = config["technologies"]
+enabled_techs = technologies.pop("enable", list(technologies.keys()))  # Extract enable list, default to all
 available_land_raster = config["available_land"]["raster"]
-os.makedirs(output_dir, exist_ok=True)
+
+logging.info(f"  Technologies to process: {enabled_techs}")
 
 # --- Load region shapes ---
 logging.info(f"Loading shapes from {shapes_path}")
@@ -105,10 +138,9 @@ layout = xr.DataArray(
 matrix = indicator.stack(spatial=["y", "x"])
 
 # --- Generate and save timeseries profiles for each technology ---
-for tech_name, tech_params in technologies.items():
+for tech_name in enabled_techs:  
+    tech_params = technologies[tech_name]
     logging.info(f"  Technology: {tech_name}")
-    import time
-    t0 = time.time()
 
     resource = tech_params["resource"].copy()
     correction_factor = tech_params.get("correction_factor", 1.0)
@@ -117,6 +149,12 @@ for tech_name, tech_params in technologies.items():
     method = resource.pop("method")
     func = getattr(cutout, method)
     resource["show_progress"] = show_progress
+
+    # Load custom or atlite turbine/panel files
+    if "turbine" in resource:
+        resource["turbine"] = load_turbine_or_panel(resource["turbine"], dirname)
+    if "panel" in resource:
+        resource["panel"] = load_turbine_or_panel(resource["panel"], dirname)
 
     ##### Custom turbine for windspeeds technology
     if tech_name == "windspeeds":
@@ -151,11 +189,9 @@ for tech_name, tech_params in technologies.items():
     out_file = os.path.join(output_dir, f"profile_{tech_name}_{year}.csv")
     df.to_csv(out_file)
 
-    duration = time.time() - t0
     logging.info(
         f"    Saved {os.path.basename(out_file)}  "
-        f"({len(df)} timesteps × {len(df.columns)} regions, "
-        f"{duration:.1f}s)"
+        f"({len(df)} timesteps × {len(df.columns)} regions)"
     )
 
 
@@ -169,4 +205,3 @@ with open(tech_file, "w", encoding="utf-8") as f:
     f.write("technologies:\n")
     import yaml
     yaml.dump(technologies, f, allow_unicode=True, default_flow_style=False)
-logging.info(f"Saved technologies dictionary, shapes filename, and cutout name to {tech_file}")

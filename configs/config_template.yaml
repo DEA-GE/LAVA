@@ -94,13 +94,11 @@ weather_years:
     end: 12-31 # end date for weather data download in MM-DD format
 ERA5_variables: [wind, influx, temperature] # [mandatory][wind, influx, temperature] list of ERA5 variables to download; wind energy: wind; solar energy: influx, temperature
 
-weather_bias_range: [0.5, 2.0] # Limit min and max bias correction factors to this range 
 
 # timeseries settings
 available_land: # lava_scenarios/external_vector
     enable: False
     raster: data/Odense/available_land/Odense_solar_ref_available_land_EPSG32632.tif
-
 
 weather_year: 2019 # Weather year for timeseries generation
 cutout_name: DNK-{year}-era5 # Cutout file name template
@@ -109,26 +107,26 @@ drop_leap_day: True # Whether to drop February 29 in leap years
 test_mode: False # Quick test mode: only compute the first week (168 hours)
 shapes_path: data/DK_w_e.geojson # Path to a GeoJSON file with region polygons
 shapes_name_column: NAME #  Name of the column in the GeoJSON that identifies each region
-output_dir: data/Denmark/0_profiles # Directory for output CSV files
 show_progress: False # Show atlite progress bars
 
 technologies:
+    enable: [onwind] # List of technologies to process (onwind, offwind, windspeeds, solar)
     onwind:
         resource:
             method: wind
-            turbine: Vestas_V112_3MW
+            turbine: Enercon_E101_3000kW
             smooth: False
             add_cutout_windspeed: True
         correction_factor: 1.0
         clip_p_max_pu: 0.01
-    # offwind:
-    #     resource:
-    #         method: wind
-    #         turbine: NREL_ReferenceTurbine_2020ATB_5.5MW
-    #         smooth: False
-    #         add_cutout_windspeed: True
-    #     correction_factor: 0.8855
-    #     clip_p_max_pu: 0.01
+    offwind:
+        resource:
+            method: wind
+            turbine: NREL_ReferenceTurbine_2020ATB_5.5MW
+            smooth: False
+            add_cutout_windspeed: True
+        correction_factor: 0.8855
+        clip_p_max_pu: 0.01
     windspeeds:
         resource:
             method: wind
@@ -137,61 +135,16 @@ technologies:
             add_cutout_windspeed: False
         correction_factor: 1.0
         clip_p_max_pu: null
-    # solar:
-    #     resource:
-    #         method: pv
-    #         panel: CSi
-    #         orientation:
-    #             slope: 35.0
-    #             azimuth: 180.0
-    #         tracking: null
-    #     correction_factor: 1.0
-    #     clip_p_max_pu: 0.01
+    solar:
+        resource:
+            method: pv
+            panel: CSi
+            orientation: latitude_optimal
+            #    slope: 35.0
+            #    azimuth: 180.0
+            tracking: null
+        correction_factor: 1.0
+        clip_p_max_pu: 0.01
 
-#--Suitability cost assumptions----------------------------------------------------------------------
 
-# Minimum area for resource grades (% of total available land area)
-min_area_rg: 0.05
 
-# Cost tiers
-tiers: {
-    'Tier1': [0.5, 1.00],
-    'Tier2': [1.00, 1.50],
-    'Tier3': [1.50, 2.00],
-    'Tier4': [2.00, 2.50],
-    'Tier5': [2.50, 100],
-    }
-
-# Substation distance (meters)
-average_sub_dist: {
-    'onshorewind': 5000,
-    'solar': 5000
-}
-
-# Terrain modifier (terrain types defined by ruggedness ranges)
-terrain_modifier:
-# Plains
-  - range: [0, 150]
-    cost: {
-        'onshorewind': 1.02,
-        'solar': 0.99
-    }
-# Hills
-  - range: [150, 450]
-    cost: {
-        'onshorewind': 1.07,
-        'solar': 1.04
-    }
-# Mountains
-  - range: [450, 10000]
-    cost: {
-        'onshorewind': 1.17,
-        'solar': 1.09
-    }
-
-landcover_modifier: {
-    60: { # Bare / sparse vegetation
-        'onshorewind': 0.74,
-        'solar': 0.85
-    }
-}
