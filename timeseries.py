@@ -59,7 +59,7 @@ cutout_dir = os.path.join(dirname, config["cutout_dir"])
 cutout_path = os.path.join(cutout_dir, f"{cutout_name}.nc")
 drop_leap_day = config["drop_leap_day"]
 test_mode = config["test_mode"]
-shapes_path = os.path.join(dirname, config["shapes_path"])
+shapes_path = os.path.join(dirname, config.get("shapes_path").format(study_region_name=study_region_name))
 output_dir = os.path.join(dirname, "data", study_region_name, "0_profiles")
 os.makedirs(output_dir, exist_ok=True)
 show_progress = config["show_progress"]
@@ -93,7 +93,6 @@ if drop_leap_day:
     sns = sns[~((sns.month == 2) & (sns.day == 29))]
 if test_mode:
     sns = sns[:168]  # first week only
-logging.info(f"  Time range: {sns[0]} to {sns[-1]} ({len(sns)} timesteps)")
 
 # --- Load ERA5 cutout from local folder ---
 if not os.path.exists(cutout_path):
@@ -101,11 +100,6 @@ if not os.path.exists(cutout_path):
 logging.info(f"  Loading cutout: {cutout_path}")
 cutout = atlite.Cutout(cutout_path)
 cutout.data = cutout.data.sel(time=sns)
-logging.info(
-    f"  Cutout grid: {cutout.shape} (y × x), "
-    f"x=[{float(cutout.coords['x'].min()):.1f}, {float(cutout.coords['x'].max()):.1f}], "
-    f"y=[{float(cutout.coords['y'].min()):.1f}, {float(cutout.coords['y'].max()):.1f}]"
-)
 
 
 if config["available_land"]["enable"]:
@@ -121,7 +115,6 @@ if config["available_land"]["enable"]:
 
 else: 
     # --- Compute indicator matrix: which grid cells belong to which region ---
-    logging.info("  Computing region-grid indicator matrix...")
 
     indicator = cutout.availabilitymatrix(
         regions, ExclusionContainer(), disable_progressbar=not show_progress
