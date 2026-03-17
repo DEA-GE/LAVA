@@ -65,19 +65,28 @@ if weather_data_extend == 'gadm_country':
     region.set_crs('epsg:4326', inplace=True) 
     logging.info(f"download weather data for gadm_country: {country_code}")
     region_name = country_code
-elif weather_data_extend == 'gadm_region':
-    regionPath = os.path.join(dirname, 'data', f'{region_name}', f'{region_name}_EPSG4326.geojson')
-    region = gpd.read_file(regionPath)
-    region.set_crs('epsg:4326', inplace=True) 
-    logging.info(f"download weather data for gadm_region: {region_name}")
-elif weather_data_extend == 'custom_study_area':
-    custom_study_area_filename = config.get('custom_study_area_filename')
-    regionPath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
-    region = gpd.read_file(regionPath)
-    logging.info(f"download weather data for custom_study_area: {custom_study_area_filename}")
+elif weather_data_extend == 'wb_country':
+    country_code = config['country_code']
+    region = download_admin_boundary_WB(iso3_code=country_code)
+    if region.empty:
+        raise ValueError(f"No administrative boundary found for {country_code}")
+    logging.info('using admin area within country as study area (source: World Bank)')
+    region_name = country_code
 elif weather_data_extend == 'bbox':
     bbox = config.get('bbox')
     logging.info(f"download weather data for bounding box: {bbox}")
+    region_name = 'BBOX'
+elif weather_data_extend == 'downloaded_region':
+    regionPath = os.path.join(dirname, 'data', f'{region_name}', f'{region_name}_EPSG4326.geojson')
+    region = gpd.read_file(regionPath)
+    region.set_crs('epsg:4326', inplace=True) 
+    logging.info(f"download weather data for region: {region_name}")
+elif weather_data_extend not in ('gadm_country', 'wb_country', 'bbox', 'downloaded_region'): # custom study area
+    custom_study_area_filename = weather_data_extend # weather_data_extend is then name of the custom area file in Raw_Spatial_Data/custom_study_area
+    regionPath = os.path.join('Raw_Spatial_Data','custom_study_area', custom_study_area_filename)
+    region = gpd.read_file(regionPath) 
+    logging.info(f"download weather data for custom_study_area: {custom_study_area_filename}")
+    region_name = os.path.splitext(custom_study_area_filename)[0]
 #--------------------------------------------------------------
 
 # outout directory

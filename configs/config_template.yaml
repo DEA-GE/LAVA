@@ -87,7 +87,7 @@ model_areas_filename:
 #--Weather data  -------------------------------------------------------------
 # download settings
 weather_data_folder: Raw_Spatial_Data/weather_data #[mandatory][string] folder where weather data cutout will be stored
-weather_data_extend: gadm_country # [mandatory][gadm_country/gadm_region/custom_study_area/bbox]
+weather_data_extend: gadm_country # [mandatory][gadm_country/wb_country/bbox/downloaded_region/{name of custom area file incl file ending}]
 bbox: [xmin, ymin, xmax, ymax] # [situational][xmin, ymin, xmax, ymax] only needed if weather_data_extend is set to bbox; in EPSG4326; Odense: [9.8828, 54.9881, 10.876700000000001, 55.780899999999995]
 weather_years: 
     years: [2019] # list of historical weather years 
