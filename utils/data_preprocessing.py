@@ -1,6 +1,7 @@
 import os
 import geopandas as gpd
-import geonamescache
+
+# import geonamescache
 import json
 import rasterio
 from rasterio.mask import mask
@@ -148,27 +149,23 @@ def download_worldpop(country_code: str, year: int, output_dir: str):
         return None
 
 
-def get_country_bounds_from_code(country_code):
-    """
-    Retrieve bounding box [minx, miny, maxx, maxy] for a country ISO2/ISO3 code.
-    """
-    gc = geonamescache.GeonamesCache()
-    countries = gc.get_countries()
-    code = country_code.upper()
-    country_info = countries.get(code)
-    if not country_info:
-        country_info = next(
-            (
-                info
-                for info in countries.values()
-                if info.get("iso3", "").upper() == code
-            ),
-            None,
-        )
-    if not country_info:
-        raise ValueError(f"Country code '{country_code}' not found.")
-    bbox = country_info["bbox"]
-    return [bbox["minlng"], bbox["minlat"], bbox["maxlng"], bbox["maxlat"]]
+# def get_country_bounds_from_code(country_code):
+#     """
+#     Retrieve bounding box [minx, miny, maxx, maxy] for a country ISO2/ISO3 code.
+#     """
+#     gc = geonamescache.GeonamesCache()
+#     countries = gc.get_countries()
+#     code = country_code.upper()
+#     country_info = countries.get(code)
+#     if not country_info:
+#         country_info = next(
+#             (info for info in countries.values() if info.get("iso3", "").upper() == code),
+#             None,
+#         )
+#     if not country_info:
+#         raise ValueError(f"Country code '{country_code}' not found.")
+#     bbox = country_info["bbox"]
+#     return [bbox["minlng"], bbox["minlat"], bbox["maxlng"], bbox["maxlat"]]
 
 
 def goas_download(output_dir):
