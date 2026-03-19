@@ -1,4 +1,4 @@
-# based on: https://github.com/GreenDealUkraina/res-profiles 
+# based on: https://github.com/GreenDealUkraina/res-profiles
 
 
 import atlite
@@ -9,7 +9,6 @@ import geopandas as gpd
 import os
 import yaml
 import logging
-from utils.data_preprocessing import *
 from atlite.gis import ExclusionContainer
 import rasterio
 from pathlib import Path
@@ -17,7 +16,7 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
-dirname = os.getcwd() 
+dirname = os.getcwd()
 
 
 # --- Helper function to load custom or atlite turbine/panel files ---
@@ -25,23 +24,23 @@ def load_turbine_or_panel(name, dirname):
     """
     Load turbine or panel from custom configs/advanced_settings folder first,
     then fall back to atlite's internal files.
-    
+
     Args:
         name: Name of the turbine/panel (e.g., "HW_farm", "Vestas_V112_3MW", "CSi")
         dirname: Working directory path
-    
+
     Returns:
         Path to custom yaml file, or original name string if using atlite internal files
     """
     if name is None:
         return None
-    
+
     # Check if custom file exists in advanced_settings folder
     custom_path = os.path.join(dirname, "configs/advanced_settings", f"{name}.yaml")
     if os.path.exists(custom_path):
         logging.info(f"    Loading custom turbine/panel from: {custom_path}")
         return Path(custom_path)
-    
+
     # Fall back to atlite's internal files (pass name as string)
     logging.info(f"    Using atlite internal turbine/panel: {name}")
     return name
@@ -59,12 +58,16 @@ cutout_dir = os.path.join(dirname, config["cutout_dir"])
 cutout_path = os.path.join(cutout_dir, f"{cutout_name}.nc")
 drop_leap_day = config["drop_leap_day"]
 test_mode = config["test_mode"]
-shapes_path = os.path.join(dirname, config.get("shapes_path").format(study_region_name=study_region_name))
+shapes_path = os.path.join(
+    dirname, config.get("shapes_path").format(study_region_name=study_region_name)
+)
 output_dir = os.path.join(dirname, "data", study_region_name, "0_profiles")
 os.makedirs(output_dir, exist_ok=True)
 show_progress = config["show_progress"]
 technologies = config["technologies"]
-enabled_techs = technologies.pop("enable", list(technologies.keys()))  # Extract enable list, default to all
+enabled_techs = technologies.pop(
+    "enable", list(technologies.keys())
+)  # Extract enable list, default to all
 available_land_raster = config["available_land"]["raster"]
 
 logging.info(f"  Technologies to process: {enabled_techs}")
@@ -87,7 +90,7 @@ sns = pd.date_range(
     start=snapshots_config["start"],
     end=snapshots_config["end"],
     freq="h",
-    inclusive=snapshots_config["inclusive"]
+    inclusive=snapshots_config["inclusive"],
 )
 if drop_leap_day:
     sns = sns[~((sns.month == 2) & (sns.day == 29))]
@@ -103,17 +106,20 @@ cutout.data = cutout.data.sel(time=sns)
 
 
 if config["available_land"]["enable"]:
-    # --- Raster: how much of each grid cell is eligible, i.e. availbale land 
+    # --- Raster: how much of each grid cell is eligible, i.e. availbale land
     with rasterio.open(available_land_raster) as src:
         crs = src.crs
         res = src.res[0]
 
-    excluder = ExclusionContainer(crs=crs, res=res, ) # crs and resolution  
+    excluder = ExclusionContainer(
+        crs=crs,
+        res=res,
+    )  # crs and resolution
     excluder.add_raster(available_land_raster, codes=1, invert=True, crs=crs)
 
     indicator = cutout.availabilitymatrix(regions, excluder)
 
-else: 
+else:
     # --- Compute indicator matrix: which grid cells belong to which region ---
 
     indicator = cutout.availabilitymatrix(
@@ -131,7 +137,7 @@ layout = xr.DataArray(
 matrix = indicator.stack(spatial=["y", "x"])
 
 # --- Generate and save timeseries profiles for each technology ---
-for tech_name in enabled_techs:  
+for tech_name in enabled_techs:
     tech_params = technologies[tech_name]
     logging.info(f"  Technology: {tech_name}")
 
@@ -153,7 +159,12 @@ for tech_name in enabled_techs:
     if tech_name == "windspeeds":
         wind_speed = np.arange(0, 100, 1)
         max_wind_speed = float(cutout.data["wnd100m"].max().values)
-        helper_turbine = {'V': wind_speed, 'POW': wind_speed, 'hub_height': 100, 'P': max_wind_speed}
+        helper_turbine = {
+            "V": wind_speed,
+            "POW": wind_speed,
+            "hub_height": 100,
+            "P": max_wind_speed,
+        }
         resource["turbine"] = helper_turbine
     #####
 
@@ -165,7 +176,6 @@ for tech_name in enabled_techs:
         return_capacity=False,
         **resource,
     )
-
 
     if correction_factor != 1.0:
         profile = correction_factor * profile
@@ -197,4 +207,5 @@ with open(tech_file, "w", encoding="utf-8") as f:
     f.write(f"cutout_file: {os.path.basename(cutout_path)}\n\n")
     f.write("technologies:\n")
     import yaml
+
     yaml.dump(technologies, f, allow_unicode=True, default_flow_style=False)
