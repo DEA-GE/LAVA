@@ -96,6 +96,8 @@
 !docs/home/**
 !docs/knowledge_base/
 !docs/knowledge_base/**
+!docs/contributing/
+!docs/contributing/**
 !.readthedocs.yaml
 # --- User interface ---
 !tkinter_app
