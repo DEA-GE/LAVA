@@ -101,3 +101,5 @@
 !tkinter_app/flag_mapper.py
 !tkinter_app/main.py
 !tkinter_app/_init__.py
+# --- pre-commit config ---
+!.pre-commit-config.yaml

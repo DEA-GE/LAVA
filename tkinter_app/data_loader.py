@@ -7,10 +7,10 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-CONFIGS_PATH= ROOT_DIR / "configs"
+CONFIGS_PATH = ROOT_DIR / "configs"
 CONFIG_PATH = CONFIGS_PATH / "config.yaml"
 ONSHORE_PATH = CONFIGS_PATH / "onshorewind.yaml"
 SOLAR_PATH = CONFIGS_PATH / "solar.yaml"
@@ -83,12 +83,39 @@ DEFAULT_RESULTS_DATA: Dict[str, Any] = {
             "status": "Success",
         },
     ],
-    "detailedResultsColumns": ["batch", "records", "success", "failed", "duration", "status"],
+    "detailedResultsColumns": [
+        "batch",
+        "records",
+        "success",
+        "failed",
+        "duration",
+        "status",
+    ],
     "outputFiles": [
-        {"name": "processed_data.csv", "size": "2.4 MB", "records": 12458, "created": "2025-10-10 14:30"},
-        {"name": "error_log.txt", "size": "4.2 KB", "records": 23, "created": "2025-10-10 14:30"},
-        {"name": "summary_report.json", "size": "12.8 KB", "records": 1, "created": "2025-10-10 14:30"},
-        {"name": "metadata.json", "size": "3.1 KB", "records": 1, "created": "2025-10-10 14:30"},
+        {
+            "name": "processed_data.csv",
+            "size": "2.4 MB",
+            "records": 12458,
+            "created": "2025-10-10 14:30",
+        },
+        {
+            "name": "error_log.txt",
+            "size": "4.2 KB",
+            "records": 23,
+            "created": "2025-10-10 14:30",
+        },
+        {
+            "name": "summary_report.json",
+            "size": "12.8 KB",
+            "records": 1,
+            "created": "2025-10-10 14:30",
+        },
+        {
+            "name": "metadata.json",
+            "size": "3.1 KB",
+            "records": 1,
+            "created": "2025-10-10 14:30",
+        },
     ],
     "customGraphs": [
         {
@@ -114,13 +141,37 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "General",
         "description": "Core scenario metadata.",
         "parameters": [
-            {"key": "study_region_name", "type": "string", "description": "Name used for outputs."},
-            {"key": "country_code", "type": "string", "description": "Three-letter ISO code."},
-            {"key": "scenario", "type": "string", "description": "Scenario tag for filenames."},
-            {"key": "technology", "type": "string", "description": "Technology label for filenames."},
+            {
+                "key": "study_region_name",
+                "type": "string",
+                "description": "Name used for outputs.",
+            },
+            {
+                "key": "country_code",
+                "type": "string",
+                "description": "Three-letter ISO code.",
+            },
+            {
+                "key": "scenario",
+                "type": "string",
+                "description": "Scenario tag for filenames.",
+            },
+            {
+                "key": "technology",
+                "type": "string",
+                "description": "Technology label for filenames.",
+            },
             {"key": "tech", "type": "string", "description": "Technology dataset key."},
-            {"key": "tech_derate", "type": "number", "description": "Technology derate factor."},
-            {"key": "model_areas_filename", "type": "string", "description": "Model areas filename."},
+            {
+                "key": "tech_derate",
+                "type": "number",
+                "description": "Technology derate factor.",
+            },
+            {
+                "key": "model_areas_filename",
+                "type": "string",
+                "description": "Model areas filename.",
+            },
         ],
     },
     {
@@ -128,9 +179,17 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Region Definition",
         "description": "Administrative or custom study area inputs.",
         "parameters": [
-            {"key": "GADM_region_name", "type": "string", "description": "Exact GADM name (NAME_level)."},
+            {
+                "key": "GADM_region_name",
+                "type": "string",
+                "description": "Exact GADM name (NAME_level).",
+            },
             {"key": "GADM_level", "type": "string", "description": "GADM admin level."},
-            {"key": "custom_study_area_filename", "type": "string", "description": "Custom study area filename template."},
+            {
+                "key": "custom_study_area_filename",
+                "type": "string",
+                "description": "Custom study area filename template.",
+            },
         ],
     },
     {
@@ -138,10 +197,26 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Landcover & DEM",
         "description": "Raster sources and resolution settings.",
         "parameters": [
-            {"key": "landcover_source", "type": "string", "description": "Landcover source ('file' or 'openeo')."},
-            {"key": "resolution_landcover", "type": "number", "description": "OpenEO download resolution (deg)."},
-            {"key": "landcover_filename", "type": "string", "description": "Landcover filename with extension."},
-            {"key": "DEM_filename", "type": "string", "description": "DEM raster filename."},
+            {
+                "key": "landcover_source",
+                "type": "string",
+                "description": "Landcover source ('file' or 'openeo').",
+            },
+            {
+                "key": "resolution_landcover",
+                "type": "number",
+                "description": "OpenEO download resolution (deg).",
+            },
+            {
+                "key": "landcover_filename",
+                "type": "string",
+                "description": "Landcover filename with extension.",
+            },
+            {
+                "key": "DEM_filename",
+                "type": "string",
+                "description": "DEM raster filename.",
+            },
         ],
     },
     {
@@ -149,19 +224,71 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "OSM Data",
         "description": "OpenStreetMap sources and layer toggles.",
         "parameters": [
-            {"key": "OSM_source", "type": "string", "description": "OSM source ('geofabrik' or 'overpass')."},
-            {"key": "OSM_folder_name", "type": "string", "description": "Geofabrik OSM folder name."},
-            {"key": "railways", "type": "boolean", "description": "Toggle railways OSM feature."},
-            {"key": "roads", "type": "boolean", "description": "Toggle roads OSM feature."},
-            {"key": "airports", "type": "boolean", "description": "Toggle airports OSM feature."},
-            {"key": "waterbodies", "type": "boolean", "description": "Toggle waterbodies OSM feature."},
-            {"key": "military", "type": "boolean", "description": "Toggle military OSM feature."},
-            {"key": "substations", "type": "boolean", "description": "Toggle substations OSM feature."},
-            {"key": "transmission_lines", "type": "boolean", "description": "Toggle transmission lines OSM feature."},
-            {"key": "generators", "type": "boolean", "description": "Toggle generators OSM feature."},
-            {"key": "plants", "type": "boolean", "description": "Toggle plants OSM feature."},
-            {"key": "coastlines", "type": "boolean", "description": "Toggle coastlines OSM feature."},
-            {"key": "force_osm_download", "type": "boolean", "description": "Force fresh OSM download."},
+            {
+                "key": "OSM_source",
+                "type": "string",
+                "description": "OSM source ('geofabrik' or 'overpass').",
+            },
+            {
+                "key": "OSM_folder_name",
+                "type": "string",
+                "description": "Geofabrik OSM folder name.",
+            },
+            {
+                "key": "railways",
+                "type": "boolean",
+                "description": "Toggle railways OSM feature.",
+            },
+            {
+                "key": "roads",
+                "type": "boolean",
+                "description": "Toggle roads OSM feature.",
+            },
+            {
+                "key": "airports",
+                "type": "boolean",
+                "description": "Toggle airports OSM feature.",
+            },
+            {
+                "key": "waterbodies",
+                "type": "boolean",
+                "description": "Toggle waterbodies OSM feature.",
+            },
+            {
+                "key": "military",
+                "type": "boolean",
+                "description": "Toggle military OSM feature.",
+            },
+            {
+                "key": "substations",
+                "type": "boolean",
+                "description": "Toggle substations OSM feature.",
+            },
+            {
+                "key": "transmission_lines",
+                "type": "boolean",
+                "description": "Toggle transmission lines OSM feature.",
+            },
+            {
+                "key": "generators",
+                "type": "boolean",
+                "description": "Toggle generators OSM feature.",
+            },
+            {
+                "key": "plants",
+                "type": "boolean",
+                "description": "Toggle plants OSM feature.",
+            },
+            {
+                "key": "coastlines",
+                "type": "boolean",
+                "description": "Toggle coastlines OSM feature.",
+            },
+            {
+                "key": "force_osm_download",
+                "type": "boolean",
+                "description": "Force fresh OSM download.",
+            },
         ],
     },
     {
@@ -169,10 +296,26 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Wind & Solar Resources",
         "description": "External resource availability datasets.",
         "parameters": [
-            {"key": "wind_atlas", "type": "boolean", "description": "Download Global Wind Atlas."},
-            {"key": "solar_atlas", "type": "boolean", "description": "Download Global Solar Atlas."},
-            {"key": "country_name_solar_atlas", "type": "string", "description": "Country name for Solar Atlas."},
-            {"key": "solar_atlas_measure", "type": "string", "description": "Solar Atlas measure id."},
+            {
+                "key": "wind_atlas",
+                "type": "boolean",
+                "description": "Download Global Wind Atlas.",
+            },
+            {
+                "key": "solar_atlas",
+                "type": "boolean",
+                "description": "Download Global Solar Atlas.",
+            },
+            {
+                "key": "country_name_solar_atlas",
+                "type": "string",
+                "description": "Country name for Solar Atlas.",
+            },
+            {
+                "key": "solar_atlas_measure",
+                "type": "string",
+                "description": "Solar Atlas measure id.",
+            },
         ],
     },
     {
@@ -180,9 +323,17 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Protected Areas",
         "description": "Protected area inputs and sources.",
         "parameters": [
-            {"key": "protected_areas_source", "type": "string", "description": "Protected areas source (WDPA/file/0)."},
+            {
+                "key": "protected_areas_source",
+                "type": "string",
+                "description": "Protected areas source (WDPA/file/0).",
+            },
             {"key": "wdpa_url", "type": "string"},
-            {"key": "protected_areas_filename", "type": "string", "description": "Protected areas filename (EPSG:4326)."},
+            {
+                "key": "protected_areas_filename",
+                "type": "string",
+                "description": "Protected areas filename (EPSG:4326).",
+            },
         ],
     },
     {
@@ -190,8 +341,16 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Forest Density",
         "description": "Optional forest density exclusion layer.",
         "parameters": [
-            {"key": "forest_density", "type": "boolean", "description": "Enable forest density exclusions."},
-            {"key": "forest_density_filename", "type": "string", "description": "Forest density raster filename."},
+            {
+                "key": "forest_density",
+                "type": "boolean",
+                "description": "Enable forest density exclusions.",
+            },
+            {
+                "key": "forest_density_filename",
+                "type": "string",
+                "description": "Forest density raster filename.",
+            },
         ],
     },
     {
@@ -199,9 +358,21 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Compute Options",
         "description": "Pipeline step toggles.",
         "parameters": [
-            {"key": "compute_substation_proximity", "type": "boolean", "description": "Compute substation proximity layer."},
-            {"key": "compute_road_proximity", "type": "boolean", "description": "Compute road proximity layer."},
-            {"key": "compute_terrain_ruggedness", "type": "boolean", "description": "Compute terrain ruggedness layer."},
+            {
+                "key": "compute_substation_proximity",
+                "type": "boolean",
+                "description": "Compute substation proximity layer.",
+            },
+            {
+                "key": "compute_road_proximity",
+                "type": "boolean",
+                "description": "Compute road proximity layer.",
+            },
+            {
+                "key": "compute_terrain_ruggedness",
+                "type": "boolean",
+                "description": "Compute terrain ruggedness layer.",
+            },
         ],
     },
     {
@@ -209,9 +380,21 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "CRS & Weather",
         "description": "Coordinate system overrides and weather data.",
         "parameters": [
-            {"key": "CRS_manual", "type": "string", "description": "Manual CRS override."},
-            {"key": "weather_data_path", "type": "string", "description": "Weather data directory."},
-            {"key": "weather_year", "type": "number", "description": "Weather dataset year."},
+            {
+                "key": "CRS_manual",
+                "type": "string",
+                "description": "Manual CRS override.",
+            },
+            {
+                "key": "weather_data_path",
+                "type": "string",
+                "description": "Weather data directory.",
+            },
+            {
+                "key": "weather_year",
+                "type": "number",
+                "description": "Weather dataset year.",
+            },
         ],
     },
     {
@@ -219,8 +402,16 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Additional Data",
         "description": "Custom exclusion dataset locations.",
         "parameters": [
-            {"key": "additional_exclusion_polygons_folder_name", "type": "string", "description": "Folder for extra exclusion polygons."},
-            {"key": "additional_exclusion_rasters_folder_name", "type": "string", "description": "Folder for extra exclusion rasters."},
+            {
+                "key": "additional_exclusion_polygons_folder_name",
+                "type": "string",
+                "description": "Folder for extra exclusion polygons.",
+            },
+            {
+                "key": "additional_exclusion_rasters_folder_name",
+                "type": "string",
+                "description": "Folder for extra exclusion rasters.",
+            },
         ],
     },
     {
@@ -228,10 +419,26 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Geometry Generalization",
         "description": "Simplification tolerances for study areas and overpass data.",
         "parameters": [
-            {"key": "study_area", "type": "array", "description": "Study area simplification settings."},
-            {"key": "target_vertices", "type": "number", "description": "Target vertices for overpass simplification."},
-            {"key": "tolerance_min", "type": "number", "description": "Minimum simplification tolerance."},
-            {"key": "tolerance_max", "type": "number", "description": "Maximum simplification tolerance."},
+            {
+                "key": "study_area",
+                "type": "array",
+                "description": "Study area simplification settings.",
+            },
+            {
+                "key": "target_vertices",
+                "type": "number",
+                "description": "Target vertices for overpass simplification.",
+            },
+            {
+                "key": "tolerance_min",
+                "type": "number",
+                "description": "Minimum simplification tolerance.",
+            },
+            {
+                "key": "tolerance_max",
+                "type": "number",
+                "description": "Maximum simplification tolerance.",
+            },
         ],
     },
     {
@@ -239,8 +446,16 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Overpass & Feature Config",
         "description": "Feature filters and tagging rules.",
         "parameters": [
-            {"key": "fclass", "type": "array", "description": "Geofabrik feature class filters."},
-            {"key": "overpass_features", "type": "array", "description": "Overpass feature tag lists."},
+            {
+                "key": "fclass",
+                "type": "array",
+                "description": "Geofabrik feature class filters.",
+            },
+            {
+                "key": "overpass_features",
+                "type": "array",
+                "description": "Overpass feature tag lists.",
+            },
             {"key": "osm_features_config", "type": "array"},
         ],
     },
@@ -249,11 +464,23 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Aspect & Exclusions",
         "description": "Slope, aspect and WDPA status filters.",
         "parameters": [
-            {"key": "north_facing_pixels", "type": "string", "description": "Exclude north-facing pixels."},
-            {"key": "X", "type": "number", "description": "Slope threshold for exclusion."},
+            {
+                "key": "north_facing_pixels",
+                "type": "string",
+                "description": "Exclude north-facing pixels.",
+            },
+            {
+                "key": "X",
+                "type": "number",
+                "description": "Slope threshold for exclusion.",
+            },
             {"key": "Y", "type": "number", "description": "Start aspect angle."},
             {"key": "Z", "type": "number", "description": "End aspect angle."},
-            {"key": "wdpa_consider_status", "type": "array", "description": "WDPA status values to include."},
+            {
+                "key": "wdpa_consider_status",
+                "type": "array",
+                "description": "WDPA status values to include.",
+            },
         ],
     },
     {
@@ -261,11 +488,31 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Heat Demand",
         "description": "Heating demand profile assumptions.",
         "parameters": [
-            {"key": "heat_demand_start_day", "type": "string", "description": "Heat demand start day (DD-MM)."},
-            {"key": "heat_demand_end_day", "type": "string", "description": "Heat demand end day (DD-MM)."},
-            {"key": "heat_demand_hour_shift", "type": "number", "description": "Hourly shift for demand profile."},
-            {"key": "heat_demand_constant", "type": "boolean", "description": "Temperature-independent demand share."},
-            {"key": "heat_demand_threshold", "type": "number", "description": "Temperature threshold (C)."},
+            {
+                "key": "heat_demand_start_day",
+                "type": "string",
+                "description": "Heat demand start day (DD-MM).",
+            },
+            {
+                "key": "heat_demand_end_day",
+                "type": "string",
+                "description": "Heat demand end day (DD-MM).",
+            },
+            {
+                "key": "heat_demand_hour_shift",
+                "type": "number",
+                "description": "Hourly shift for demand profile.",
+            },
+            {
+                "key": "heat_demand_constant",
+                "type": "boolean",
+                "description": "Temperature-independent demand share.",
+            },
+            {
+                "key": "heat_demand_threshold",
+                "type": "number",
+                "description": "Temperature threshold (C).",
+            },
         ],
     },
     {
@@ -273,9 +520,17 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Analysis Parameters",
         "description": "Available area and cost tier settings.",
         "parameters": [
-            {"key": "min_area_rg", "type": "number", "description": "Minimum area share per grade."},
+            {
+                "key": "min_area_rg",
+                "type": "number",
+                "description": "Minimum area share per grade.",
+            },
             {"key": "tiers", "type": "array", "description": "Cost tier breakpoints."},
-            {"key": "average_sub_dist", "type": "array", "description": "Average substation distance (m)."},
+            {
+                "key": "average_sub_dist",
+                "type": "array",
+                "description": "Average substation distance (m).",
+            },
         ],
     },
     {
@@ -283,10 +538,22 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Cost Modifiers",
         "description": "Terrain, landcover, region, and weight modifiers.",
         "parameters": [
-            {"key": "terrain_modifier", "type": "array", "description": "Terrain cost modifiers."},
+            {
+                "key": "terrain_modifier",
+                "type": "array",
+                "description": "Terrain cost modifiers.",
+            },
             {"key": "landcover_modifier", "type": "array"},
-            {"key": "region_modifier", "type": "array", "description": "Regional cost modifiers."},
-            {"key": "modifier_weights", "type": "array", "description": "Weights for suitability modifiers."},
+            {
+                "key": "region_modifier",
+                "type": "array",
+                "description": "Regional cost modifiers.",
+            },
+            {
+                "key": "modifier_weights",
+                "type": "array",
+                "description": "Weights for suitability modifiers.",
+            },
         ],
     },
 ]
@@ -297,8 +564,16 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Deployment Settings",
         "description": "Density and raster resolution for exclusion evaluation.",
         "parameters": [
-            {"key": "deployment_density", "type": "number", "description": "Target deployment density (MW/km2)."},
-            {"key": "resolution_manual", "type": "number", "description": "Manual exclusion grid resolution."},
+            {
+                "key": "deployment_density",
+                "type": "number",
+                "description": "Target deployment density (MW/km2).",
+            },
+            {
+                "key": "resolution_manual",
+                "type": "number",
+                "description": "Manual exclusion grid resolution.",
+            },
         ],
     },
     {
@@ -306,7 +581,11 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Landcover Buffers",
         "description": "Buffer distances per landcover class (meters).",
         "parameters": [
-            {"key": "landcover_codes", "type": "array", "description": "Landcover buffers by code (m)."},
+            {
+                "key": "landcover_codes",
+                "type": "array",
+                "description": "Landcover buffers by code (m).",
+            },
         ],
     },
     {
@@ -314,10 +593,26 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "DEM Thresholds",
         "description": "Elevation, slope and ruggedness limits.",
         "parameters": [
-            {"key": "max_elevation", "type": "number", "description": "Maximum elevation allowed (m)."},
-            {"key": "max_slope", "type": "number", "description": "Maximum slope allowed (degrees)."},
-            {"key": "max_terrain_ruggedness", "type": "number", "description": "Maximum terrain ruggedness index."},
-            {"key": "max_forest_density", "type": "number", "description": "Maximum forest density percent."},
+            {
+                "key": "max_elevation",
+                "type": "number",
+                "description": "Maximum elevation allowed (m).",
+            },
+            {
+                "key": "max_slope",
+                "type": "number",
+                "description": "Maximum slope allowed (degrees).",
+            },
+            {
+                "key": "max_terrain_ruggedness",
+                "type": "number",
+                "description": "Maximum terrain ruggedness index.",
+            },
+            {
+                "key": "max_forest_density",
+                "type": "number",
+                "description": "Maximum forest density percent.",
+            },
         ],
     },
     {
@@ -325,16 +620,56 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Spatial Buffers",
         "description": "Buffer distances around spatial features (meters).",
         "parameters": [
-            {"key": "railways_buffer", "type": "number", "description": "Railway buffer distance (m)."},
-            {"key": "roads_buffer", "type": "number", "description": "Road buffer distance (m)."},
-            {"key": "airports_buffer", "type": "number", "description": "Airport buffer distance (m)."},
-            {"key": "waterbodies_buffer", "type": "number", "description": "Waterbody buffer distance (m)."},
-            {"key": "military_buffer", "type": "number", "description": "Military buffer distance (m)."},
-            {"key": "coastlines_buffer", "type": "number", "description": "Coastline buffer distance (m)."},
-            {"key": "protectedAreas_buffer", "type": "number", "description": "Protected area buffer distance (m)."},
-            {"key": "transmission_lines_buffer", "type": "number", "description": "Transmission line buffer distance (m)."},
-            {"key": "generators_buffer", "type": "number", "description": "Generator buffer distance (m)."},
-            {"key": "plants_buffer", "type": "number", "description": "Plant buffer distance (m)."},
+            {
+                "key": "railways_buffer",
+                "type": "number",
+                "description": "Railway buffer distance (m).",
+            },
+            {
+                "key": "roads_buffer",
+                "type": "number",
+                "description": "Road buffer distance (m).",
+            },
+            {
+                "key": "airports_buffer",
+                "type": "number",
+                "description": "Airport buffer distance (m).",
+            },
+            {
+                "key": "waterbodies_buffer",
+                "type": "number",
+                "description": "Waterbody buffer distance (m).",
+            },
+            {
+                "key": "military_buffer",
+                "type": "number",
+                "description": "Military buffer distance (m).",
+            },
+            {
+                "key": "coastlines_buffer",
+                "type": "number",
+                "description": "Coastline buffer distance (m).",
+            },
+            {
+                "key": "protectedAreas_buffer",
+                "type": "number",
+                "description": "Protected area buffer distance (m).",
+            },
+            {
+                "key": "transmission_lines_buffer",
+                "type": "number",
+                "description": "Transmission line buffer distance (m).",
+            },
+            {
+                "key": "generators_buffer",
+                "type": "number",
+                "description": "Generator buffer distance (m).",
+            },
+            {
+                "key": "plants_buffer",
+                "type": "number",
+                "description": "Plant buffer distance (m).",
+            },
         ],
     },
     {
@@ -342,7 +677,11 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Additional Exclusions",
         "description": "Custom exclusion polygon buffers.",
         "parameters": [
-            {"key": "additional_exclusion_polygons_buffer", "type": "array", "description": "Buffers per additional exclusion polygon."},
+            {
+                "key": "additional_exclusion_polygons_buffer",
+                "type": "array",
+                "description": "Buffers per additional exclusion polygon.",
+            },
         ],
     },
     {
@@ -350,8 +689,16 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Wind Resource Filters",
         "description": "Limits for wind speed inclusion.",
         "parameters": [
-            {"key": "min_wind_speed", "type": "number", "description": "Minimum wind speed (m/s)."},
-            {"key": "max_wind_speed", "type": "number", "description": "Maximum wind speed (m/s)."},
+            {
+                "key": "min_wind_speed",
+                "type": "number",
+                "description": "Minimum wind speed (m/s).",
+            },
+            {
+                "key": "max_wind_speed",
+                "type": "number",
+                "description": "Maximum wind speed (m/s).",
+            },
         ],
     },
     {
@@ -359,9 +706,21 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Inclusion Filters",
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
-            {"key": "substations_inclusion_buffer", "type": "number", "description": "Inclusion buffer around substations (m)."},
-            {"key": "transmission_inclusion_buffer", "type": "number", "description": "Inclusion buffer around transmission lines (m)."},
-            {"key": "roads_inclusion_buffer", "type": "number", "description": "Inclusion buffer around roads (m)."},
+            {
+                "key": "substations_inclusion_buffer",
+                "type": "number",
+                "description": "Inclusion buffer around substations (m).",
+            },
+            {
+                "key": "transmission_inclusion_buffer",
+                "type": "number",
+                "description": "Inclusion buffer around transmission lines (m).",
+            },
+            {
+                "key": "roads_inclusion_buffer",
+                "type": "number",
+                "description": "Inclusion buffer around roads (m).",
+            },
         ],
     },
     {
@@ -369,9 +728,21 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Area Filters",
         "description": "Minimum connected pixel thresholds.",
         "parameters": [
-            {"key": "min_pixels_connected", "type": "number", "description": "Minimum connected pixels threshold."},
-            {"key": "min_pixels_x", "type": "number", "description": "Deprecated; use min_pixels_connected."},
-            {"key": "min_pixels_y", "type": "number", "description": "Deprecated; use min_pixels_connected."},
+            {
+                "key": "min_pixels_connected",
+                "type": "number",
+                "description": "Minimum connected pixels threshold.",
+            },
+            {
+                "key": "min_pixels_x",
+                "type": "number",
+                "description": "Deprecated; use min_pixels_connected.",
+            },
+            {
+                "key": "min_pixels_y",
+                "type": "number",
+                "description": "Deprecated; use min_pixels_connected.",
+            },
         ],
     },
     {
@@ -379,8 +750,16 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Technology Parameters",
         "description": "Turbine configuration and derating factors.",
         "parameters": [
-            {"key": "turbine", "type": "string", "description": "Turbine configuration filename."},
-            {"key": "tech_derate", "type": "number", "description": "Technology derate factor."},
+            {
+                "key": "turbine",
+                "type": "string",
+                "description": "Turbine configuration filename.",
+            },
+            {
+                "key": "tech_derate",
+                "type": "number",
+                "description": "Technology derate factor.",
+            },
         ],
     },
     {
@@ -388,7 +767,11 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Wind Resource Groups",
         "description": "Wind speed thresholds per resource group.",
         "parameters": [
-            {"key": "wg_thr", "type": "array", "description": "Wind resource group thresholds (m/s)."},
+            {
+                "key": "wg_thr",
+                "type": "array",
+                "description": "Wind resource group thresholds (m/s).",
+            },
         ],
     },
 ]
@@ -399,8 +782,16 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Deployment Settings",
         "description": "Density and raster resolution for exclusion evaluation.",
         "parameters": [
-            {"key": "deployment_density", "type": "number", "description": "Target deployment density (MW/km2)."},
-            {"key": "resolution_manual", "type": "number", "description": "Manual exclusion grid resolution."},
+            {
+                "key": "deployment_density",
+                "type": "number",
+                "description": "Target deployment density (MW/km2).",
+            },
+            {
+                "key": "resolution_manual",
+                "type": "number",
+                "description": "Manual exclusion grid resolution.",
+            },
         ],
     },
     {
@@ -408,7 +799,11 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Landcover Buffers",
         "description": "Buffer distances per landcover class (meters).",
         "parameters": [
-            {"key": "landcover_codes", "type": "array", "description": "Landcover buffers by code (m)."},
+            {
+                "key": "landcover_codes",
+                "type": "array",
+                "description": "Landcover buffers by code (m).",
+            },
         ],
     },
     {
@@ -416,10 +811,26 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "DEM Thresholds",
         "description": "Elevation, slope and ruggedness limits.",
         "parameters": [
-            {"key": "max_elevation", "type": "number", "description": "Maximum elevation allowed (m)."},
-            {"key": "max_slope", "type": "number", "description": "Maximum slope allowed (degrees)."},
-            {"key": "max_terrain_ruggedness", "type": "number", "description": "Maximum terrain ruggedness index."},
-            {"key": "max_forest_density", "type": "number", "description": "Maximum forest density percent."},
+            {
+                "key": "max_elevation",
+                "type": "number",
+                "description": "Maximum elevation allowed (m).",
+            },
+            {
+                "key": "max_slope",
+                "type": "number",
+                "description": "Maximum slope allowed (degrees).",
+            },
+            {
+                "key": "max_terrain_ruggedness",
+                "type": "number",
+                "description": "Maximum terrain ruggedness index.",
+            },
+            {
+                "key": "max_forest_density",
+                "type": "number",
+                "description": "Maximum forest density percent.",
+            },
         ],
     },
     {
@@ -427,16 +838,56 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Spatial Buffers",
         "description": "Buffer distances around spatial features (meters).",
         "parameters": [
-            {"key": "railways_buffer", "type": "number", "description": "Railway buffer distance (m)."},
-            {"key": "roads_buffer", "type": "number", "description": "Road buffer distance (m)."},
-            {"key": "airports_buffer", "type": "number", "description": "Airport buffer distance (m)."},
-            {"key": "waterbodies_buffer", "type": "number", "description": "Waterbody buffer distance (m)."},
-            {"key": "military_buffer", "type": "number", "description": "Military buffer distance (m)."},
-            {"key": "coastlines_buffer", "type": "number", "description": "Coastline buffer distance (m)."},
-            {"key": "protectedAreas_buffer", "type": "number", "description": "Protected area buffer distance (m)."},
-            {"key": "transmission_lines_buffer", "type": "number", "description": "Transmission line buffer distance (m)."},
-            {"key": "generators_buffer", "type": "number", "description": "Generator buffer distance (m)."},
-            {"key": "plants_buffer", "type": "number", "description": "Plant buffer distance (m)."},
+            {
+                "key": "railways_buffer",
+                "type": "number",
+                "description": "Railway buffer distance (m).",
+            },
+            {
+                "key": "roads_buffer",
+                "type": "number",
+                "description": "Road buffer distance (m).",
+            },
+            {
+                "key": "airports_buffer",
+                "type": "number",
+                "description": "Airport buffer distance (m).",
+            },
+            {
+                "key": "waterbodies_buffer",
+                "type": "number",
+                "description": "Waterbody buffer distance (m).",
+            },
+            {
+                "key": "military_buffer",
+                "type": "number",
+                "description": "Military buffer distance (m).",
+            },
+            {
+                "key": "coastlines_buffer",
+                "type": "number",
+                "description": "Coastline buffer distance (m).",
+            },
+            {
+                "key": "protectedAreas_buffer",
+                "type": "number",
+                "description": "Protected area buffer distance (m).",
+            },
+            {
+                "key": "transmission_lines_buffer",
+                "type": "number",
+                "description": "Transmission line buffer distance (m).",
+            },
+            {
+                "key": "generators_buffer",
+                "type": "number",
+                "description": "Generator buffer distance (m).",
+            },
+            {
+                "key": "plants_buffer",
+                "type": "number",
+                "description": "Plant buffer distance (m).",
+            },
         ],
     },
     {
@@ -444,7 +895,11 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Additional Exclusions",
         "description": "Custom exclusion polygon buffers.",
         "parameters": [
-            {"key": "additional_exclusion_polygons_buffer", "type": "array", "description": "Buffers per additional exclusion polygon."},
+            {
+                "key": "additional_exclusion_polygons_buffer",
+                "type": "array",
+                "description": "Buffers per additional exclusion polygon.",
+            },
         ],
     },
     {
@@ -452,8 +907,16 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Solar Resource Filters",
         "description": "Limits for solar production inclusion.",
         "parameters": [
-            {"key": "min_solar_production", "type": "number", "description": "Minimum solar production (kWh/kW/yr)."},
-            {"key": "max_solar_production", "type": "number", "description": "Maximum solar production (kWh/kW/yr)."},
+            {
+                "key": "min_solar_production",
+                "type": "number",
+                "description": "Minimum solar production (kWh/kW/yr).",
+            },
+            {
+                "key": "max_solar_production",
+                "type": "number",
+                "description": "Maximum solar production (kWh/kW/yr).",
+            },
         ],
     },
     {
@@ -461,9 +924,21 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Inclusion Filters",
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
-            {"key": "substations_inclusion_buffer", "type": "number", "description": "Inclusion buffer around substations (m)."},
-            {"key": "transmission_inclusion_buffer", "type": "number", "description": "Inclusion buffer around transmission lines (m)."},
-            {"key": "roads_inclusion_buffer", "type": "number", "description": "Inclusion buffer around roads (m)."},
+            {
+                "key": "substations_inclusion_buffer",
+                "type": "number",
+                "description": "Inclusion buffer around substations (m).",
+            },
+            {
+                "key": "transmission_inclusion_buffer",
+                "type": "number",
+                "description": "Inclusion buffer around transmission lines (m).",
+            },
+            {
+                "key": "roads_inclusion_buffer",
+                "type": "number",
+                "description": "Inclusion buffer around roads (m).",
+            },
         ],
     },
     {
@@ -471,9 +946,21 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Area Filters",
         "description": "Minimum connected pixel thresholds.",
         "parameters": [
-            {"key": "min_pixels_connected", "type": "number", "description": "Minimum connected pixels threshold."},
-            {"key": "min_pixels_x", "type": "number", "description": "Deprecated; use min_pixels_connected."},
-            {"key": "min_pixels_y", "type": "number", "description": "Deprecated; use min_pixels_connected."},
+            {
+                "key": "min_pixels_connected",
+                "type": "number",
+                "description": "Minimum connected pixels threshold.",
+            },
+            {
+                "key": "min_pixels_x",
+                "type": "number",
+                "description": "Deprecated; use min_pixels_connected.",
+            },
+            {
+                "key": "min_pixels_y",
+                "type": "number",
+                "description": "Deprecated; use min_pixels_connected.",
+            },
         ],
     },
     {
@@ -481,8 +968,16 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Technology Parameters",
         "description": "Panel configuration and derating factors.",
         "parameters": [
-            {"key": "panel", "type": "string", "description": "Panel configuration filename."},
-            {"key": "tech_derate", "type": "number", "description": "Technology derate factor."},
+            {
+                "key": "panel",
+                "type": "string",
+                "description": "Panel configuration filename.",
+            },
+            {
+                "key": "tech_derate",
+                "type": "number",
+                "description": "Technology derate factor.",
+            },
         ],
     },
     {
@@ -490,7 +985,11 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Solar Resource Groups",
         "description": "Solar production thresholds per resource group.",
         "parameters": [
-            {"key": "sg_thr", "type": "array", "description": "Solar resource group thresholds (kWh/m2/yr)."},
+            {
+                "key": "sg_thr",
+                "type": "array",
+                "description": "Solar resource group thresholds (kWh/m2/yr).",
+            },
         ],
     },
 ]
@@ -501,8 +1000,16 @@ CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Snakemake Parameters",
         "description": "Core Snakemake execution settings.",
         "parameters": [
-            {"key": "cores", "type": "number", "description": "Number of Snakemake cores."},
-            {"key": "snakefile", "type": "string", "description": "Path to the Snakemake file."},
+            {
+                "key": "cores",
+                "type": "number",
+                "description": "Number of Snakemake cores.",
+            },
+            {
+                "key": "snakefile",
+                "type": "string",
+                "description": "Path to the Snakemake file.",
+            },
         ],
     },
     {
@@ -510,9 +1017,21 @@ CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "General Parameters",
         "description": "Region and scenario configuration for Snakemake runs.",
         "parameters": [
-            {"key": "study_region_name", "type": "string", "description": "Region name for the run."},
-            {"key": "scenario", "type": "string", "description": "Scenario name for the run."},
-            {"key": "technologies", "type": "array", "description": "Technologies to process."},
+            {
+                "key": "study_region_name",
+                "type": "string",
+                "description": "Region name for the run.",
+            },
+            {
+                "key": "scenario",
+                "type": "string",
+                "description": "Scenario name for the run.",
+            },
+            {
+                "key": "technologies",
+                "type": "array",
+                "description": "Technologies to process.",
+            },
         ],
     },
 ]
@@ -649,13 +1168,14 @@ def load_initial_sections() -> List[Dict[str, Any]]:
     """
     Load configuration sections from config.yaml, falling back to a minimal default.
     """
-    return _load_sections_from_yaml(CONFIG_PATH, CONFIG_SECTION_DEFINITIONS, FALLBACK_SECTIONS)
+    return _load_sections_from_yaml(
+        CONFIG_PATH, CONFIG_SECTION_DEFINITIONS, FALLBACK_SECTIONS
+    )
 
 
 def load_onshore_sections() -> List[Dict[str, Any]]:
     fallback = _build_sections_from_data(
-        {
-        },
+        {},
         ONSHORE_SECTION_DEFINITIONS,
     )
     return _load_sections_from_yaml(ONSHORE_PATH, ONSHORE_SECTION_DEFINITIONS, fallback)
@@ -663,8 +1183,7 @@ def load_onshore_sections() -> List[Dict[str, Any]]:
 
 def load_solar_sections() -> List[Dict[str, Any]]:
     fallback = _build_sections_from_data(
-        {   
-        },
+        {},
         SOLAR_SECTION_DEFINITIONS,
     )
     return _load_sections_from_yaml(SOLAR_PATH, SOLAR_SECTION_DEFINITIONS, fallback)
@@ -672,16 +1191,19 @@ def load_solar_sections() -> List[Dict[str, Any]]:
 
 def load_config_snakemake_sections() -> List[Dict[str, Any]]:
     fallback = _build_sections_from_data(
-        {   #dummy data, user must specify
-            "snakefile": "snakefile_dummy", 
-            "cores": "4" ,
+        {  # dummy data, user must specify
+            "snakefile": "snakefile_dummy",
+            "cores": "4",
             "study_region_name": "dummy_region",
             "scenario": "dummy",
-            "technologies": ["dummy1", "dumm2"]
+            "technologies": ["dummy1", "dumm2"],
         },
         CONFIG_SNAKEMAKE_SECTION_DEFINITIONS,
     )
-    return _load_sections_from_yaml(CONFIG_SNAKEMAKE_PATH, CONFIG_SNAKEMAKE_SECTION_DEFINITIONS, fallback)
+    return _load_sections_from_yaml(
+        CONFIG_SNAKEMAKE_PATH, CONFIG_SNAKEMAKE_SECTION_DEFINITIONS, fallback
+    )
+
 
 def load_sample_results() -> Dict[str, Any]:
     """
