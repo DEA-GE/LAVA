@@ -1,0 +1,59 @@
+
+#--advanced details----------------------------------------------------------------------
+
+force_osm_download: 0 #if set to 1, OSM data will be downloaded even if it is already present in the folder
+
+# simplification tolerance for study area
+study_area:
+  tolerance: 0.0005
+
+# shape simplification for overpass
+target_vertices:  360
+tolerance_min: 0.0  # Minimum simplification tolerance
+tolerance_max: 0.5  # Maximum simplification tolerance, 
+
+# GEOFABRIK: OSM feature classes for shapefiles (fclass names need to be in a list!)
+fclass: 
+  railways: null # null means nothing is filtered
+  roads: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link']
+  airports: ['airport', 'airfield']
+  waterbodies: ['water', 'reservoir', 'river', 'riverbank']
+  military: ['military']
+
+# OVERPASS API: OSM features to fetch
+# the name before "_" should match the binary filtering above. 
+# all OSM keys with its values: https://wiki.openstreetmap.org/wiki/Map_features
+overpass_features:
+  railways: &railways ['rail']
+  roads: &roads ['motorway', 'trunk', 'primary', 'secondary',  'motorway_link', 'trunk_link', 'primary_link', 'secondary_link'] # more smaller roads: 'tertiary', 'unclassified', 'tertiary_link'
+  airports: &airports ['aerodrome']
+  waterways: &waterways ['river', 'canal']
+  water: &water ['lake']
+  military: &military ['military']
+  substations: &substations ['substation']
+  plants: &plants ['plant']
+  transmission_lines: &transmission_lines ['line']
+  generators: &generators ['generator']
+# don't change following lines
+osm_features_config:
+  substations: ["power", *substations, "way"]
+  plants: ["power", *plants, "way"]
+  transmission_lines: ["power", *transmission_lines, "way"]
+  generators: ["power", *generators, "node"]
+  roads: ["highway", *roads, "way"]
+  railways: ["railway", *railways, "way"]
+  airports: ["aeroway", *airports, ["way", "relation"]]
+  waterbodies: [["waterway", *waterways, ["way", "relation"]], ["water", *water, ["way", "relation"]]]
+  military: ["landuse", *military, "way"]
+
+
+# north facing pixels to be excluded (pixels with slope bigger X and aspect between Y and Z)
+X: 10
+Y: 310
+Z: 50
+
+# world database of protected areas
+wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
+
+
+

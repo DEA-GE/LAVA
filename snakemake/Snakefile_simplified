@@ -4,7 +4,7 @@ import yaml
 
 
 
-with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
+with open("configs/snakemake.yaml", "r", encoding="utf-8") as f:
     config_snakemake = yaml.load(f, Loader=yaml.FullLoader)
 
 

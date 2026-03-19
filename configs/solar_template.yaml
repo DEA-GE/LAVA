@@ -1,4 +1,4 @@
-#--exclusions------------------Odense default: 16.98%, 51.90km²---------------------------------------------
+#--exclusions-------------------Odense default: 16.98%, 51.90km²-----------------------------------------------
 
 # deployment density
 deployment_density: 50 # MW/km²
@@ -81,4 +81,4 @@ tech_derate: 0.95
 rg_thr: 
     SG1: [1000, 1300]
     SG2: [1300, 1600]
-    SG3: [1600, 3000]
+    SG3: [1600, .inf]

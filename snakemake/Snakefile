@@ -2,17 +2,18 @@ from pathlib import Path
 import json
 import yaml
 
+from workflow_utils import validate_stage_dependencies, normalize_to_list, resolve_weather_years
 
 
-with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
+with open("configs/snakemake.yaml", "r", encoding="utf-8") as f:
     config_snakemake = yaml.load(f, Loader=yaml.FullLoader)
 
 
-#define parameters , keep them in list as it iterates, multiple input can be included. 
-regions = config_snakemake["study_region_name"]
+# define parameters , keep them in list as it iterates, multiple input can be included.
+regions = normalize_to_list(config_snakemake["study_region_name"])
 technologies = config_snakemake["technologies"]
-scenario= config_snakemake["scenario"]
-weather_years = config_snakemake["weather_years"]
+scenario = config_snakemake["scenario"]
+weather_years = resolve_weather_years(config_snakemake.get("weather_years"))
 
 def logpath(region, filename):
     return Path("data") / region / "snakemake_log" / filename
@@ -20,13 +21,15 @@ def logpath(region, filename):
 # Create directories for each region and snakemake log
 for r in regions:
     Path(f"data/{r}/snakemake_log").mkdir(parents=True, exist_ok=True)
+    # Central location for country files
+    Path(f"data/{r}/country_files").mkdir(parents=True, exist_ok=True)
 
 """script to run in terminal
 The snakemake workflow will parallelize (--cores > 1) everything else but the spatial_data_prep script. 
 The resources are limited to openeo cause the api is throwing problems with parallelization. 
-    use thi line ---->  snakemake --cores 4 --resources openeo_req=1
+    use this line to run for Snakefile ----> ./snakemake/run_snakemake.ps1  snakemake --cores 4 --resources openeo_req=1
 to use a specific Snakefile, use the --snakefile option
-    use this line ----> snakemake --snakefile snakemake/Snakefile_short_short --cores 4 --resources openeo_req=1
+    use this line ----> .snakemake/run_snakemake.ps1 snakemake --snakefile snakemake/Snakefile_simplified --cores 4 --resources openeo_req=1
 """
 # ---- Stage configuration ----
 stages = config_snakemake.get("stages", {})
@@ -36,6 +39,10 @@ globals().update({
     f"DO_{k.upper()}": v
     for k, v in stages.items()
 })
+
+
+# ---- Validate stage dependencies ----
+validate_stage_dependencies(stages)
 
 
 # ---- Compact includes ----
@@ -63,9 +70,8 @@ if DO_EXCLUSION:
 
 if DO_SUITABILITY:
     ALL_TARGETS += expand(
-        logpath("{region}", "suitability_{technology}_{scenario}.done"),
+        logpath("{region}", "suitability_{scenario}.done"),
         region=regions,
-        technology=technologies,
         scenario=scenario,
     )
 

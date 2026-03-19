@@ -6,8 +6,8 @@ determine region, technology and scenario. It then searches for matching
 ``{region}_{technology}_{scenario}_available_land_*.tif`` rasters, reprojects
 them to ``EPSG:4326`` and merges them into a single raster. This
 combined raster is then converted to vector polygons. The polygons are
-written as layers to a GeoPackage (``aggregated_available_land.gpkg`` by
-default).
+written as layers to a GeoPackage
+(``results_analysis/aggregated_available_land.gpkg`` by default).
 
 Usage::
 
@@ -266,19 +266,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path(__file__).resolve().parent,
+        default=Path.cwd(),
         help="Project root containing data directory",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("aggregated_available_land.gpkg"),
+        default=Path("results_analysis/aggregated_available_land.gpkg"),
         help="Output GeoPackage path",
     )
     parser.add_argument(
         "--json-output",
         type=Path,
-        default=Path("aggregated_available_land.json"),
+        default=Path("results_analysis/aggregated_available_land.json"),
         help="Path to write aggregated metrics JSON",
     )
     parser.add_argument(

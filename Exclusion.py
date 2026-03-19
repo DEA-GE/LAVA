@@ -68,8 +68,6 @@ data_from_DEM = os.path.join(data_path, 'derived_from_DEM')
 OSM_source = config['OSM_source']
 raw_data_path = os.path.join(dirname, 'Raw_Spatial_Data')
 
-
-
 # Load the CRS
 # geo CRS
 with open(os.path.join(data_path, region_name_clean+'_global_CRS.pkl'), 'rb') as file:
@@ -155,7 +153,17 @@ additional_exclusion_polygons = 1 if os.path.exists(additional_exclusion_polygon
 additional_exclusion_rasters_folderPath = os.path.join(data_path, 'additional_exclusion_rasters')
 additional_exclusion_rasters = 1 if os.path.exists(additional_exclusion_rasters_folderPath) else 0
 
-   
+# load unique land use codes
+with open(os.path.join(data_path, f'landuses_{region_name_clean}.json'), 'r') as fp:
+    landuses = json.load(fp)
+
+# load pixel size
+if tech_config['resolution_manual'] is not None:
+    res = tech_config['resolution_manual']
+else:
+    with open(os.path.join(data_path, f'pixel_size_{region_name_clean}_{local_crs_tag}.json'), 'r') as fp:
+        res = json.load(fp)
+    
 
 #perform exclusions
 

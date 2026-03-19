@@ -9,9 +9,11 @@ import json
 from pathlib import Path
 import yaml
 from utils.data_preprocessing import clean_region_name, rel_path
+from utils.spatial_mapping import resolve_selection
 import pickle
 import argparse
 import glob
+
 
 #------------------------------------------- Load configuration
 dirname = os.getcwd() 
@@ -23,6 +25,8 @@ region_name = clean_region_name(region_name)
 technology = config["technology"]
 scenario = config.get('scenario', 'ref') # scenario, e.g., 'ref' or 'high'
 weather_year = config["weather_year"]
+weather_data_extend = config['weather_data_extend'] 
+country_code = config["country_code"]
 
 # override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
@@ -71,7 +75,7 @@ local_crs_tag = ''.join(auth) if auth else local_crs_obj.to_string().replace(":"
 
 # load pixel size
 if tech_config['resolution_manual'] is not None:
-    res = config['resolution_manual']
+    res = tech_config['resolution_manual']
 else:
     with open(os.path.join(data_path, f'pixel_size_{region_name}_{local_crs_tag}.json'), 'r') as fp:
         res = json.load(fp)
@@ -99,14 +103,21 @@ if config.get('weather_external_data_path'):
     weather_data_path = os.path.abspath(config["weather_external_data_path"])
 else:
     weather_data_path = os.path.join(dirname, 'Raw_Spatial_Data', 'Weather_data')
-cutout_files = glob.glob(os.path.join(weather_data_path, f'*{weather_year}*'))
+
+# Cutout metadata file with the geographical extend
+cutout_metadata_file = os.path.join(weather_data_path, 'cutout_metadata.json')
+with open(cutout_metadata_file, 'r') as f:
+    cutout_metadata = json.load(f)
+
+cutout_files = glob.glob(os.path.join(weather_data_path, f'{cutout_metadata["weather_data_extend"]}_{weather_year}*.nc'))
+
+# If no cutout files found, raise error
+if not cutout_files:
+    raise FileNotFoundError(f"No cutout files found for year {weather_year} in {weather_data_path} with extend {cutout_metadata['weather_data_extend']}")
 
 # Regional entent
 x1, y1, x2, y2 = region.to_crs(global_crs_obj).total_bounds 
 offset = 1 # Offset to ensure the cutout includes the entire region
-
-# Open netcdf cutout files
-ds = xr.open_mfdataset(cutout_files)
 
 # Pre-allocate a dataframe for potentials and time series
 time = pd.date_range(start=f'{weather_year}-01-01', end=f'{weather_year}-12-31 23:00', freq='h')
@@ -121,12 +132,12 @@ for cutout_file in cutout_files:
     if config['weather_bias_correction'][technology]:
         # Load bias correction data
         if technology in ['onshorewind', 'offshorewind']:
-            ERA5_wnd100m_bias_path = os.path.join(weather_data_path, 'bias_correction_factors', 'ERA5_wnd100m_bias.nc')
+            ERA5_wnd100m_bias_path = os.path.join(weather_data_path, 'bias_correction_factors', f'{cutout_metadata["weather_data_extend"]}_ERA5_wnd100m_bias.nc')
             ERA5_wnd100m_bias = xr.open_dataset(ERA5_wnd100m_bias_path).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
             # Apply bias correction
             cutout.data['wnd100m'] = cutout.data['wnd100m'] * ERA5_wnd100m_bias['wnd100m']
         elif technology == 'solar':
-            ERA5_ghi_bias_path = os.path.join(weather_data_path, 'bias_correction_factors', 'ERA5_ghi_bias.nc')
+            ERA5_ghi_bias_path = os.path.join(weather_data_path, 'bias_correction_factors', f'{cutout_metadata["weather_data_extend"]}_ERA5_ghi_bias.nc')
             ERA5_ghi_bias = xr.open_dataset(ERA5_ghi_bias_path).sel(x=slice(x1 - offset, x2 + offset), y=slice(y1 - offset, y2 + offset))
             # Apply bias correction
             cutout.data['influx_direct'] = cutout.data['influx_direct'] * ERA5_ghi_bias['ghi']
@@ -140,7 +151,7 @@ for cutout_file in cutout_files:
 
         # Load the potential
         if input_area == 'resource_grades':
-            potentialPath = os.path.join(data_path, 'suitability', f"{p}_{local_crs_tag}.tif")
+            potentialPath = os.path.join(data_path, 'suitability', f"{p}_{scenario}_{local_crs_tag}.tif")
             excluder.add_raster(potentialPath, codes=1, invert=True)
         elif input_area == 'available_land':
             potentialPath = os.path.join(data_path, 'available_land', f"{region_name}_{technology}_{scenario}_available_land_{local_crs_tag}.tif")
@@ -150,12 +161,12 @@ for cutout_file in cutout_files:
             excluder.add_geometry(potentialPath, invert=True)
 
         # Availability of the area
-        masked, transform = excluder.compute_shape_availability(region)
-        fig, ax = plt.subplots()
-        excluder.plot_shape_availability(region)
-        available_area = masked.sum(dtype=np.float64) * excluder.res**2
-        eligible_share = available_area / region.geometry.item().area
-        print(f"The eligibility share is: {eligible_share:.2%}")
+        #masked, transform = excluder.compute_shape_availability(region)
+        #fig, ax = plt.subplots()
+        #excluder.plot_shape_availability(region)
+        #available_area = masked.sum(dtype=np.float64) * excluder.res**2
+        #eligible_share = available_area / region.geometry.item().area
+        #print(f"The eligibility share is: {eligible_share:.2%}")
 
         # `A` is an DataArray with 3 dimensions (`shape`, `x`, `y`) and very sparse data. 
         # It indicates the relative overlap of weather cell `(x, y)` with geometry `region` while excluding the area specified by the `excluder`. 
@@ -172,12 +183,22 @@ for cutout_file in cutout_files:
         # Simulate the technology profiles based on the configuration
         match technology:
             case "solar":
-                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["panel"])
+                region_group = config.get("region_group", {}).get(region_name, {})
+
+                if "dist" in p:
+                    area_type = 'distributed'
+                else:
+                    area_type = 'utility'
+
+                tech_select = resolve_selection(tech_config, "panel", area=area_type, region_group=region_group, region=region_name)
+                technology_path = os.path.join(dirname, 'configs', 'technologies', f'{tech_select}.yaml')
+                orient_select = resolve_selection(tech_config, "orientation", area=area_type, region_group=region_group, region=region_name)
+                print(f"Using solar panel configuration: {tech_select} with orientation: {orient_select}")
 
                 ds_tech = cutout.pv(
                     matrix=capacity_matrix,
                     panel=Path(technology_path),
-                    orientation="latitude_optimal",
+                    orientation=orient_select,
                     index=region.index,
                     per_unit=True
                 )
@@ -185,12 +206,22 @@ for cutout_file in cutout_files:
                 ds_tech = ds_tech * tech_config["tech_derate"]
 
             case "solartracking":
-                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["panel"])
+                region_group = config.get("region_group", {}).get(region_name, {})
+
+                if "dist" in p:
+                    area_type = 'distributed'
+                else:
+                    area_type = 'utility'
+
+                tech_select = resolve_selection(tech_config, "panel", area=area_type, region_group=region_group, region=region_name)
+                technology_path = os.path.join(dirname, 'configs', 'technologies', f'{tech_select}.yaml')
+                orient_select = resolve_selection(tech_config, "orientation", area=area_type, region_group=region_group, region=region_name)
+                print(f"Using solar panel configuration: {tech_select} with tracking orientation: {orient_select}")
 
                 ds_tech = cutout.pv(
                     matrix=capacity_matrix,
                     panel=Path(technology_path),
-                    orientation="latitude_optimal",
+                    orientation=orient_select,
                     index=region.index,
                     tracking="horizontal",
                     per_unit=True
@@ -199,25 +230,45 @@ for cutout_file in cutout_files:
                 ds_tech = ds_tech * tech_config["tech_derate"]
 
             case "onshorewind":
-                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["turbine"])
+                region_group = config.get("region_group", {}).get(region_name, {})
+
+                if "dist" in p:
+                    area_type = 'distributed'
+                else:
+                    area_type = 'utility'
+
+                tech_select = resolve_selection(tech_config, "turbine", area=area_type, region_group=region_group, region=region_name)
+                technology_path = os.path.join(dirname, 'configs', 'technologies', f'{tech_select}.yaml')
+                print(f"Using onshore wind turbine configuration: {tech_select}")
                 
                 ds_tech = cutout.wind(
                     matrix=capacity_matrix,
                     turbine=Path(technology_path),
                     index=region.index,
-                    per_unit=True
+                    per_unit=True,
+                    add_cutout_windspeed=True
                 )
                 # Apply derate
                 ds_tech = ds_tech * tech_config["tech_derate"]
 
             case "offshorewind":
-                technology_path = os.path.join(dirname, 'configs', 'technologies', tech_config["turbine"])
+                region_group = config.get("region_group", {}).get(region_name, {})
+
+                if "dist" in p:
+                    area_type = 'distributed'
+                else:
+                    area_type = 'utility'
+
+                tech_select = resolve_selection(tech_config, "turbine", area=area_type, region_group=region_group, region=region_name)
+                technology_path = os.path.join(dirname, 'configs', 'technologies', f'{tech_select}.yaml')
+                print(f"Using offshore wind turbine configuration: {tech_select}")
 
                 ds_tech = cutout.wind(
                     matrix=capacity_matrix,
                     turbine=Path(technology_path),
                     index=region.index,
-                    per_unit=True
+                    per_unit=True,
+                    add_cutout_windspeed=True
                 )
                 # Apply derate
                 ds_tech = ds_tech * tech_config["tech_derate"]
@@ -228,8 +279,9 @@ for cutout_file in cutout_files:
 
 # Check for missing values and give warning if any are found
 if df_pot.isnull().values.any():
-    print("Warning: Missing values found in the resource grades dataframe.")
+    raise ValueError("Missing values found in the resource grades dataframe.")
 
 # Save the resource grade time series to a CSV file
 output_file=os.path.join(output_path, f"{region_name}_{technology}_{scenario}_profile_{weather_year}.csv")
 df_pot.to_csv(output_file)
+

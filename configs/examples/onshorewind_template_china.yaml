@@ -3,7 +3,7 @@
 # deployment density
 deployment_density: 4 # MW/km²
 
-# exclusion container resolution manual
+# exclusion container resolution manual (in meters)
 resolution_manual: null
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
@@ -71,8 +71,30 @@ min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
 
 
-# Technology assumptions
-turbine: 'HW_distributed_farm.yaml'
+# Technology assumptions (can be defined using by_region, by_region_set, or default)
+turbine: 
+  default: 
+    utility: 'HW_utility_farm'
+    distributed: 'HW_distributed_farm'
+  by_region_group:
+    North:
+      distributed: 'HW_distributed_farm'
+      utility: 'HW_utility_farm'
+    East:
+      distributed: 'LW_distributed_farm'
+      utility: 'LW_utility_farm'
+    Central:
+      distributed: 'LW_distributed_farm'
+      utility: 'LW_utility_farm'
+    Northeast:
+      distributed: 'HW_distributed_farm'
+      utility: 'HW_utility_farm'
+    Northwest:
+      distributed: 'HW_distributed_farm'
+      utility: 'HW_utility_farm'
+    South:
+      distributed: 'LW_distributed_farm'
+      utility: 'LW_utility_farm'
 
 tech_derate: 0.95
 

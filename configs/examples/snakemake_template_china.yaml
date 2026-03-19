@@ -3,7 +3,7 @@
 
 study_region_name: Beijing 
 scenario: new-smk-test
-technologies: ['onshorewind'] #onshorewind or solar
+technologies: ['onshorewind'] #onshorewind or solar or offshorewind
 
 #snakemake specific parameters
 cores: 4

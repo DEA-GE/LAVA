@@ -82,8 +82,6 @@ technology: solar #onshorewind or solar, used for the filename of the available 
 # model areas 
 model_areas_filename: 
 
-
-
 #--Weather data  -------------------------------------------------------------
 # download settings
 weather_data_folder: Raw_Spatial_Data/weather_data #[mandatory][string] folder where weather data cutout will be stored
@@ -148,4 +146,14 @@ technologies:
         clip_p_max_pu: 0.01
 
 
+# Method to define the area for which energy profiles are created
+input_area: resource_grades # 'resource_grades' or 'available_land' or 'study_region'
+
+# Apply bias correction to ERA5 wind and solar data based on Global Wind Atlas and Global Solar Atlas data
+weather_bias_correction:
+  onshorewind: true
+  offshorewind: true
+  solar: true
+
+weather_bias_range: [0.3, 3.0] # Limit min and max bias correction factors to this range
 
