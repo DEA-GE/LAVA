@@ -82,24 +82,20 @@
 !snakemake/rules/energy_profiles.smk
 !snakemake/rules/weather_data_prep.smk
 !snakemake/rules/weather_bias_adjust.smk
-# --- Sphinx docs ---
+# --- MkDocs docs ---
+!mkdocs.yml
 !docs
 !docs/.gitkeep
-!docs/conf.py
-!docs/index.rst
-!docs/background.rst
-!docs/getting_started.rst
 !docs/requirements-docs.txt
-!docs/troubleshooting.rst
-!docs/basic_workflow.rst
-!docs/full_workflow.rst
-!docs/faq.rst
-!docs/data_sources.rst
-!docs/_static
-!docs/_static/custom.css
-!docs/_static/literature_overview.xlsx
-!docs/_static/exclusion_parameters_overview.xlsx
-!docs/faq.md
+!docs/index.md
+!docs/assets
+!docs/assets/custom.css
+!docs/assets/literature_overview.xlsx
+!docs/assets/exclusion_parameters_overview.xlsx
+!docs/home/
+!docs/home/**
+!docs/knowledge_base/
+!docs/knowledge_base/**
 !.readthedocs.yaml
 # --- User interface ---
 !tkinter_app

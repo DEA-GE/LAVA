@@ -1,23 +1,17 @@
 # .readthedocs.yaml
 # Read the Docs configuration file
-# See: https://docs.readthedocs.io/en/stable/config-file/v2.html
+# See: https://docs.readthedocs.com/platform/stable/intro/mkdocs.html
 
 version: 2
 
-# Set the build system
 build:
   os: ubuntu-22.04
   tools:
-    python: "3.11"
+    python: "3.12"
 
-# Install dependencies
+mkdocs:
+  configuration: mkdocs.yml
+
 python:
   install:
     - requirements: docs/requirements-docs.txt
-
-# Build documentation in the "docs/" directory with Sphinx
-sphinx:
-  configuration: docs/conf.py
-
-# Optionally enable PDF and ePub builds
-formats: all
