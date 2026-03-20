@@ -1,5 +1,6 @@
 # LAVA - *L*and *AV*ailability *A*nalysis 
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/DEA-GE/LAVA/main.svg)](https://results.pre-commit.ci/latest/github/DEA-GE/LAVA/main)
 
 LAVA is a tool to calculate the available area in a user defined study region for building renewable energy generators like utility-scale ground-mounted solar PV and wind onshore.
