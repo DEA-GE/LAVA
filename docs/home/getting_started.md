@@ -49,7 +49,7 @@ This will create a local copy of the project in a folder named `LAVA` and opens 
 
 2. **Create the Conda environment** using the provided environment file that lists all necessary dependencies:
 ```bash
-    conda env create -f envs/win-64.lock.yaml
+    conda env create -f envs/requirements.yaml
 ```
 
 This will create a new Conda environment (named `lava`) with all required packages.
