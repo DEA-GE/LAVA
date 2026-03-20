@@ -5,6 +5,7 @@ channels:
   - defaults
 dependencies:
   - atlite
+  - cfgrib
   - gdal
   - geopandas
   - richdem
@@ -24,9 +25,10 @@ dependencies:
   - openpyxl
   - xdem
   - snakemake
+  - leafmap
+  - localtileserver
   - pip            # ← ensure pip is installed so we can point at Git if needed
   - pip:
     - OSMPythonTools
     - distancerasters
-    - geonamescache
     - space2stats-client
