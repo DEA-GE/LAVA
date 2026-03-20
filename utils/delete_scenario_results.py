@@ -71,7 +71,9 @@ def _matching_files_in_folder(folder: Path, tech: str, scenario: str) -> List[Pa
     return matches
 
 
-def _collect_files_for_all_provinces(root: Path, provinces: List[str], tech: str, scenario: str) -> List[Path]:
+def _collect_files_for_all_provinces(
+    root: Path, provinces: List[str], tech: str, scenario: str
+) -> List[Path]:
     files: List[Path] = []
     for prov in provinces:
         base = root / "data" / prov

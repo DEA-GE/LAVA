@@ -1,23 +1,21 @@
-
-
-#https://worldcover2021.esa.int/data/docs/WorldCover_PUM_V2.0.pdf p15
+# https://worldcover2021.esa.int/data/docs/WorldCover_PUM_V2.0.pdf p15
 colors_dict_esa_worldcover2021_int = {
-    #0: (0,0,0,0),              # nodata  
-    10: (0, 100, 0),          # Tree cover
-    20: (255, 187, 34),       # Shrubland
-    30: (255, 255, 76),       # Grassland
-    40: (240, 150, 255),      # Cropland
-    50: (250, 0, 0),          # Built-up
-    60: (180, 180, 180),      # Bare / sparse vegetation
-    70: (240, 240, 240),      # Snow and Ice
-    80: (0, 100, 200),        # Permanent water bodies
-    90: (0, 150, 160),        # Herbaceous wetland
-    95: (0, 207, 117),        # Mangroves
-    100: (250, 230, 160)      # Moss and lichen
+    # 0: (0,0,0,0),              # nodata
+    10: (0, 100, 0),  # Tree cover
+    20: (255, 187, 34),  # Shrubland
+    30: (255, 255, 76),  # Grassland
+    40: (240, 150, 255),  # Cropland
+    50: (250, 0, 0),  # Built-up
+    60: (180, 180, 180),  # Bare / sparse vegetation
+    70: (240, 240, 240),  # Snow and Ice
+    80: (0, 100, 200),  # Permanent water bodies
+    90: (0, 150, 160),  # Herbaceous wetland
+    95: (0, 207, 117),  # Mangroves
+    100: (250, 230, 160),  # Moss and lichen
 }
 
 colors_dict_esa_worldcover2021 = {
-    #0: (0,0,0),              # nodata 
+    # 0: (0,0,0),              # nodata
     10: (0.0, 0.39215686, 0.0),  # Tree cover
     20: (1.0, 0.73333333, 0.13333333),  # Shrubland
     30: (1.0, 1.0, 0.29803922),  # Grassland
@@ -28,58 +26,56 @@ colors_dict_esa_worldcover2021 = {
     80: (0.0, 0.39215686, 0.78431373),  # Permanent water bodies
     90: (0.0, 0.58823529, 0.62745098),  # Herbaceous wetland
     95: (0.0, 0.81176471, 0.45882353),  # Mangroves
-    100: (0.98039216, 0.90196078, 0.62745098)  # Moss and lichen
+    100: (0.98039216, 0.90196078, 0.62745098),  # Moss and lichen
 }
 
 
 legend_dict_esa_worldcover2021 = {
-    #0: 'no data',
-    10: 'Tree cover',
-    20: 'Shrubland',
-    30: 'Grassland',
-    40: 'Cropland',
-    50: 'Built-up',
-    60: 'Bare / sparse vegetation',
-    70: 'Snow and Ice',
-    80: 'Permanent water bodies',
-    90: 'Herbaceous wetland',
-    95: 'Mangroves',
-    100: 'Moss and lichen'
+    # 0: 'no data',
+    10: "Tree cover",
+    20: "Shrubland",
+    30: "Grassland",
+    40: "Cropland",
+    50: "Built-up",
+    60: "Bare / sparse vegetation",
+    70: "Snow and Ice",
+    80: "Permanent water bodies",
+    90: "Herbaceous wetland",
+    95: "Mangroves",
+    100: "Moss and lichen",
 }
 
 
+# Copernicus Global Land Service: Land Cover 100m: collection 3: epoch 2019: Globe
+# downloaded from zenodo: https://zenodo.org/records/3939050
 
-
-#Copernicus Global Land Service: Land Cover 100m: collection 3: epoch 2019: Globe 
-#downloaded from zenodo: https://zenodo.org/records/3939050
-
-#original url?: https://land.copernicus.eu/en/products/global-dynamic-land-cover/copernicus-global-land-service-land-cover-100m-collection-3-epoch-2018-globe
-#product user manual with legends: https://land.copernicus.eu/en/technical-library/global-dynamic-land-cover-product-user-manual-v3.0/@@download/file
+# original url?: https://land.copernicus.eu/en/products/global-dynamic-land-cover/copernicus-global-land-service-land-cover-100m-collection-3-epoch-2018-globe
+# product user manual with legends: https://land.copernicus.eu/en/technical-library/global-dynamic-land-cover-product-user-manual-v3.0/@@download/file
 
 colors_dict_copernicus_global_coll3_int = {
-    255: (40, 40, 40, 0),        # No input data available
-    111: (88, 72, 31),        # Closed forest, evergreen needle leaf
-    113: (112, 102, 62),      # Closed forest, deciduous needle leaf
-    112: (0, 153, 0),         # Closed forest, evergreen, broad leaf
-    114: (0, 204, 0),         # Closed forest, deciduous broad leaf
-    115: (78, 117, 31),       # Closed forest, mixed
-    116: (0, 120, 0),         # Closed forest, unknown
-    121: (102, 96, 0),        # Open forest, evergreen needle leaf
-    123: (141, 116, 0),       # Open forest, deciduous needle leaf
-    122: (141, 180, 0),       # Open forest, evergreen broad leaf
-    124: (160, 220, 0),       # Open forest, deciduous broad leaf
-    125: (146, 153, 0),       # Open forest, mixed
-    126: (100, 140, 0),       # Open forest, unknown
-    20: (255, 187, 34),       # Shrubs
-    30: (255, 255, 76),       # Herbaceous vegetation
-    90: (0, 150, 160),        # Herbaceous wetland
-    100: (250, 230, 160),     # Moss and lichen
-    60: (180, 180, 180),      # Bare / sparse vegetation
-    40: (240, 150, 255),      # Cultivated and managed vegetation/agriculture (cropland)
-    50: (255, 0, 0),          # Urban / built up
-    70: (240, 240, 240),      # Snow and Ice
-    80: (0, 50, 200),         # Permanent water bodies
-    200: (0, 0, 128)          # Open sea
+    255: (40, 40, 40, 0),  # No input data available
+    111: (88, 72, 31),  # Closed forest, evergreen needle leaf
+    113: (112, 102, 62),  # Closed forest, deciduous needle leaf
+    112: (0, 153, 0),  # Closed forest, evergreen, broad leaf
+    114: (0, 204, 0),  # Closed forest, deciduous broad leaf
+    115: (78, 117, 31),  # Closed forest, mixed
+    116: (0, 120, 0),  # Closed forest, unknown
+    121: (102, 96, 0),  # Open forest, evergreen needle leaf
+    123: (141, 116, 0),  # Open forest, deciduous needle leaf
+    122: (141, 180, 0),  # Open forest, evergreen broad leaf
+    124: (160, 220, 0),  # Open forest, deciduous broad leaf
+    125: (146, 153, 0),  # Open forest, mixed
+    126: (100, 140, 0),  # Open forest, unknown
+    20: (255, 187, 34),  # Shrubs
+    30: (255, 255, 76),  # Herbaceous vegetation
+    90: (0, 150, 160),  # Herbaceous wetland
+    100: (250, 230, 160),  # Moss and lichen
+    60: (180, 180, 180),  # Bare / sparse vegetation
+    40: (240, 150, 255),  # Cultivated and managed vegetation/agriculture (cropland)
+    50: (255, 0, 0),  # Urban / built up
+    70: (240, 240, 240),  # Snow and Ice
+    80: (0, 50, 200),  # Permanent water bodies
+    200: (0, 0, 128),  # Open sea
 }
 
 colors_dict_copernicus_global_coll3 = {
@@ -101,39 +97,42 @@ colors_dict_copernicus_global_coll3 = {
     90: (0.0, 0.58823529, 0.62745098),  # Herbaceous wetland
     100: (0.98039216, 0.90196078, 0.62745098),  # Moss and lichen
     60: (0.70588235, 0.70588235, 0.70588235),  # Bare / sparse vegetation
-    40: (0.94117647, 0.58823529, 1.0),  # Cultivated and managed vegetation/agriculture (cropland)
+    40: (
+        0.94117647,
+        0.58823529,
+        1.0,
+    ),  # Cultivated and managed vegetation/agriculture (cropland)
     50: (1.0, 0.0, 0.0),  # Urban / built up
     70: (0.94117647, 0.94117647, 0.94117647),  # Snow and Ice
     80: (0.0, 0.19607843, 0.78431373),  # Permanent water bodies
-    200: (0.0, 0.0, 0.50196078)  # Open sea
+    200: (0.0, 0.0, 0.50196078),  # Open sea
 }
 
 legend_dict_copernicus_global_coll3 = {
-    255: 'No input data available',
-    111: 'Closed forest, evergreen needle leaf',
-    113: 'Closed forest, deciduous needle leaf',
-    112: 'Closed forest, evergreen, broad leaf',
-    114: 'Closed forest, deciduous broad leaf',
-    115: 'Closed forest, mixed',
-    116: 'Closed forest, unknown',
-    121: 'Open forest, evergreen needle leaf',
-    123: 'Open forest, deciduous needle leaf',
-    122: 'Open forest, evergreen broad leaf',
-    124: 'Open forest, deciduous broad leaf',
-    125: 'Open forest, mixed',
-    126: 'Open forest, unknown',
-    20: 'Shrubs',
-    30: 'Herbaceous vegetation',
-    90: 'Herbaceous wetland',
-    100: 'Moss and lichen',
-    60: 'Bare / sparse vegetation',
-    40: 'Cultivated and managed vegetation/agriculture (cropland)',
-    50: 'Urban / built up',
-    70: 'Snow and Ice',
-    80: 'Permanent water bodies',
-    200: 'Open sea'
+    255: "No input data available",
+    111: "Closed forest, evergreen needle leaf",
+    113: "Closed forest, deciduous needle leaf",
+    112: "Closed forest, evergreen, broad leaf",
+    114: "Closed forest, deciduous broad leaf",
+    115: "Closed forest, mixed",
+    116: "Closed forest, unknown",
+    121: "Open forest, evergreen needle leaf",
+    123: "Open forest, deciduous needle leaf",
+    122: "Open forest, evergreen broad leaf",
+    124: "Open forest, deciduous broad leaf",
+    125: "Open forest, mixed",
+    126: "Open forest, unknown",
+    20: "Shrubs",
+    30: "Herbaceous vegetation",
+    90: "Herbaceous wetland",
+    100: "Moss and lichen",
+    60: "Bare / sparse vegetation",
+    40: "Cultivated and managed vegetation/agriculture (cropland)",
+    50: "Urban / built up",
+    70: "Snow and Ice",
+    80: "Permanent water bodies",
+    200: "Open sea",
 }
-
 
 
 # CLC Europe 2012
@@ -183,7 +182,7 @@ colors_dict_Corine_Europe_2012_int = {
     42: (0, 255, 166),
     43: (166, 255, 230),
     44: (230, 242, 255),
-    -128: (255, 255, 255)
+    -128: (255, 255, 255),
 }
 
 colors_dict_Corine_Europe_2012 = {
@@ -231,11 +230,11 @@ colors_dict_Corine_Europe_2012 = {
     42: (0.0, 1.0, 0.6509803921568628),
     43: (0.6509803921568628, 1.0, 0.9019607843137255),
     44: (0.9019607843137255, 0.9490196078431372, 1.0),
-    -128: (1.0, 1.0, 1.0)
+    -128: (1.0, 1.0, 1.0),
 }
 
 
-legend_dict_Corine_Europe_2012 ={
+legend_dict_Corine_Europe_2012 = {
     1: "Continuous urban fabric",
     2: "Discontinuous urban fabric",
     3: "Industrial or commercial units",
@@ -280,5 +279,5 @@ legend_dict_Corine_Europe_2012 ={
     42: "Coastal lagoons",
     43: "Estuaries",
     44: "Sea and ocean",
-    -128: "NODATA"
+    -128: "NODATA",
 }

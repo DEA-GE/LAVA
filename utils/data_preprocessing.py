@@ -1,6 +1,7 @@
 import os
 import geopandas as gpd
-#import geonamescache
+
+# import geonamescache
 import json
 import rasterio
 from rasterio.mask import mask
@@ -15,21 +16,19 @@ import requests
 import io
 import fiona
 import urllib.parse
-from pyproj import CRS
 import pandas as pd
-import rasterstats 
+import rasterstats
 from datetime import datetime, timedelta
 
 import logging
 
+
 def download_admin_boundary_WB(
-    iso3_code: str, 
-    level: int = 0, 
-    region_name: str = None
+    iso3_code: str, level: int = 0, region_name: str = None
 ) -> gpd.GeoDataFrame:
     """
-    Download administrative boundaries using Space2Stats client (WorldBank). 
-    
+    Download administrative boundaries using Space2Stats client (WorldBank).
+
     Parameters:
     -----------
     iso3_code : str
@@ -42,28 +41,28 @@ def download_admin_boundary_WB(
     region_name : str, optional
         Name of specific region to filter (NAM_1 or NAM_2 value).
         If None, returns all regions at the specified level.
-    
+
     Returns:
     --------
     gpd.GeoDataFrame
         GeoDataFrame containing the requested administrative boundaries.
-    
+
     Examples:
     ---------
     # Get entire country boundary
     country_boundary = download_admin_boundary('KEN')
-    
+
     # Get all level 1 regions
     level1_regions = download_admin_boundary('KEN', level=1)
-    
+
     # Get specific level 1 region
     nairobi = download_admin_boundary('KEN', level=1, region_name='Nairobi')
-    
+
     # Get specific level 2 region
     specific_district = download_admin_boundary('KEN', level=2, region_name='Mombasa')
     """
     client = Space2StatsClient()
-    
+
     # Map level to ADM string
     if level == 0:
         adm_string = "ADM0"
@@ -73,62 +72,67 @@ def download_admin_boundary_WB(
         adm_string = "ADM2"
     else:
         raise ValueError(f"Level must be 0, 1, or 2. Got {level}")
-    
+
     # Fetch boundaries from Space2Stats
     boundaries = client.fetch_admin_boundaries(iso3_code, adm_string)
-    
+
     # Filter by region name if specified
     if region_name is not None:
         if level == 0:
             print("Warning: region_name is ignored when level=0 (country boundary)")
         else:
-            name_col = f'NAM_{level}'
+            name_col = f"NAM_{level}"
             if name_col not in boundaries.columns:
-                raise ValueError(f"Column '{name_col}' not found in boundaries. Available columns: {boundaries.columns.tolist()}")
-            
+                raise ValueError(
+                    f"Column '{name_col}' not found in boundaries. Available columns: {boundaries.columns.tolist()}"
+                )
+
             boundaries = boundaries[boundaries[name_col] == region_name]
-            
+
             if boundaries.empty:
                 print(f"Warning: No region found with NAME_{level}='{region_name}'")
                 print(f"Available regions: {boundaries[name_col].unique().tolist()}")
-    
+
     return boundaries
+
 
 def download_worldpop(country_code: str, year: int, output_dir: str):
     """
     Downloads WorldPop population data for a given country and year.
-    
+
     Parameters:
         country_code (str): ISO 3166-1 alpha-3 country code (e.g., "DEU", "KEN").
         year (int): Year of the population data (e.g., 2020).
         output_dir (str): Directory where the file will be saved.
-    
+
     Returns:
         str: Path to the downloaded file if successful, None otherwise.
     """
     # Convert country code to lowercase for filename
     country_lower = country_code.lower()
     country_upper = country_code.upper()
-    
+
     # Hardcoded defaults
     release = "2025A"
     version = "1"
     resolution = "100m"
     data_type = "constrained"
-    
+
     # Construct the URL
-    url = (f"https://data.worldpop.org/GIS/Population/Global_2015_2030/R{release}/"
-           f"{year}/{country_upper}/v{version}/{resolution}/{data_type}/"
-           f"{country_lower}_pop_{year}_CN_{resolution}_R{release}_v{version}.tif")
-    
+    url = (
+        f"https://data.worldpop.org/GIS/Population/Global_2015_2030/R{release}/"
+        f"{year}/{country_upper}/v{version}/{resolution}/{data_type}/"
+        f"{country_lower}_pop_{year}_CN_{resolution}_R{release}_v{version}.tif"
+    )
+
     # Construct output filepath
     os.makedirs(output_dir, exist_ok=True)
     filename = f"population_{country_upper}_{year}.tif"
     output_path = os.path.join(output_dir, filename)
-    
+
     try:
         response = requests.get(url, timeout=300)
-        
+
         if response.status_code == 200:
             with open(output_path, "wb") as f:
                 f.write(response.content)
@@ -136,7 +140,7 @@ def download_worldpop(country_code: str, year: int, output_dir: str):
         else:
             logging.error(f"Failed to download. HTTP status: {response.status_code}")
             return None
-            
+
     except requests.Timeout:
         logging.error(f"Download timed out after 300 seconds for '{country_code}'.")
         return None
@@ -169,12 +173,12 @@ def goas_download(output_dir):
 
     # Parameters for WFS request - using GeoJSON output
     params = {
-        'service': 'WFS',
-        'version': '2.0.0',
-        'request': 'GetFeature',
-        'typeNames': 'goas',
+        "service": "WFS",
+        "version": "2.0.0",
+        "request": "GetFeature",
+        "typeNames": "goas",
         #'cql_filter': 'mrgid=3293',  # Filter by Marine Regions ID
-        'outputFormat': 'application/json'
+        "outputFormat": "application/json",
     }
 
     response = requests.get(base_url, params=params, timeout=300)
@@ -202,7 +206,7 @@ def retrieve_wdpa_url(country_code):
     month_candidates = [
         datetime.now().strftime("%b%Y"),
         (datetime.now() - timedelta(days=30)).strftime("%b%Y"),
-        (datetime.now() + timedelta(days=30)).strftime("%b%Y")
+        (datetime.now() + timedelta(days=30)).strftime("%b%Y"),
     ]
 
     for bYYYY in month_candidates:
@@ -216,7 +220,7 @@ def retrieve_wdpa_url(country_code):
     )
 
 
-#download WDPA functions
+# download WDPA functions
 def download_unpack_zip(url, output_dir):
     response = requests.get(url)
     # Check if the download was successful
@@ -227,6 +231,7 @@ def download_unpack_zip(url, output_dir):
             z.extractall(path=output_dir)
     else:
         logging.error(f"WDPA file download failed: {response.status_code}")
+
 
 # Function to find the geodatabase folder
 def find_folder(directory, file_ending=None, string_in_name=None):
@@ -239,24 +244,25 @@ def find_folder(directory, file_ending=None, string_in_name=None):
                 if string_in_name in folder:
                     return os.path.join(root, folder)
     return None
-  
+
 
 def convert_gdb_to_gpkg(gdb_folder, output_dir, filename):
-    layers = fiona.listlayers(gdb_folder) #list all layers
-    poly_layer = next((layer for layer in layers if 'poly' in layer.lower()), None) #find the layer containing the word "poly" for the polygon layer
+    layers = fiona.listlayers(gdb_folder)  # list all layers
+    poly_layer = next(
+        (layer for layer in layers if "poly" in layer.lower()), None
+    )  # find the layer containing the word "poly" for the polygon layer
     if poly_layer:
         gdf = gpd.read_file(gdb_folder, layer=poly_layer)
-        gdf.to_file(os.path.join(output_dir, filename), driver='GPKG', encoding='utf-8')
-        logging.info(f'WDPA saved as gpkg to {output_dir}')
+        gdf.to_file(os.path.join(output_dir, filename), driver="GPKG", encoding="utf-8")
+        logging.info(f"WDPA saved as gpkg to {output_dir}")
     else:
-        logging.warning("No layer containing 'poly' in its name was found. No WDPA saved.")
+        logging.warning(
+            "No layer containing 'poly' in its name was found. No WDPA saved."
+        )
 
 
+# geodata functions
 
-
-
-
-#geodata functions
 
 def save_richdem_file(richdem_file, base_dem_FilePath, outFilePath):
     with rasterio.open(base_dem_FilePath) as src:
@@ -265,29 +271,27 @@ def save_richdem_file(richdem_file, base_dem_FilePath, outFilePath):
     profile = file_profile
 
     profile.update(
-        dtype=rasterio.int16,
-        count=1,
-        compress='DEFLATE',
-        nodata=richdem_file.no_data) 
-    #save raster file
-    with rasterio.open(outFilePath, 'w', **profile) as dst:
-        dst.write(richdem_file, 1)  #richdem_file.astype(rasterio.int16)
+        dtype=rasterio.int16, count=1, compress="DEFLATE", nodata=richdem_file.no_data
+    )
+    # save raster file
+    with rasterio.open(outFilePath, "w", **profile) as dst:
+        dst.write(richdem_file, 1)  # richdem_file.astype(rasterio.int16)
 
 
 def geopandas_clip_reproject(geopandas_file, gdf, target_crs_obj):
     """
     Clips vector file to the extent of a GeoPandas DataFrame and reprojects it to a given CRS.
 
-    
+
     :param gdf: The GeoPandas DataFrame to use for clipping the shapefile.
     :target_crs: The target CRS to reproject the shapefile to (e.g., 'EPSG:3035').
     """
-    
-    #clip files 
+
+    # clip files
     geopandas_clipped = gpd.clip(geopandas_file, gdf)
-    #reproject and save files
+    # reproject and save files
     geopandas_clipped.to_crs(target_crs_obj, inplace=True)
-    
+
     return geopandas_clipped
 
 
@@ -305,7 +309,7 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
     - None. Saves the clipped raster as a new GeoTIFF in the output directory.
     """
 
-    #get the filename from file path and remove its extension
+    # get the filename from file path and remove its extension
     filename = os.path.basename(input_raster_path)
     filename = os.path.splitext(filename)[0]
 
@@ -315,58 +319,79 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
         # Copy the metadata from the source raster
         out_meta = src.meta.copy()
         # Update the metadata for the clipped raster
-        out_meta.update({
-            'height': out_image.shape[1],
-            'width': out_image.shape[2],
-            'transform': out_transform
-        })
+        out_meta.update(
+            {
+                "height": out_image.shape[1],
+                "width": out_image.shape[2],
+                "transform": out_transform,
+            }
+        )
 
         ori_raster_crs = str(src.crs)
         ori_raster_crs = ori_raster_crs.replace(":", "")
-        #print(f'original raster CRS: {src.crs}')
+        # print(f'original raster CRS: {src.crs}')
         # Save the clipped raster as a new GeoTIFF file
         if data_name is None:
-            with rasterio.open(os.path.join(output_dir, f'{filename}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
+            with rasterio.open(
+                os.path.join(
+                    output_dir, f"{filename}_{region_name_clean}_{ori_raster_crs}.tif"
+                ),
+                "w",
+                **out_meta,
+            ) as dest:
                 dest.write(out_image)
         else:
-            with rasterio.open(os.path.join(output_dir, f'{data_name}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
+            with rasterio.open(
+                os.path.join(
+                    output_dir, f"{data_name}_{region_name_clean}_{ori_raster_crs}.tif"
+                ),
+                "w",
+                **out_meta,
+            ) as dest:
                 dest.write(out_image)
 
 
-
-
-def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, target_crs, resampling_method, dtype, output_dir):
+def clip_reproject_raster(
+    input_raster_path,
+    region_name_clean,
+    gdf,
+    data_name,
+    target_crs,
+    resampling_method,
+    dtype,
+    output_dir,
+):
     """
-        Reads a TIFF raster, clips it to the extent of a GeoPandas DataFrame, reprojects it to a given CRS considerung the set resampling method,
-        and saves the clipped raster in a specified output folder.
-    
-        :param input_raster_path: Path to the input TIFF raster file.
-        :param region_name_clean: in main script cleaned region name
-        :param gdf: The GeoPandas DataFrame to use for clipping the raster.
-        :param data_name: string with "landcover" or "elevation" or "wind" or "solar" or any other name which specifies the data. 
-        :param target_crs: The target CRS to reproject the raster to (e.g., 'EPSG:3035').
-        :param resampling_method: resampling method to be used (string)
-        :param output_dir: output directory (defined in main script)
-        """
-    
+    Reads a TIFF raster, clips it to the extent of a GeoPandas DataFrame, reprojects it to a given CRS considerung the set resampling method,
+    and saves the clipped raster in a specified output folder.
+
+    :param input_raster_path: Path to the input TIFF raster file.
+    :param region_name_clean: in main script cleaned region name
+    :param gdf: The GeoPandas DataFrame to use for clipping the raster.
+    :param data_name: string with "landcover" or "elevation" or "wind" or "solar" or any other name which specifies the data.
+    :param target_crs: The target CRS to reproject the raster to (e.g., 'EPSG:3035').
+    :param resampling_method: resampling method to be used (string)
+    :param output_dir: output directory (defined in main script)
+    """
+
     # get CRS tag as clean string
     auth = target_crs.to_authority()
-    crs_tag = ''.join(auth) if auth else target_crs.to_string().replace(":", "_")
-    
+    crs_tag = "".join(auth) if auth else target_crs.to_string().replace(":", "_")
+
     resampling_options = {
-        'nearest': Resampling.nearest,
-        'bilinear': Resampling.bilinear,
-        'cubic': Resampling.cubic,
-        'mode': Resampling.mode
+        "nearest": Resampling.nearest,
+        "bilinear": Resampling.bilinear,
+        "cubic": Resampling.cubic,
+        "mode": Resampling.mode,
     }
 
     dtype_options = {
-        'int8': rasterio.int8,
-        'uint8': rasterio.uint8,
-        'int16': rasterio.int16,
-        'uint16': rasterio.uint16,
-        'float32': rasterio.float32,
-        'float64': rasterio.float64
+        "int8": rasterio.int8,
+        "uint8": rasterio.uint8,
+        "int16": rasterio.int16,
+        "uint16": rasterio.uint16,
+        "float32": rasterio.float32,
+        "float64": rasterio.float64,
     }
 
     with rasterio.open(input_raster_path) as src:
@@ -375,40 +400,55 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
         # Copy the metadata from the source raster
         out_meta = src.meta.copy()
         # Update the metadata for the clipped raster
-        out_meta.update({
-            'height': out_image.shape[1],
-            'width': out_image.shape[2],
-            'transform': out_transform
-        })
+        out_meta.update(
+            {
+                "height": out_image.shape[1],
+                "width": out_image.shape[2],
+                "transform": out_transform,
+            }
+        )
 
         ori_raster_crs = str(src.crs)
         ori_raster_crs = ori_raster_crs.replace(":", "")
-        #print(f'original raster CRS: {src.crs}')
+        # print(f'original raster CRS: {src.crs}')
         # Save the clipped raster as a new GeoTIFF file
-        with rasterio.open(os.path.join(output_dir, f'{data_name}_{region_name_clean}_{ori_raster_crs}.tif'), 'w', **out_meta) as dest:
+        with rasterio.open(
+            os.path.join(
+                output_dir, f"{data_name}_{region_name_clean}_{ori_raster_crs}.tif"
+            ),
+            "w",
+            **out_meta,
+        ) as dest:
             dest.write(out_image)
 
     # reproject landcover raster to local UTM CRS
-    with rasterio.open(os.path.join(output_dir, f'{data_name}_{region_name_clean}_{ori_raster_crs}.tif')) as src:
+    with rasterio.open(
+        os.path.join(
+            output_dir, f"{data_name}_{region_name_clean}_{ori_raster_crs}.tif"
+        )
+    ) as src:
         # Calculate the transformation and dimensions for the target CRS
         transform, width, height = calculate_default_transform(
-            src.crs, target_crs, src.width, src.height, *src.bounds)
+            src.crs, target_crs, src.width, src.height, *src.bounds
+        )
         kwargs = src.meta.copy()
-        kwargs.update({
-            'crs': target_crs,
-            'transform': transform, 
-            'width': width,
-            'height': height,
-            'dtype': dtype_options[dtype]
-        })
+        kwargs.update(
+            {
+                "crs": target_crs,
+                "transform": transform,
+                "width": width,
+                "height": height,
+                "dtype": dtype_options[dtype],
+            }
+        )
 
-        
         # Create the output file path
-        output_path = os.path.join(output_dir, f'{data_name}_{region_name_clean}_{crs_tag}.tif')
-
+        output_path = os.path.join(
+            output_dir, f"{data_name}_{region_name_clean}_{crs_tag}.tif"
+        )
 
         # Reproject and save the raster
-        with rasterio.open(output_path, 'w', **kwargs, compress='DEFLATE') as dst:
+        with rasterio.open(output_path, "w", **kwargs, compress="DEFLATE") as dst:
             for i in range(1, src.count + 1):
                 reproject(
                     source=rasterio.band(src, i),
@@ -417,51 +457,59 @@ def clip_reproject_raster(input_raster_path, region_name_clean, gdf, data_name, 
                     src_crs=src.crs,
                     dst_transform=transform,
                     dst_crs=target_crs,
-                    resampling=resampling_options[resampling_method])
-                
-            #print(f'reprojected raster CRS: {dst.crs}')
-    
+                    resampling=resampling_options[resampling_method],
+                )
+
+            # print(f'reprojected raster CRS: {dst.crs}')
 
 
+def reproject_raster(
+    input_raster_path,
+    region_name_clean,
+    target_crs,
+    resampling_method,
+    dtype,
+    outputFilePath,
+):
 
-def reproject_raster(input_raster_path, region_name_clean, target_crs, resampling_method, dtype, outputFilePath):
-       
     resampling_options = {
-        'nearest': Resampling.nearest,
-        'bilinear': Resampling.bilinear,
-        'cubic': Resampling.cubic,
-        'mode': Resampling.mode
+        "nearest": Resampling.nearest,
+        "bilinear": Resampling.bilinear,
+        "cubic": Resampling.cubic,
+        "mode": Resampling.mode,
     }
 
     dtype_options = {
-        'int8': rasterio.int8,
-        'uint8': rasterio.uint8,
-        'int16': rasterio.int16,
-        'uint16': rasterio.uint16,
-        'float32': rasterio.float32,
-        'float64': rasterio.float64
+        "int8": rasterio.int8,
+        "uint8": rasterio.uint8,
+        "int16": rasterio.int16,
+        "uint16": rasterio.uint16,
+        "float32": rasterio.float32,
+        "float64": rasterio.float64,
     }
 
     # reproject landcover raster to local UTM CRS
     with rasterio.open(os.path.join(input_raster_path)) as src:
         # Calculate the transformation and dimensions for the target CRS
         transform, width, height = calculate_default_transform(
-            src.crs, target_crs, src.width, src.height, *src.bounds)
+            src.crs, target_crs, src.width, src.height, *src.bounds
+        )
         kwargs = src.meta.copy()
-        kwargs.update({
-            'crs': target_crs,
-            'transform': transform, 
-            'width': width,
-            'height': height,
-            'dtype': dtype_options[dtype]
-        })
+        kwargs.update(
+            {
+                "crs": target_crs,
+                "transform": transform,
+                "width": width,
+                "height": height,
+                "dtype": dtype_options[dtype],
+            }
+        )
 
         # Create the output file path
         output_path = outputFilePath
 
-
         # Reproject and save the raster
-        with rasterio.open(output_path, 'w', **kwargs, compress='DEFLATE') as dst:
+        with rasterio.open(output_path, "w", **kwargs, compress="DEFLATE") as dst:
             for i in range(1, src.count + 1):
                 reproject(
                     source=rasterio.band(src, i),
@@ -470,8 +518,9 @@ def reproject_raster(input_raster_path, region_name_clean, target_crs, resamplin
                     src_crs=src.crs,
                     dst_transform=transform,
                     dst_crs=target_crs,
-                    resampling=resampling_options[resampling_method])
-                
+                    resampling=resampling_options[resampling_method],
+                )
+
             # Preserve colormap if present
             if src.count == 1:
                 try:
@@ -480,62 +529,62 @@ def reproject_raster(input_raster_path, region_name_clean, target_crs, resamplin
                         dst.write_colormap(1, colormap)
                 except (ValueError, KeyError):
                     pass  # No colormap present or band index invalid
-                
-            #print(f'reprojected raster CRS: {dst.crs}')
+
+            # print(f'reprojected raster CRS: {dst.crs}')
 
 
-def co_register(infile, match, resampling_method, outfile, dtype): #source: https://pygis.io/docs/e_raster_resample.html
+def co_register(
+    infile, match, resampling_method, outfile, dtype
+):  # source: https://pygis.io/docs/e_raster_resample.html
     """Reproject a file to match the shape and projection of existing raster. (co-registration)
-    
+
     Parameters
     ----------
     infile : (string) path to input file to reproject
-    match : (string) path to raster with desired shape and projection 
+    match : (string) path to raster with desired shape and projection
     outfile : (string) path to output file tif
     """
     resampling_options = {
-        'nearest': Resampling.nearest,
-        'bilinear': Resampling.bilinear,
-        'cubic': Resampling.cubic,
-        'mode': Resampling.mode
+        "nearest": Resampling.nearest,
+        "bilinear": Resampling.bilinear,
+        "cubic": Resampling.cubic,
+        "mode": Resampling.mode,
     }
 
     dtype_options = {
-        'int8': rasterio.int8,
-        'uint8': rasterio.uint8,
-        'int16': rasterio.int16,
-        'uint16': rasterio.uint16,
-        'float32': rasterio.float32,
-        'float64': rasterio.float64
+        "int8": rasterio.int8,
+        "uint8": rasterio.uint8,
+        "int16": rasterio.int16,
+        "uint16": rasterio.uint16,
+        "float32": rasterio.float32,
+        "float64": rasterio.float64,
     }
 
     # open input
     with rasterio.open(infile) as src:
-        src_transform = src.transform
-        
         # open input to match
         with rasterio.open(match) as match:
             dst_crs = match.crs
-            
+
             # calculate the output transform matrix
             dst_transform, dst_width, dst_height = calculate_default_transform(
-                src.crs,     # input CRS
-                dst_crs,     # output CRS
-                match.width,   # input width
-                match.height,  # input height 
+                src.crs,  # input CRS
+                dst_crs,  # output CRS
+                match.width,  # input width
+                match.height,  # input height
                 *match.bounds,  # unpacks input outer boundaries (left, bottom, right, top)
             )
 
         # set properties for output
         dst_profile = src.profile.copy()
-        
-        #dst_kwargs.update({"crs": dst_crs,
+
+        # dst_kwargs.update({"crs": dst_crs,
         #                   "transform": dst_transform,
         #                   "width": dst_width,
         #                   "height": dst_height,
         #                   "nodata": -9999,
         #                   "dtype": rasterio.int16})
-        
+
         dst_profile.update(
             crs=dst_crs,
             transform=dst_transform,
@@ -544,10 +593,10 @@ def co_register(infile, match, resampling_method, outfile, dtype): #source: http
             dtype=dtype_options[dtype],
             count=1,
             nodata=-9999,
-            compress='DEFLATE') 
-        
+            compress="DEFLATE",
+        )
 
-        #print("Coregistered to shape:", dst_height,dst_width,'\n Affine',dst_transform)
+        # print("Coregistered to shape:", dst_height,dst_width,'\n Affine',dst_transform)
         # open output
         with rasterio.open(outfile, "w", **dst_profile) as dst:
             # iterate through bands and write using reproject function
@@ -559,67 +608,81 @@ def co_register(infile, match, resampling_method, outfile, dtype): #source: http
                     src_crs=src.crs,
                     dst_transform=dst_transform,
                     dst_crs=dst_crs,
-                    resampling=resampling_options[resampling_method])
-                
+                    resampling=resampling_options[resampling_method],
+                )
 
 
 def landcover_information(landcoverRasterPath, data_path, region_name, crs_tag):
     # Open the raster using a context manager
     with rasterio.open(landcoverRasterPath) as landcover:
-        band = landcover.read(1, masked=True) # Read the first band, masked=True is masking no data values
-        
-        res = landcover.transform[0] #pixel size
-        #save pixel size local CRS
-        with open(os.path.join(data_path, f'pixel_size_{region_name}_{crs_tag}.json'), 'w') as fp:
+        band = landcover.read(
+            1, masked=True
+        )  # Read the first band, masked=True is masking no data values
+
+        res = landcover.transform[0]  # pixel size
+        # save pixel size local CRS
+        with open(
+            os.path.join(data_path, f"pixel_size_{region_name}_{crs_tag}.json"), "w"
+        ) as fp:
             json.dump(res, fp)
 
-        #Available land cover codes
+        # Available land cover codes
         land_codes = np.unique(band.data).tolist()
-        #save landuses as json file
-        with open(os.path.join(data_path, f'landuses_{region_name}.json'), 'w') as fp:
+        # save landuses as json file
+        with open(os.path.join(data_path, f"landuses_{region_name}.json"), "w") as fp:
             json.dump(land_codes, fp)
-                
 
 
-def create_north_facing_pixels(slopeFilePath, aspectFilePath, region_name_clean, richdem_helper_dir, X, Y, Z):
-    if 'resampled' in slopeFilePath:
-        resampled = '_resampled'
+def create_north_facing_pixels(
+    slopeFilePath, aspectFilePath, region_name_clean, richdem_helper_dir, X, Y, Z
+):
+    if "resampled" in slopeFilePath:
+        resampled = "_resampled"
     else:
-        resampled = ''
-     
+        resampled = ""
+
     # Open the slope and aspect rasters
     with rasterio.open(slopeFilePath) as src_slope:
         slope = src_slope.read(1)  # Read the slope data
         profile = src_slope.profile  # Get the profile for writing the output file
         crs_slope = src_slope.crs  # Access the CRS from metadata
-        EPSG_slope = crs_slope.to_epsg() #get EPSG code
+        EPSG_slope = crs_slope.to_epsg()  # get EPSG code
 
     with rasterio.open(aspectFilePath) as src_aspect:
         aspect = src_aspect.read(1)  # Read the aspect data
         crs_aspect = src_aspect.crs  # Access the CRS from metadata
-        EPSG_aspect = crs_aspect.to_epsg() #get EPSG code
+        EPSG_aspect = crs_aspect.to_epsg()  # get EPSG code
 
-    if EPSG_slope==EPSG_aspect:
-
-        #create map showing pixels with slope bigger X and aspect between Y and Z (north facing with slope where you would not build PV)
+    if EPSG_slope == EPSG_aspect:
+        # create map showing pixels with slope bigger X and aspect between Y and Z (north facing with slope where you would not build PV)
         condition = (slope > X) & ((aspect >= Y) | (aspect <= Z))
-        result = np.where(condition, 1, 0) # Create a new raster with the filtered results
+        result = np.where(
+            condition, 1, 0
+        )  # Create a new raster with the filtered results
 
-        profile.update(dtype=rasterio.int16, count=1, nodata=0, compress='DEFLATE') # Update the profile for the output raster
+        profile.update(
+            dtype=rasterio.int16, count=1, nodata=0, compress="DEFLATE"
+        )  # Update the profile for the output raster
 
         if result.sum() > 0:
             # Write the result to a new raster file
-            with rasterio.open(os.path.join(richdem_helper_dir, f'north_facing_{region_name_clean}_EPSG{EPSG_slope}{resampled}.tif'), 'w', **profile) as dst:
+            with rasterio.open(
+                os.path.join(
+                    richdem_helper_dir,
+                    f"north_facing_{region_name_clean}_EPSG{EPSG_slope}{resampled}.tif",
+                ),
+                "w",
+                **profile,
+            ) as dst:
                 dst.write(result.astype(rasterio.int16), 1)
         if result.sum() == 0:
-            logging.info('no north-facing pixel exceeding threshold slope')
-    
+            logging.info("no north-facing pixel exceeding threshold slope")
+
     else:
-        print('EPSG codes of used rasters is not the same')
+        print("EPSG codes of used rasters is not the same")
 
 
-
-#download global wind atlas
+# download global wind atlas
 def download_global_wind_atlas(country_code: str, height: int, data_path: str = None):
     """
     Downloads wind speed data from the Global Wind Atlas API for a given country and height.
@@ -628,32 +691,37 @@ def download_global_wind_atlas(country_code: str, height: int, data_path: str = 
         country_code (str): ISO 3166-1 alpha-3 country code (e.g., "AFG" for Afghanistan).
         height (int): Wind height in meters (e.g., 100).
         save_path (str, optional): Custom file name or path to save the file. If None, uses default naming.
-    
+
     Returns:
         bool: True if successful, False otherwise.
     """
     url = f"https://globalwindatlas.info/api/gis/country/{country_code}/wind-speed/{height}"
-    
+
     try:
         print(f"Downloading wind data for '{country_code}' from: {url}")
         response = requests.get(url)
         if response.ok:
-            filePath = os.path.join(data_path, 'global_solar_wind_atlas', f"{country_code}_wind_speed_{height}.tif")
+            filePath = os.path.join(
+                data_path,
+                "global_solar_wind_atlas",
+                f"{country_code}_wind_speed_{height}.tif",
+            )
             with open(filePath, "wb") as f:
                 f.write(response.content)
-            #print(f"Downloaded to: {filePath}")
+            # print(f"Downloaded to: {filePath}")
             return True
         else:
             print(f"Failed to download. HTTP status: {response.status_code}")
             return False
     except Exception as e:
-        logging.error(f'global wind atlas download failed: {e}')
+        logging.error(f"global wind atlas download failed: {e}")
         return False
-    
 
 
-#download global solar atlas
-def download_global_solar_atlas(country_name: str, data_path: str, measure = 'LTAym_YearlyMonthlyTotals'):
+# download global solar atlas
+def download_global_solar_atlas(
+    country_name: str, data_path: str, measure="LTAym_YearlyMonthlyTotals"
+):
     """
     Downloads and extracts the GIS data (GeoTIFF) ZIP file for the specified country from https://globalsolaratlas.info/download.
 
@@ -662,7 +730,7 @@ def download_global_solar_atlas(country_name: str, data_path: str, measure = 'LT
         save_path (str): Directory where the files will be saved. Defaults to current directory.
 
     """
-    
+
     # Encode the country name to handle spaces and special characters in the URL
     encoded_country_name = urllib.parse.quote(country_name)
     # Replace spaces with hyphens for the URL format
@@ -671,42 +739,47 @@ def download_global_solar_atlas(country_name: str, data_path: str, measure = 'LT
     # Construct the download URL
     # single country
     url = f"https://api.globalsolaratlas.info/download/{encoded_country_name}/{country_name_with_hyphens}_GISdata_{measure}_GlobalSolarAtlas-v2_GEOTIFF.zip"
-    timeout = 300 # 5 Minutes
+    timeout = 300  # 5 Minutes
     # or whole world
-    if country_name=='world':
-        url = 'https://api.globalsolaratlas.info/download/World/World_GHI_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip'
+    if country_name == "world":
+        url = "https://api.globalsolaratlas.info/download/World/World_GHI_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip"
         print("Attention: solar atlas whole world is a very big file! (ca. 350MB)")
-        timeout = 900 # 15 Minutes
+        timeout = 900  # 15 Minutes
     print(f"Downloading solar data for '{country_name}' from: {url}")
-    
+
     # Define the full extraction path
-    extract_folder = os.path.join(data_path, 'global_solar_wind_atlas', f"{country_name}_solar_atlas")
+    extract_folder = os.path.join(
+        data_path, "global_solar_wind_atlas", f"{country_name}_solar_atlas"
+    )
     os.makedirs(extract_folder, exist_ok=True)
-    
-    # download  
+
+    # download
     try:
-        response = requests.get(url, timeout=timeout)  
+        response = requests.get(url, timeout=timeout)
         if response.status_code == 200:
             print("Download successful. Extracting files...")
 
             with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
                 zip_ref.extractall(extract_folder)
 
-            #print(f"Files extracted to '{extract_folder}'")
+            # print(f"Files extracted to '{extract_folder}'")
 
             # Assuming the zip contains a single folder (standard GSA structure)
-            folder_name = zip_ref.namelist()[0].split('/')[0]  # top-level folder name
+            folder_name = zip_ref.namelist()[0].split("/")[0]  # top-level folder name
             return folder_name
         else:
-            print(f"Failed to download data for '{country_name}'. Status code: {response.status_code}")
-            
+            print(
+                f"Failed to download data for '{country_name}'. Status code: {response.status_code}"
+            )
+
     except requests.Timeout:
-        logging.warning(f"Download solar atlas data timed out after {timeout} seconds for '{country_name}'.")
+        logging.warning(
+            f"Download solar atlas data timed out after {timeout} seconds for '{country_name}'."
+        )
         return None
     except Exception as e:
         logging.error(f"solar atlas download failed: {e}")
         return None
-
 
 
 def clean_region_name(region_name: str) -> str:
@@ -731,7 +804,9 @@ def clean_region_name(region_name: str) -> str:
     return region_name_clean
 
 
-def log_scenario_run(region: str, technology: str, scenario: str, log_dir: str = "logs") -> None:
+def log_scenario_run(
+    region: str, technology: str, scenario: str, log_dir: str = "logs"
+) -> None:
     """Append a record of a scenario run to a log file.
 
     Parameters
@@ -783,14 +858,15 @@ def rel_path(path: str) -> str:
         return os.path.abspath(path)
 
 
-
 def landcover_stats_df(region_boundary, rasterFilePath, legend_dict, pixel_size):
-    stats = rasterstats.zonal_stats(region_boundary, rasterFilePath, categorical=True, category_map=legend_dict)
+    stats = rasterstats.zonal_stats(
+        region_boundary, rasterFilePath, categorical=True, category_map=legend_dict
+    )
     df = pd.DataFrame(stats)
-    df_long = df.melt(var_name='category', value_name='count')
-    df_long = df_long.groupby('category', as_index=False)['count'].sum()
+    df_long = df.melt(var_name="category", value_name="count")
+    df_long = df_long.groupby("category", as_index=False)["count"].sum()
     category_to_code = {category: code for code, category in legend_dict.items()}
-    df_long['code'] = df_long['category'].map(category_to_code)
-    df_long['area_km2'] = round(df_long['count'] * pixel_size / 1e6, 0)
-    df_long = df_long[['category', 'code', 'count', 'area_km2']]
+    df_long["code"] = df_long["category"].map(category_to_code)
+    df_long["area_km2"] = round(df_long["count"] * pixel_size / 1e6, 0)
+    df_long = df_long[["category", "code", "count", "area_km2"]]
     return df_long

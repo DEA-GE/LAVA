@@ -1,5 +1,8 @@
 # LAVA - *L*and *AV*ailability *A*nalysis 
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/DEA-GE/LAVA/main.svg)](https://results.pre-commit.ci/latest/github/DEA-GE/LAVA/main)
+
 LAVA is a tool to calculate the available area in a user defined study region for building renewable energy generators like utility-scale ground-mounted solar PV and wind onshore.
 First, all needed data is downloaded and preprocessed to bring it into the right format. Then the land eligibility analysis is done with the help of [`atlite`](https://github.com/PyPSA/atlite). Additionally, a suitable analysis can be performed and timeseries data for the available area derived.
 The LAVA tool is flexible research software with a limited user-interface. For user-friendly online GIS tools to identify available land have a look at [Energy Access Explorer](https://www.energyaccessexplorer.org/tool/s/) and [REZoning](https://rezoning.energydata.info/). 
@@ -82,4 +85,3 @@ __useful to identify residential areas__:
 * [World Settlement Footprint (WSF®) 2019](https://geoservice.dlr.de/web/datasets/wsf_2019): 10m resolution binary mask outlining the extent of human settlements globally derived by means of 2019 multitemporal Sentinel-1 (S1) and Sentinel-2 (S2) imagery.
 * [GHS-BUILT-C - R2023A](https://human-settlement.emergency.copernicus.eu/ghs_buC2023.php): The spatial raster dataset delineates the boundaries of the human settlements at 10m resolution, and describe their inner characteristics in terms of the morphology of the built environment and the functional use. Derived from Sentinel2 composite and Landsat, multitemporal (1975-2030). (Might have higher accuracy than WSF accrording to [this paper](https://doi.org/10.1080/17538947.2024.2390454))
 * [EMC-BUILT - R2025A](https://human-settlement.emergency.copernicus.eu/emc_built_s.php): Exposure Mapping Component built-up surface grid, derived from Sentinel-2 year 2022. EMC-BUILT-R2025A is more accurate than GHS-BUILT-C-R2023A: "*Compared to its predecessor, the GHSL R2023 built-up product (epoch 2018), the new product [EMC-BUILT-R2025A] shows less issues with overestimation while buildings are delineated more precisely. When comparing quality metrics (both total built-up surface and non-residential built-up surface) the new products show improved results.*" (see products [documentation](https://human-settlement.emergency.copernicus.eu/documents/EMC-BUILT_R2025.pdf?t=1764778621) page 6)
-
