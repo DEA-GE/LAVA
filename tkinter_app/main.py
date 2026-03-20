@@ -1,6 +1,8 @@
 """Tkinter-based translation of the Python Script Manager interface."""
+
 from __future__ import annotations
 import html
+import importlib.util
 import json
 import os
 import queue
@@ -35,31 +37,28 @@ except Exception:  # pragma: no cover - optional dependency
     HAVE_TTKBOOTSTRAP = False
 CURRENT_DIR = Path(__file__).resolve().parent
 PARENT_DIR = CURRENT_DIR.parent
-SNAKEMAKE_GLOBAL_PATH = PARENT_DIR / "snakemake"/ "Snakefile_global"
+SNAKEMAKE_GLOBAL_PATH = PARENT_DIR / "snakemake" / "Snakefile_global"
 if str(CURRENT_DIR) not in sys.path:
     sys.path.append(str(CURRENT_DIR))
 if str(PARENT_DIR) not in sys.path:
     sys.path.append(str(PARENT_DIR))
 from flag_mapper import make_path, ui_bool_to_numeric, yaml_numeric_to_ui_bool  # type: ignore  # noqa: E402
 from data_loader import (  # type: ignore  # noqa: E402
-    DEFAULT_RESULTS_DATA,
     load_initial_sections,
     load_onshore_sections,
     load_solar_sections,
     load_config_snakemake_sections,
     load_sample_results,
 )
+
 try:
     import yaml  # type: ignore
 except ImportError:  # pragma: no cover - optional dependency
     yaml = None
-try:
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg  # type: ignore
-    from matplotlib.figure import Figure  # type: ignore
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:  # pragma: no cover - optional dependency
-    MATPLOTLIB_AVAILABLE = False
+
+MATPLOTLIB_AVAILABLE = importlib.util.find_spec("matplotlib") is not None
 SNAKEFILE_TEMPLATE = """"""
+
 
 def sections_to_yaml(sections: List[Dict[str, Any]]) -> str:
     """Return a YAML representation that mirrors the React implementation."""
@@ -90,12 +89,17 @@ def sections_to_yaml(sections: List[Dict[str, Any]]) -> str:
             lines.append(f"  {param['key']}: {value_str}")
         lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+
 def yaml_to_sections(
     baseline: List[Dict[str, Any]], yaml_text: str
 ) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
     """Parse YAML and merge known keys back into the section structure."""
     if not yaml:
-        return None, "PyYAML is required for raw YAML editing. Install with `pip install PyYAML`."
+        return (
+            None,
+            "PyYAML is required for raw YAML editing. Install with `pip install PyYAML`.",
+        )
     try:
         parsed = yaml.safe_load(yaml_text) or {}
     except Exception as exc:  # pragma: no cover - direct parsing feedback
@@ -156,7 +160,9 @@ def _extract_geojson_bounds(payload: Any) -> Optional[List[List[float]]]:
     return [[south, west], [north, east]]
 
 
-def _percentile_stretch(arr: np.ndarray, pmin: float = 2, pmax: float = 98) -> np.ndarray:
+def _percentile_stretch(
+    arr: np.ndarray, pmin: float = 2, pmax: float = 98
+) -> np.ndarray:
     """Scale array to 0..255 using per-band percentiles."""
     a = arr.astype("float32", copy=False)
     lo = float(np.nanpercentile(a, pmin))
@@ -185,10 +191,20 @@ def geotiff_to_png_with_bounds(
         bounds = src.bounds
         if src.crs and src.crs.to_string() != "EPSG:4326":
             west, south, east, north = transform_bounds(
-                src.crs, "EPSG:4326", bounds.left, bounds.bottom, bounds.right, bounds.top
+                src.crs,
+                "EPSG:4326",
+                bounds.left,
+                bounds.bottom,
+                bounds.right,
+                bounds.top,
             )
         else:
-            west, south, east, north = bounds.left, bounds.bottom, bounds.right, bounds.top
+            west, south, east, north = (
+                bounds.left,
+                bounds.bottom,
+                bounds.right,
+                bounds.top,
+            )
 
         nodata = src.nodata
         mask = src.dataset_mask().astype(bool)
@@ -214,7 +230,9 @@ def geotiff_to_png_with_bounds(
             if src.count >= 3:
                 arr = src.read([1, 2, 3], resampling=Resampling.nearest)
                 if str(arr.dtype) != "uint8":
-                    arr = np.stack([_percentile_stretch(arr[i]) for i in range(3)], axis=0)
+                    arr = np.stack(
+                        [_percentile_stretch(arr[i]) for i in range(3)], axis=0
+                    )
                 arr = np.transpose(arr, (1, 2, 0))
             else:
                 band = src.read(1, resampling=Resampling.nearest)
@@ -253,7 +271,9 @@ def build_map_html(
 ) -> Optional[List[List[float]]]:
     out_html_path = Path(out_html)
     out_html_path.parent.mkdir(parents=True, exist_ok=True)
-    fmap = folium.Map(location=default_center, zoom_start=default_zoom, control_scale=True)
+    fmap = folium.Map(
+        location=default_center, zoom_start=default_zoom, control_scale=True
+    )
 
     def update_union(
         current: Optional[List[List[float]]], new_bounds: Optional[List[List[float]]]
@@ -261,14 +281,19 @@ def build_map_html(
         if not new_bounds:
             return current
         if current is None:
-            return [[new_bounds[0][0], new_bounds[0][1]], [new_bounds[1][0], new_bounds[1][1]]]
+            return [
+                [new_bounds[0][0], new_bounds[0][1]],
+                [new_bounds[1][0], new_bounds[1][1]],
+            ]
         south = min(current[0][0], new_bounds[0][0])
         west = min(current[0][1], new_bounds[0][1])
         north = max(current[1][0], new_bounds[1][0])
         east = max(current[1][1], new_bounds[1][1])
         return [[south, west], [north, east]]
 
-    sorted_layers = sorted(layers, key=lambda item: (item.get("order", 0), item.get("index", 0)))
+    sorted_layers = sorted(
+        layers, key=lambda item: (item.get("order", 0), item.get("index", 0))
+    )
     union_bounds: Optional[List[List[float]]] = None
     for layer in sorted_layers:
         display_name = layer.get("display_name") or layer.get("name") or "Layer"
@@ -303,7 +328,9 @@ def build_map_html(
                 highlighted = dict(style)
                 highlighted["weight"] = style.get("weight", 2) + 1
                 highlighted["opacity"] = min(1.0, style.get("opacity", opacity) + 0.1)
-                highlighted["fillOpacity"] = min(1.0, style.get("fillOpacity", opacity * 0.6) + 0.1)
+                highlighted["fillOpacity"] = min(
+                    1.0, style.get("fillOpacity", opacity * 0.6) + 0.1
+                )
                 return highlighted
 
             geojson_layer = folium.GeoJson(
@@ -324,7 +351,9 @@ def build_map_html(
     if legend_html:
         legend_content = legend_html
         if "<" not in legend_content:
-            legend_content = "<br>".join(html.escape(part) for part in legend_content.splitlines())
+            legend_content = "<br>".join(
+                html.escape(part) for part in legend_content.splitlines()
+            )
         template = Template(
             f"""
             {{% macro html() %}}
@@ -342,11 +371,15 @@ def build_map_html(
     return union_bounds
 
 
-def _show_map_fallback(html_path: Path, parent: tk.Widget, reason: Optional[str] = None) -> Dict[str, Any]:
+def _show_map_fallback(
+    html_path: Path, parent: tk.Widget, reason: Optional[str] = None
+) -> Dict[str, Any]:
     info = "Interactive map opened in your default browser."
     if reason:
         info = f"{info} ({reason})"
-    label = ttk.Label(parent, text=info, foreground="#a66b00", wraplength=420, justify="left")
+    label = ttk.Label(
+        parent, text=info, foreground="#a66b00", wraplength=420, justify="left"
+    )
     label.pack(fill="x", padx=10, pady=8)
     webbrowser.open_new_tab(html_path.resolve().as_uri())
     return {"embedded": False, "widget": label, "cleanup": lambda: None}
@@ -368,7 +401,9 @@ def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
         widget = WebView2(container, width=width, height=height)
     except Exception as exc:
         container.destroy()
-        return _show_map_fallback(target, parent, f"Unable to initialise WebView2: {exc}")
+        return _show_map_fallback(
+            target, parent, f"Unable to initialise WebView2: {exc}"
+        )
 
     widget.pack(fill="both", expand=True)
     uri = target.resolve().as_uri()
@@ -390,7 +425,12 @@ def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
             container.destroy()
             return _show_map_fallback(target, parent, f"Unable to display map: {exc}")
         html_loaded = False
-        for method_name in ("load_html", "load_html_string", "set_html", "load_html_content"):
+        for method_name in (
+            "load_html",
+            "load_html_string",
+            "set_html",
+            "load_html_content",
+        ):
             method = getattr(widget, method_name, None)
             if callable(method):
                 try:
@@ -408,7 +448,9 @@ def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
         if not html_loaded:
             widget.destroy()
             container.destroy()
-            return _show_map_fallback(target, parent, "Unable to display map in embedded viewer.")
+            return _show_map_fallback(
+                target, parent, "Unable to display map in embedded viewer."
+            )
 
     def cleanup() -> None:
         try:
@@ -422,11 +464,17 @@ def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
                 pass
 
     container.bind("<Destroy>", lambda _e: cleanup())
-    return {"embedded": True, "widget": container, "cleanup": cleanup, "browser": widget}
+    return {
+        "embedded": True,
+        "widget": container,
+        "cleanup": cleanup,
+        "browser": widget,
+    }
 
 
 class ConfigurationTab(ttk.Frame):
     """Configuration management tab."""
+
     def __init__(self, master: tk.Widget, sections: List[Dict[str, Any]]):
         super().__init__(master)
         self.sections_baseline = deepcopy(sections)
@@ -448,6 +496,7 @@ class ConfigurationTab(ttk.Frame):
         if self.sections:
             self.section_listbox.selection_set(0)
         self._load_existing_config()
+
     def _build_ui(self) -> None:
         notebook = ttk.Notebook(self)
         notebook.grid(row=0, column=0, sticky="nsew")
@@ -459,11 +508,19 @@ class ConfigurationTab(ttk.Frame):
         mode_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
         ttk.Label(mode_frame, text="Edit Mode:").pack(side="left")
         self.visual_button = ttk.Radiobutton(
-            mode_frame, text="Visual Editor", value="visual", variable=self.config_mode, command=self._on_mode_change
+            mode_frame,
+            text="Visual Editor",
+            value="visual",
+            variable=self.config_mode,
+            command=self._on_mode_change,
         )
         self.visual_button.pack(side="left", padx=6)
         self.raw_button = ttk.Radiobutton(
-            mode_frame, text="Raw YAML", value="raw", variable=self.config_mode, command=self._on_mode_change
+            mode_frame,
+            text="Raw YAML",
+            value="raw",
+            variable=self.config_mode,
+            command=self._on_mode_change,
         )
         self.raw_button.pack(side="left")
         self.config_status = ttk.Label(mode_frame, text="")
@@ -473,68 +530,108 @@ class ConfigurationTab(ttk.Frame):
         self.visual_container.columnconfigure(1, weight=1)
         self.visual_container.columnconfigure(0, minsize=260)  # widen left pane
         self.visual_container.rowconfigure(0, weight=1)
-        self.section_list_var = tk.StringVar(value=[sec.get("displayName", sec["name"]) for sec in self.sections])
+        self.section_list_var = tk.StringVar(
+            value=[sec.get("displayName", sec["name"]) for sec in self.sections]
+        )
         self.section_listbox = tk.Listbox(
-            self.visual_container, listvariable=self.section_list_var, exportselection=False, height=20
+            self.visual_container,
+            listvariable=self.section_list_var,
+            exportselection=False,
+            height=20,
         )
         self.section_listbox.grid(row=0, column=0, sticky="nsew")
         self.section_listbox.bind("<<ListboxSelect>>", self._on_section_select)
-        section_scroll = ttk.Scrollbar(self.visual_container, orient="vertical", command=self.section_listbox.yview)
+        section_scroll = ttk.Scrollbar(
+            self.visual_container, orient="vertical", command=self.section_listbox.yview
+        )
         section_scroll.grid(row=0, column=0, sticky="nse")
         self.section_listbox.configure(yscrollcommand=section_scroll.set)
         self.param_canvas = tk.Canvas(self.visual_container, highlightthickness=0)
         self.param_canvas.grid(row=0, column=1, sticky="nsew")
-        params_scroll = ttk.Scrollbar(self.visual_container, orient="vertical", command=self.param_canvas.yview)
+        params_scroll = ttk.Scrollbar(
+            self.visual_container, orient="vertical", command=self.param_canvas.yview
+        )
         params_scroll.grid(row=0, column=2, sticky="ns")
         self.param_canvas.configure(yscrollcommand=params_scroll.set)
         self.param_inner = ttk.Frame(self.param_canvas)
-        self.param_inner.bind("<Configure>", lambda e: self.param_canvas.configure(scrollregion=self.param_canvas.bbox("all")))
+        self.param_inner.bind(
+            "<Configure>",
+            lambda e: self.param_canvas.configure(
+                scrollregion=self.param_canvas.bbox("all")
+            ),
+        )
         self.param_canvas.create_window((0, 0), window=self.param_inner, anchor="nw")
         self.raw_container = ttk.Frame(self.config_tab)
         self.raw_container.columnconfigure(0, weight=1)
         self.raw_container.rowconfigure(0, weight=1)
-        self.config_text = tk.Text(self.raw_container, wrap="none", font=("Courier New", 10))
+        self.config_text = tk.Text(
+            self.raw_container, wrap="none", font=("Courier New", 10)
+        )
         self.config_text.grid(row=0, column=0, sticky="nsew")
-        self.config_text.bind("<KeyRelease>", lambda _: self._mark_config_dirty(raw=True))
-        text_scroll_y = ttk.Scrollbar(self.raw_container, orient="vertical", command=self.config_text.yview)
+        self.config_text.bind(
+            "<KeyRelease>", lambda _: self._mark_config_dirty(raw=True)
+        )
+        text_scroll_y = ttk.Scrollbar(
+            self.raw_container, orient="vertical", command=self.config_text.yview
+        )
         text_scroll_y.grid(row=0, column=1, sticky="ns")
         self.config_text.configure(yscrollcommand=text_scroll_y.set)
-        text_scroll_x = ttk.Scrollbar(self.raw_container, orient="horizontal", command=self.config_text.xview)
+        text_scroll_x = ttk.Scrollbar(
+            self.raw_container, orient="horizontal", command=self.config_text.xview
+        )
         text_scroll_x.grid(row=1, column=0, sticky="ew")
         self.config_text.configure(xscrollcommand=text_scroll_x.set)
         button_row = ttk.Frame(self.config_tab)
         button_row.grid(row=2, column=0, sticky="e", padx=10, pady=(5, 10))
-        ttk.Button(button_row, text="Discard Changes", command=self._reset_config).pack(side="right", padx=6)
-        ttk.Button(button_row, text="Save", command=self._save_config).pack(side="right")
+        ttk.Button(button_row, text="Discard Changes", command=self._reset_config).pack(
+            side="right", padx=6
+        )
+        ttk.Button(button_row, text="Save", command=self._save_config).pack(
+            side="right"
+        )
         self.snakefile_tab = ttk.Frame(notebook)
         self.snakefile_tab.columnconfigure(0, weight=1)
         self.snakefile_tab.rowconfigure(0, weight=1)
         notebook.add(self.snakefile_tab, text="Snakefile")
-        self.snakefile_text = tk.Text(self.snakefile_tab, wrap="none", font=("Courier New", 10))
+        self.snakefile_text = tk.Text(
+            self.snakefile_tab, wrap="none", font=("Courier New", 10)
+        )
         self.snakefile_text.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         self.snakefile_text.insert("1.0", SNAKEFILE_TEMPLATE)
         self.snakefile_text.bind("<KeyRelease>", lambda _: self._mark_snakefile_dirty())
-        snake_scroll_y = ttk.Scrollbar(self.snakefile_tab, orient="vertical", command=self.snakefile_text.yview)
+        snake_scroll_y = ttk.Scrollbar(
+            self.snakefile_tab, orient="vertical", command=self.snakefile_text.yview
+        )
         snake_scroll_y.grid(row=0, column=1, sticky="ns", pady=10)
         self.snakefile_text.configure(yscrollcommand=snake_scroll_y.set)
-        snake_scroll_x = ttk.Scrollbar(self.snakefile_tab, orient="horizontal", command=self.snakefile_text.xview)
+        snake_scroll_x = ttk.Scrollbar(
+            self.snakefile_tab, orient="horizontal", command=self.snakefile_text.xview
+        )
         snake_scroll_x.grid(row=1, column=0, sticky="ew", padx=10)
         self.snakefile_text.configure(xscrollcommand=snake_scroll_x.set)
         snake_buttons = ttk.Frame(self.snakefile_tab)
         snake_buttons.grid(row=2, column=0, sticky="e", padx=10, pady=(0, 10))
         self.snakefile_status = ttk.Label(snake_buttons, text="")
         self.snakefile_status.pack(side="left", padx=(0, 10))
-        ttk.Button(snake_buttons, text="Discard Changes", command=self._reset_snakefile).pack(side="right", padx=6)
-        ttk.Button(snake_buttons, text="Save", command=self._save_snakefile).pack(side="right")
+        ttk.Button(
+            snake_buttons, text="Discard Changes", command=self._reset_snakefile
+        ).pack(side="right", padx=6)
+        ttk.Button(snake_buttons, text="Save", command=self._save_snakefile).pack(
+            side="right"
+        )
         if SNAKEMAKE_GLOBAL_PATH.exists():
             try:
                 snake_content = SNAKEMAKE_GLOBAL_PATH.read_text(encoding="utf-8")
             except OSError:
-                self.snakefile_status.configure(text=f"Could not read {SNAKEMAKE_GLOBAL_PATH.name}")
+                self.snakefile_status.configure(
+                    text=f"Could not read {SNAKEMAKE_GLOBAL_PATH.name}"
+                )
             else:
                 self.snakefile_text.delete("1.0", "end")
                 self.snakefile_text.insert("1.0", snake_content)
-                self.snakefile_status.configure(text=f"Loaded from {SNAKEMAKE_GLOBAL_PATH.name}")
+                self.snakefile_status.configure(
+                    text=f"Loaded from {SNAKEMAKE_GLOBAL_PATH.name}"
+                )
                 self.snakefile_save_path = SNAKEMAKE_GLOBAL_PATH
                 self.snakefile_dirty = False
         for label, info in self.extra_files.items():
@@ -548,6 +645,7 @@ class ConfigurationTab(ttk.Frame):
                 self._build_raw_extra_editor(label, info, file_frame)
         for info in self.extra_files.values():
             info.setdefault("dirty", False)
+
     def _load_existing_config(self) -> None:
         config_path = PARENT_DIR / "config.yaml"
         if not config_path.exists():
@@ -568,12 +666,23 @@ class ConfigurationTab(ttk.Frame):
         else:
             self._populate_raw_editor()
         self._update_config_status()
+
     def _load_additional_files(self) -> Dict[str, Dict[str, Any]]:
         entries: Dict[str, Dict[str, Any]] = {}
         specs = [
-            ("onshorewind.yaml", ("onshorewind.yaml",), load_onshore_sections, "generic"),
+            (
+                "onshorewind.yaml",
+                ("onshorewind.yaml",),
+                load_onshore_sections,
+                "generic",
+            ),
             ("solar.yaml", ("solar.yaml",), load_solar_sections, "generic"),
-            ("config_snakemake.yaml", ("config_snakemake.yaml",), load_config_snakemake_sections, "config_snakemake"),
+            (
+                "config_snakemake.yaml",
+                ("config_snakemake.yaml",),
+                load_config_snakemake_sections,
+                "config_snakemake",
+            ),
         ]
         for label, candidates, section_loader, kind in specs:
             existing_path: Optional[Path] = None
@@ -607,11 +716,16 @@ class ConfigurationTab(ttk.Frame):
                 "kind": kind,
             }
         return entries
-    def _build_raw_extra_editor(self, label: str, info: Dict[str, Any], parent: tk.Widget) -> None:
+
+    def _build_raw_extra_editor(
+        self, label: str, info: Dict[str, Any], parent: tk.Widget
+    ) -> None:
         text_widget = tk.Text(parent, wrap="none", font=("Courier New", 10))
         text_widget.grid(row=0, column=0, sticky="nsew", padx=8, pady=(4, 6))
         text_widget.insert("1.0", info.get("baseline", ""))
-        text_widget.bind("<KeyRelease>", lambda _event, name=label: self._mark_extra_dirty(name))
+        text_widget.bind(
+            "<KeyRelease>", lambda _event, name=label: self._mark_extra_dirty(name)
+        )
         scroll_y = ttk.Scrollbar(parent, orient="vertical", command=text_widget.yview)
         scroll_y.grid(row=0, column=1, sticky="ns", pady=(4, 6))
         text_widget.configure(yscrollcommand=scroll_y.set)
@@ -626,13 +740,20 @@ class ConfigurationTab(ttk.Frame):
             status_text = f"Saving to {info['expected_path'].name}"
         status_label = ttk.Label(buttons, text=status_text)
         status_label.pack(side="left", padx=(0, 10))
-        ttk.Button(buttons, text="Discard Changes", command=lambda name=label: self._reset_extra_file(name)).pack(
-            side="right", padx=6
-        )
-        ttk.Button(buttons, text="Save", command=lambda name=label: self._save_extra_file(name)).pack(side="right")
+        ttk.Button(
+            buttons,
+            text="Discard Changes",
+            command=lambda name=label: self._reset_extra_file(name),
+        ).pack(side="right", padx=6)
+        ttk.Button(
+            buttons, text="Save", command=lambda name=label: self._save_extra_file(name)
+        ).pack(side="right")
         info["text_widget"] = text_widget
         info["status_label"] = status_label
-    def _build_structured_extra_editor(self, label: str, info: Dict[str, Any], parent: tk.Widget) -> None:
+
+    def _build_structured_extra_editor(
+        self, label: str, info: Dict[str, Any], parent: tk.Widget
+    ) -> None:
         # Keep the toggle row compact while letting the editor stack take the excess space.
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(0, weight=0)
@@ -662,7 +783,7 @@ class ConfigurationTab(ttk.Frame):
 
         # --- STACK that owns the space for both editors (prevents layout jump) ---
         editor_stack = ttk.Frame(parent)
-        editor_stack.grid(row=1, column=0, sticky="nsew", padx=8, pady=0 )
+        editor_stack.grid(row=1, column=0, sticky="nsew", padx=8, pady=0)
         editor_stack.columnconfigure(0, weight=1)
         editor_stack.rowconfigure(0, weight=1)
         info["editor_stack"] = editor_stack
@@ -676,7 +797,9 @@ class ConfigurationTab(ttk.Frame):
         visual_canvas = tk.Canvas(visual_container, highlightthickness=0, borderwidth=0)
         visual_canvas.grid(row=0, column=0, sticky="nsew", pady=0)
 
-        vsb = ttk.Scrollbar(visual_container, orient="vertical", command=visual_canvas.yview)
+        vsb = ttk.Scrollbar(
+            visual_container, orient="vertical", command=visual_canvas.yview
+        )
         vsb.grid(row=0, column=1, sticky="ns")
         visual_canvas.configure(yscrollcommand=vsb.set)
 
@@ -686,11 +809,13 @@ class ConfigurationTab(ttk.Frame):
         # Scroll region follows content
         def _on_inner_config(_event):
             visual_canvas.configure(scrollregion=visual_canvas.bbox("all"))
+
         visual_frame.bind("<Configure>", _on_inner_config)
 
         # Inner frame width tracks canvas width
         def _on_canvas_config(event):
             visual_canvas.itemconfigure(inner_id, width=event.width)
+
         visual_canvas.bind("<Configure>", _on_canvas_config)
 
         info["visual_container"] = visual_container
@@ -711,29 +836,45 @@ class ConfigurationTab(ttk.Frame):
         raw_frame.rowconfigure(0, weight=1)
         raw_frame.columnconfigure(0, weight=1)
 
-        baseline = info.get("baseline") or self._serialize_sections_for_kind(info.get("kind"), info.get("sections"))
+        baseline = info.get("baseline") or self._serialize_sections_for_kind(
+            info.get("kind"), info.get("sections")
+        )
         text_widget.insert("1.0", baseline)
-        text_widget.bind("<KeyRelease>", lambda _event, name=label: self._mark_extra_dirty(name))
+        text_widget.bind(
+            "<KeyRelease>", lambda _event, name=label: self._mark_extra_dirty(name)
+        )
         info["text_widget"] = text_widget
 
-        scroll_y = ttk.Scrollbar(raw_frame, orient="vertical", command=text_widget.yview)
+        scroll_y = ttk.Scrollbar(
+            raw_frame, orient="vertical", command=text_widget.yview
+        )
         scroll_y.grid(row=0, column=1, sticky="ns")
         text_widget.configure(yscrollcommand=scroll_y.set)
-        scroll_x = ttk.Scrollbar(raw_frame, orient="horizontal", command=text_widget.xview)
+        scroll_x = ttk.Scrollbar(
+            raw_frame, orient="horizontal", command=text_widget.xview
+        )
         scroll_x.grid(row=1, column=0, sticky="ew")
         text_widget.configure(xscrollcommand=scroll_x.set)
 
         # --- Bottom buttons (outside the stack, fixed position) ---
         buttons = ttk.Frame(parent)
         buttons.grid(row=2, column=0, sticky="e", padx=10, pady=(0, 10))
-        status_text = f"Loaded from {info['path'].name}" if info["path"] else f"Saving to {info['expected_path'].name}"
+        status_text = (
+            f"Loaded from {info['path'].name}"
+            if info["path"]
+            else f"Saving to {info['expected_path'].name}"
+        )
         status_label = ttk.Label(buttons, text=status_text)
         status_label.pack(side="left", padx=(0, 10))
         info["status_label"] = status_label
-        ttk.Button(buttons, text="Discard Changes", command=lambda name=label: self._reset_extra_file(name)).pack(
-            side="right", padx=6
-        )
-        ttk.Button(buttons, text="Save", command=lambda name=label: self._save_extra_file(name)).pack(side="right")
+        ttk.Button(
+            buttons,
+            text="Discard Changes",
+            command=lambda name=label: self._reset_extra_file(name),
+        ).pack(side="right", padx=6)
+        ttk.Button(
+            buttons, text="Save", command=lambda name=label: self._save_extra_file(name)
+        ).pack(side="right")
 
         # Build visual controls & select the starting mode
         self._render_extra_visual_sections(label, info)
@@ -748,7 +889,10 @@ class ConfigurationTab(ttk.Frame):
         info["param_controls"] = []
         for s_index, section in enumerate(info.get("sections", [])):
             section_frame = ttk.LabelFrame(
-                frame, text=section.get("displayName", section.get("name", f"Section {s_index + 1}"))
+                frame,
+                text=section.get(
+                    "displayName", section.get("name", f"Section {s_index + 1}")
+                ),
             )
             section_frame.pack(fill="x", pady=(6, 6))
             section_frame.configure(padding=(6, 4))
@@ -758,7 +902,9 @@ class ConfigurationTab(ttk.Frame):
                 row.columnconfigure(1, weight=0)
                 row.columnconfigure(2, weight=1)
                 label_text = param.get("label") or param["key"].replace("_", " ")
-                ttk.Label(row, text=label_text).grid(row=0, column=0, sticky="w", padx=(0, 6))
+                ttk.Label(row, text=label_text).grid(
+                    row=0, column=0, sticky="w", padx=(0, 6)
+                )
                 desc_text = (param.get("description") or "").strip()
                 param_type = param.get("type", "string")
                 ctrl_info: Dict[str, Any] = {
@@ -791,12 +937,17 @@ class ConfigurationTab(ttk.Frame):
                     )
                     ctrl_info["widget"] = widget
                 else:
-                    value = "" if param.get("value") is None else str(param.get("value"))
+                    value = (
+                        "" if param.get("value") is None else str(param.get("value"))
+                    )
                     var = tk.StringVar(value=value)
                     ctrl_info["var"] = var
                     entry = ttk.Entry(row, textvariable=var, width=20)
                     entry.grid(row=0, column=1, sticky="w", padx=(0, 6))
-                    var.trace_add("write", lambda *_args, name=label: self._on_extra_param_changed(name))
+                    var.trace_add(
+                        "write",
+                        lambda *_args, name=label: self._on_extra_param_changed(name),
+                    )
                     ctrl_info["widget"] = entry
                 if desc_text:
                     ttk.Label(row, text=desc_text, wraplength=240, justify="left").grid(
@@ -807,9 +958,11 @@ class ConfigurationTab(ttk.Frame):
         if canvas:
             canvas.update_idletasks()
             canvas.yview_moveto(0.0)
+
     def _on_extra_param_changed(self, label: str) -> None:
         self._update_extra_sections_from_controls(label)
         self._mark_extra_dirty(label)
+
     def _update_extra_sections_from_controls(self, label: str) -> None:
         info = self.extra_files.get(label)
         if not info:
@@ -831,7 +984,9 @@ class ConfigurationTab(ttk.Frame):
                             numeric = float(text)
                         except ValueError:
                             numeric = 0.0
-                        param["value"] = int(numeric) if numeric.is_integer() else numeric
+                        param["value"] = (
+                            int(numeric) if numeric.is_integer() else numeric
+                        )
             elif param_type == "array":
                 widget = ctrl.get("widget")
                 if widget is not None:
@@ -853,6 +1008,7 @@ class ConfigurationTab(ttk.Frame):
             else:
                 var = ctrl.get("var")
                 param["value"] = "" if var is None else var.get()
+
     def _update_extra_visual_controls(self, label: str) -> None:
         info = self.extra_files.get(label)
         if not info:
@@ -878,6 +1034,7 @@ class ConfigurationTab(ttk.Frame):
                 var = ctrl.get("var")
                 if var is not None:
                     var.set("" if value is None else str(value))
+
     def _sync_extra_visual_to_text(self, label: str) -> None:
         info = self.extra_files.get(label)
         if not info:
@@ -886,7 +1043,9 @@ class ConfigurationTab(ttk.Frame):
         if not text_widget:
             return
         self._update_extra_sections_from_controls(label)
-        yaml_text = self._serialize_sections_for_kind(info.get("kind"), info.get("sections"))
+        yaml_text = self._serialize_sections_for_kind(
+            info.get("kind"), info.get("sections")
+        )
         text_widget.delete("1.0", "end")
         text_widget.insert("1.0", yaml_text)
         info["dirty"] = True
@@ -901,7 +1060,9 @@ class ConfigurationTab(ttk.Frame):
         yaml_text = text_widget.get("1.0", "end-1c")
         if info.get("kind") == "config_snakemake":
             sections = info.get("sections") or load_config_snakemake_sections()
-            sections, error = self._config_snakemake_sections_from_yaml(yaml_text, sections)
+            sections, error = self._config_snakemake_sections_from_yaml(
+                yaml_text, sections
+            )
             if error:
                 messagebox.showerror("Invalid YAML", error)
                 return False
@@ -915,6 +1076,7 @@ class ConfigurationTab(ttk.Frame):
                 info["sections"] = updated
         self._render_extra_visual_sections(label, info)
         return True
+
     def _handle_extra_mode_change(self, label: str, initial: bool = False) -> None:
         info = self.extra_files.get(label)
         if not info:
@@ -958,6 +1120,7 @@ class ConfigurationTab(ttk.Frame):
 
             if raw_frame is not None:
                 raw_frame.grid(row=0, column=0, sticky="nsew")
+
     def _extra_sections_to_yaml(self, sections: Optional[List[Dict[str, Any]]]) -> str:
         data: Dict[str, Any] = {}
         if not sections:
@@ -1000,7 +1163,9 @@ class ConfigurationTab(ttk.Frame):
             cores_value = int(flat.get("cores", 4))
         except (TypeError, ValueError):
             cores_value = 4
-        snakefile_value = str(flat.get("snakefile", "snakemake_global")).strip() or "snakemake_global"
+        snakefile_value = (
+            str(flat.get("snakefile", "snakemake_global")).strip() or "snakemake_global"
+        )
         data = {
             "snakefile": snakefile_value,
             "cores": cores_value,
@@ -1049,6 +1214,7 @@ class ConfigurationTab(ttk.Frame):
         status_label = info.get("status_label")
         if status_label:
             status_label.configure(text="Unsaved changes")
+
     def _save_extra_file(self, label: str) -> None:
         info = self.extra_files.get(label)
         if not info:
@@ -1104,6 +1270,7 @@ class ConfigurationTab(ttk.Frame):
         if status_label:
             status_label.configure(text=f"Saved to {save_path.name}")
         messagebox.showinfo("File Saved", f"Saved to {save_path}")
+
     def _reset_extra_file(self, label: str) -> None:
         info = self.extra_files.get(label)
         if not info:
@@ -1114,7 +1281,9 @@ class ConfigurationTab(ttk.Frame):
         kind = info.get("kind")
         if sections and baseline:
             if kind == "config_snakemake":
-                updated_sections, error = self._config_snakemake_sections_from_yaml(baseline, sections)
+                updated_sections, error = self._config_snakemake_sections_from_yaml(
+                    baseline, sections
+                )
                 if error:
                     messagebox.showerror("Invalid YAML", error)
                 else:
@@ -1146,9 +1315,12 @@ class ConfigurationTab(ttk.Frame):
             app = self.master.master
             if hasattr(app, "run_tab"):
                 app.run_tab._refresh_snakemake_settings_display()
+
     def _on_mode_change(self) -> None:
         if self.config_mode.get() == "visual" and self.raw_dirty:
-            updated, error = yaml_to_sections(self.sections, self.config_text.get("1.0", "end-1c"))
+            updated, error = yaml_to_sections(
+                self.sections, self.config_text.get("1.0", "end-1c")
+            )
             if error:
                 messagebox.showerror("Invalid YAML", error)
                 self.config_mode.set("raw")
@@ -1163,6 +1335,7 @@ class ConfigurationTab(ttk.Frame):
                     self.section_listbox.selection_set(0)
                 self.raw_dirty = False
         self._refresh_config_view()
+
     def _refresh_config_view(self) -> None:
         mode = self.config_mode.get()
         if mode == "visual":
@@ -1177,6 +1350,7 @@ class ConfigurationTab(ttk.Frame):
             if self.enable_visual_editor:
                 self._populate_raw_editor()
         self._update_config_status()
+
     def _populate_raw_editor(self) -> None:
         if not self.enable_visual_editor:
             return
@@ -1186,11 +1360,13 @@ class ConfigurationTab(ttk.Frame):
             self.config_text.delete("1.0", "end")
             self.config_text.insert("1.0", text)
             self.raw_dirty = False
+
     def _on_section_select(self, _event: tk.Event) -> None:
         if not self.section_listbox.curselection():
             return
         index = self.section_listbox.curselection()[0]
         self._render_parameters(index)
+
     def _render_parameters(self, section_index: int) -> None:
         for child in self.param_inner.winfo_children():
             child.destroy()
@@ -1214,11 +1390,20 @@ class ConfigurationTab(ttk.Frame):
                     wraplength=420,
                     anchor="w",
                     justify="left",
-                ).grid(row=row_pointer, column=0, columnspan=3, sticky="w", padx=(0, 8), pady=(0, 2))
+                ).grid(
+                    row=row_pointer,
+                    column=0,
+                    columnspan=3,
+                    sticky="w",
+                    padx=(0, 8),
+                    pady=(0, 2),
+                )
                 row_pointer += 1
             key = param["key"]
             value_type = param.get("type", "string")
-            ttk.Label(self.param_inner, text=key).grid(row=row_pointer, column=0, sticky="w", padx=(0, 10), pady=2)
+            ttk.Label(self.param_inner, text=key).grid(
+                row=row_pointer, column=0, sticky="w", padx=(0, 10), pady=2
+            )
             if value_type == "boolean":
                 var = tk.BooleanVar(value=bool(param.get("value")))
                 widget = ttk.Checkbutton(
@@ -1230,29 +1415,37 @@ class ConfigurationTab(ttk.Frame):
                 self.param_vars[(section_index, idx)] = var
             else:
                 initial = (
-                    str(param.get("value", "")) if value_type != "number" else str(param.get("value", 0))
+                    str(param.get("value", ""))
+                    if value_type != "number"
+                    else str(param.get("value", 0))
                 )
                 var = tk.StringVar(value=initial)
                 entry = ttk.Entry(self.param_inner, textvariable=var, width=40)
                 entry.grid(row=row_pointer, column=1, sticky="ew")
                 var.trace_add(
                     "write",
-                    lambda *_,
-                    s_index=section_index,
-                    p_index=idx,
-                    v_type=value_type,
-                    variable=var: self._on_param_change(s_index, p_index, v_type, variable),
+                    lambda *_, s_index=section_index, p_index=idx, v_type=value_type, variable=var: (
+                        self._on_param_change(s_index, p_index, v_type, variable)
+                    ),
                 )
                 self.param_vars[(section_index, idx)] = var
             row_pointer += 1
+
     def _on_param_toggle(self, section_index: int, param_index: int) -> None:
         var = self.param_vars.get((section_index, param_index))
         if not var:
             return
-        self.sections[section_index]["parameters"][param_index]["value"] = bool(var.get())
+        self.sections[section_index]["parameters"][param_index]["value"] = bool(
+            var.get()
+        )
         self._mark_config_dirty()
+
     def _on_param_change(
-        self, section_index: int, param_index: int, value_type: str, variable: tk.Variable
+        self,
+        section_index: int,
+        param_index: int,
+        value_type: str,
+        variable: tk.Variable,
     ) -> None:
         raw_value = variable.get()
         if value_type == "number":
@@ -1264,11 +1457,13 @@ class ConfigurationTab(ttk.Frame):
             value = raw_value
         self.sections[section_index]["parameters"][param_index]["value"] = value
         self._mark_config_dirty()
+
     def _mark_config_dirty(self, raw: bool = False) -> None:
         self.config_dirty = True
         if raw:
             self.raw_dirty = True
         self._update_config_status()
+
     def _update_config_status(self) -> None:
         if self.config_dirty:
             status = "Unsaved changes"
@@ -1277,6 +1472,7 @@ class ConfigurationTab(ttk.Frame):
         else:
             status = "Saved"
         self.config_status.configure(text=status)
+
     def _save_config(self) -> None:
         saving_raw = self.config_mode.get() == "raw" or not self.enable_visual_editor
         if saving_raw:
@@ -1315,6 +1511,7 @@ class ConfigurationTab(ttk.Frame):
         self.sections_baseline = deepcopy(self.sections)
         self._update_config_status()
         messagebox.showinfo("Configuration Saved", f"Saved to {self.config_save_path}")
+
     def _reset_config(self) -> None:
         self.sections = deepcopy(self.sections_baseline)
         names = [sec.get("displayName", sec["name"]) for sec in self.sections]
@@ -1331,7 +1528,11 @@ class ConfigurationTab(ttk.Frame):
                 self._populate_raw_editor()
             else:
                 source_text = self._config_source_text
-                if source_text is None and self.config_save_path and self.config_save_path.exists():
+                if (
+                    source_text is None
+                    and self.config_save_path
+                    and self.config_save_path.exists()
+                ):
                     try:
                         source_text = self.config_save_path.read_text(encoding="utf-8")
                     except OSError:
@@ -1342,9 +1543,11 @@ class ConfigurationTab(ttk.Frame):
         self.config_dirty = False
         self.raw_dirty = False
         self._update_config_status()
+
     def _mark_snakefile_dirty(self) -> None:
         self.snakefile_dirty = True
         self.snakefile_status.configure(text="Unsaved changes")
+
     def _save_snakefile(self) -> None:
         content = self.snakefile_text.get("1.0", "end-1c")
         if not self.snakefile_save_path:
@@ -1363,25 +1566,33 @@ class ConfigurationTab(ttk.Frame):
             messagebox.showerror("Save failed", f"Could not save file:\n{exc}")
             return
         self.snakefile_dirty = False
-        self.snakefile_status.configure(text=f"Saved to {self.snakefile_save_path.name}")
+        self.snakefile_status.configure(
+            text=f"Saved to {self.snakefile_save_path.name}"
+        )
         messagebox.showinfo("Snakefile Saved", f"Saved to {self.snakefile_save_path}")
+
     def _reset_snakefile(self) -> None:
         self.snakefile_text.delete("1.0", "end")
         self.snakefile_text.insert("1.0", SNAKEFILE_TEMPLATE)
         self.snakefile_dirty = False
         self.snakefile_status.configure(text="Reset to template")
+
     def get_config_path(self) -> Optional[Path]:
         """Return the saved config.yaml path, if one exists."""
         return self.config_save_path
+
     def get_snakefile_path(self) -> Optional[Path]:
         """Return the saved Snakefile path, if one exists."""
         return self.snakefile_save_path
+
     def get_snakefile_text(self) -> str:
         """Return the current Snakefile content from the editor."""
         return self.snakefile_text.get("1.0", "end-1c")
+
     def snakefile_has_unsaved_changes(self) -> bool:
         """Indicate whether the Snakefile has unsaved edits."""
         return self.snakefile_dirty
+
     def _enable_mousewheel(self, canvas: tk.Canvas) -> None:
         """Enable cross-platform mousewheel scrolling on a Canvas."""
         import sys
@@ -1392,14 +1603,19 @@ class ConfigurationTab(ttk.Frame):
             canvas.yview_scroll(delta, "units")
 
         # Bindings for Windows/macOS
-        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind(
+            "<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        )
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
         # Bindings for Linux (X11)
         canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
         canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+
+
 class ProcessRunner:
     """Run subprocesses on a background thread and stream output back to Tk."""
+
     def __init__(self) -> None:
         self.process: Optional[subprocess.Popen] = None
         self.reader_threads: List[threading.Thread] = []
@@ -1411,6 +1627,7 @@ class ProcessRunner:
         self.on_exit: Optional[Callable[[int], None]] = None
         self._lock = threading.Lock()
         self._stopping = False
+
     def run(
         self,
         widget: tk.Widget,
@@ -1443,7 +1660,9 @@ class ProcessRunner:
             if env:
                 popen_kwargs["env"] = env
             if os.name == "nt":
-                popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+                popen_kwargs["creationflags"] = getattr(
+                    subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+                )
             else:
                 popen_kwargs["preexec_fn"] = os.setsid  # type: ignore[attr-defined]
             self.process = subprocess.Popen(cmd, **popen_kwargs)
@@ -1454,6 +1673,7 @@ class ProcessRunner:
         self.wait_thread = threading.Thread(target=self._wait_for_process, daemon=True)
         self.wait_thread.start()
         self._schedule_drain()
+
     def stop(self) -> None:
         with self._lock:
             proc = self.process
@@ -1479,6 +1699,7 @@ class ProcessRunner:
             proc.terminate()
         except OSError:
             pass
+
     def cancel(self) -> None:
         """Cancel any pending Tk callbacks."""
         if self.after_id and self.widget:
@@ -1487,11 +1708,14 @@ class ProcessRunner:
             except tk.TclError:
                 pass
         self.after_id = None
+
     def is_running(self) -> bool:
         with self._lock:
             return self.process is not None
+
     def stop_requested(self) -> bool:
         return self._stopping
+
     def send_input(self, data: str) -> None:
         with self._lock:
             proc = self.process
@@ -1504,6 +1728,7 @@ class ProcessRunner:
             stdin.flush()
         except Exception as exc:  # pragma: no cover - interactive fallback
             raise RuntimeError(f"Failed to send input: {exc}") from exc
+
     def _start_reader(self, stream: Any, level: str) -> None:
         def _reader() -> None:
             for raw_line in iter(stream.readline, ""):
@@ -1513,9 +1738,11 @@ class ProcessRunner:
                 stream.close()
             except Exception:
                 pass
+
         thread = threading.Thread(target=_reader, daemon=True)
         self.reader_threads.append(thread)
         thread.start()
+
     def _wait_for_process(self) -> None:
         proc: Optional[subprocess.Popen]
         with self._lock:
@@ -1526,12 +1753,14 @@ class ProcessRunner:
         for thread in self.reader_threads:
             thread.join()
         self.queue.put(("exit", return_code))
+
     def _schedule_drain(self) -> None:
         if not self.widget:
             return
         if self.after_id:
             return
         self.after_id = self.widget.after(100, self._drain_queue)
+
     def _drain_queue(self) -> None:
         self.after_id = None
         exit_code: Optional[int] = None
@@ -1553,6 +1782,7 @@ class ProcessRunner:
                 self.on_exit(exit_code)
         if (self.process is not None) or (not self.queue.empty()):
             self._schedule_drain()
+
     def _cleanup_process_handles(self) -> None:
         proc: Optional[subprocess.Popen]
         with self._lock:
@@ -1566,9 +1796,14 @@ class ProcessRunner:
                     stream.close()
                 except Exception:
                     pass
+
+
 class RunTab(ttk.Frame):
     """Execution tab that runs real commands and streams output."""
-    def __init__(self, master: tk.Widget, config_tab: ConfigurationTab, results_tab: ResultsTab):
+
+    def __init__(
+        self, master: tk.Widget, config_tab: ConfigurationTab, results_tab: ResultsTab
+    ):
         super().__init__(master)
         self.config_tab = config_tab
         self.results_tab = results_tab
@@ -1586,13 +1821,26 @@ class RunTab(ttk.Frame):
         self.snakemake_file_var = tk.StringVar()
         self.snakemake_cores_var = tk.IntVar()
         self.available_scripts = [
-            {"id": "results_analysis", "name": "results_analysis.py", "description": "Generate aggregated results"},
-            {"id": "spatial_data_prep", "name": "spatial_data_prep.py", "description": "Prepare spatial datasets"},
-            {"id": "exclusion", "name": "exclusion.py", "description": "Run exclusion analysis"},
+            {
+                "id": "results_analysis",
+                "name": "results_analysis.py",
+                "description": "Generate aggregated results",
+            },
+            {
+                "id": "spatial_data_prep",
+                "name": "spatial_data_prep.py",
+                "description": "Prepare spatial datasets",
+            },
+            {
+                "id": "exclusion",
+                "name": "exclusion.py",
+                "description": "Run exclusion analysis",
+            },
         ]
         self.expected_output_dir: Optional[Path] = None
         self.last_run_script_id: Optional[str] = None
         self._build_ui()
+
     def _build_ui(self) -> None:
         self.columnconfigure(0, weight=1)
         ttk.Label(self, text="Run Script", font=("Segoe UI", 14, "bold")).grid(
@@ -1621,9 +1869,13 @@ class RunTab(ttk.Frame):
         ).grid(row=0, column=1, sticky="w", padx=6, pady=6)
         self.script_frame = ttk.Frame(body)
         self.script_frame.grid(row=1, column=0, sticky="ew", pady=10)
-        ttk.Label(self.script_frame, text="Select script:").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.script_frame, text="Select script:").grid(
+            row=0, column=0, sticky="w"
+        )
         script_names = [script["name"] for script in self.available_scripts]
-        self.script_combo = ttk.Combobox(self.script_frame, values=script_names, state="readonly")
+        self.script_combo = ttk.Combobox(
+            self.script_frame, values=script_names, state="readonly"
+        )
         self.script_combo.grid(row=0, column=1, sticky="ew", padx=(8, 0))
         self.script_combo.current(0)
         self.script_frame.columnconfigure(1, weight=1)
@@ -1631,7 +1883,9 @@ class RunTab(ttk.Frame):
         self.snakemake_options_frame = ttk.Frame(body)
         self.snakemake_options_frame.grid(row=1, column=0, sticky="ew", pady=10)
         self.snakemake_options_frame.columnconfigure(1, weight=1)
-        ttk.Label(self.snakemake_options_frame, text="Snakefile:").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.snakemake_options_frame, text="Snakefile:").grid(
+            row=0, column=0, sticky="w"
+        )
         self.snakemake_file_display = ttk.Label(
             self.snakemake_options_frame,
             textvariable=self.snakemake_file_var,
@@ -1639,7 +1893,9 @@ class RunTab(ttk.Frame):
             relief="sunken",
         )
         self.snakemake_file_display.grid(row=0, column=1, sticky="ew", padx=(8, 0))
-        ttk.Label(self.snakemake_options_frame, text="Cores:").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(self.snakemake_options_frame, text="Cores:").grid(
+            row=1, column=0, sticky="w", pady=(6, 0)
+        )
         self.snakemake_cores_display = ttk.Label(
             self.snakemake_options_frame,
             textvariable=self.snakemake_cores_var,
@@ -1647,7 +1903,9 @@ class RunTab(ttk.Frame):
             relief="sunken",
             anchor="w",
         )
-        self.snakemake_cores_display.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+        self.snakemake_cores_display.grid(
+            row=1, column=1, sticky="w", padx=(8, 0), pady=(6, 0)
+        )
         self.info_label = ttk.Label(
             body,
             text="Runs all rules defined in the Snakefile",
@@ -1657,13 +1915,21 @@ class RunTab(ttk.Frame):
         controls = ttk.Frame(body)
         controls.grid(row=3, column=0, sticky="ew", pady=10)
         controls.columnconfigure((0, 1, 2), weight=1)
-        ttk.Button(controls, text="Run", command=self.handle_run).grid(row=0, column=0, sticky="ew", padx=4)
-        ttk.Button(controls, text="Stop", command=self.handle_stop).grid(row=0, column=1, sticky="ew", padx=4)
-        ttk.Button(controls, text="Reset", command=self.handle_reset).grid(row=0, column=2, sticky="ew", padx=4)
+        ttk.Button(controls, text="Run", command=self.handle_run).grid(
+            row=0, column=0, sticky="ew", padx=4
+        )
+        ttk.Button(controls, text="Stop", command=self.handle_stop).grid(
+            row=0, column=1, sticky="ew", padx=4
+        )
+        ttk.Button(controls, text="Reset", command=self.handle_reset).grid(
+            row=0, column=2, sticky="ew", padx=4
+        )
         progress_frame = ttk.Frame(body)
         progress_frame.grid(row=4, column=0, sticky="ew", pady=10)
         ttk.Label(progress_frame, text="Progress").pack(anchor="w")
-        self.progress_bar = ttk.Progressbar(progress_frame, maximum=100, variable=self.progress)
+        self.progress_bar = ttk.Progressbar(
+            progress_frame, maximum=100, variable=self.progress
+        )
         self.progress_bar.pack(fill="x")
         status_frame = ttk.Frame(body)
         status_frame.grid(row=5, column=0, sticky="ew", pady=(0, 10))
@@ -1678,9 +1944,13 @@ class RunTab(ttk.Frame):
         log_frame.grid(row=6, column=0, sticky="nsew")
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
-        self.log_text = tk.Text(log_frame, height=16, wrap="none", state="disabled", font=("Consolas", 10))
+        self.log_text = tk.Text(
+            log_frame, height=16, wrap="none", state="disabled", font=("Consolas", 10)
+        )
         self.log_text.grid(row=0, column=0, sticky="nsew")
-        log_scroll = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
+        log_scroll = ttk.Scrollbar(
+            log_frame, orient="vertical", command=self.log_text.yview
+        )
         log_scroll.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=log_scroll.set)
         for tag, color in {
@@ -1694,6 +1964,7 @@ class RunTab(ttk.Frame):
         self._on_mode_change()
         self._update_status_labels()
         self._refresh_snakemake_settings_display()
+
     def _on_mode_change(self) -> None:
         is_single = self.execution_mode.get() == "single"
         if is_single:
@@ -1706,19 +1977,26 @@ class RunTab(ttk.Frame):
             self.info_label.grid(row=2, column=0, sticky="ew", pady=(0, 10))
             self._refresh_snakemake_settings_display()
         self._update_status_labels()
+
     def _on_script_change(self, _event: tk.Event) -> None:
         index = self.script_combo.current()
         if index >= 0:
             self.selected_script.set(self.available_scripts[index]["id"])
+
     def add_log(self, level: str, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_text.configure(state="normal")
         self.log_text.insert("end", f"[{timestamp}] {message}\n", level)
         self.log_text.configure(state="disabled")
         self.log_text.see("end")
+
     def _update_status_labels(self) -> None:
         self.status_badge.configure(text=f"Status: {self.status.capitalize()}")
-        start_display = datetime.fromtimestamp(self.start_time).strftime("%H:%M:%S") if self.start_time else "--"
+        start_display = (
+            datetime.fromtimestamp(self.start_time).strftime("%H:%M:%S")
+            if self.start_time
+            else "--"
+        )
         self.start_label.configure(text=f"Started: {start_display}")
         duration_text = "--"
         if self.start_time:
@@ -1726,10 +2004,12 @@ class RunTab(ttk.Frame):
             duration_text = f"{int(end - self.start_time)}s"
         self.duration_label.configure(text=f"Duration: {duration_text}")
         self.state_label.configure(text=f"Status: {self.status.capitalize()}")
+
     def _clear_logs(self) -> None:
         self.log_text.configure(state="normal")
         self.log_text.delete("1.0", "end")
         self.log_text.configure(state="disabled")
+
     def _resolve_results_json_path(self) -> Path:
         base_dir = self.expected_output_dir or PARENT_DIR
         json_path = base_dir / "aggregated_available_land.json"
@@ -1737,6 +2017,7 @@ class RunTab(ttk.Frame):
             return json_path.resolve()
         except Exception:
             return json_path
+
     def _update_results_tab_with_json(self) -> None:
         if self.last_run_script_id != "results_analysis":
             return
@@ -1748,10 +2029,12 @@ class RunTab(ttk.Frame):
             self.add_log("warning", message)
         else:
             self.add_log("error", message)
+
     def _start_duration_timer(self) -> None:
         self._cancel_duration_timer()
         if self.status == "running":
             self.after_id = self.after(1000, self._tick_duration)
+
     def _cancel_duration_timer(self) -> None:
         if self.after_id:
             try:
@@ -1759,21 +2042,26 @@ class RunTab(ttk.Frame):
             except tk.TclError:
                 pass
         self.after_id = None
+
     def _tick_duration(self) -> None:
         self.after_id = None
         if self.status == "running":
             self._update_status_labels()
             self.after_id = self.after(1000, self._tick_duration)
+
     def _start_spinner(self) -> None:
         self.progress_bar.configure(mode="indeterminate")
         self.progress_bar.start(10)
+
     def _stop_spinner(self) -> None:
         self.progress_bar.stop()
         self.progress_bar.configure(mode="determinate")
+
     def _format_command(self, cmd: List[str]) -> str:
         if hasattr(shlex, "join"):
             return shlex.join(cmd)
         return " ".join(cmd)
+
     def _resolve_script_path(self, script_name: str) -> Path:
         candidates = [
             PARENT_DIR / script_name,
@@ -1783,7 +2071,10 @@ class RunTab(ttk.Frame):
         for candidate in candidates:
             if candidate.exists():
                 return candidate
-        raise FileNotFoundError(f"Could not find {script_name} in the expected locations.")
+        raise FileNotFoundError(
+            f"Could not find {script_name} in the expected locations."
+        )
+
     def _load_snakemake_settings(self) -> Tuple[str, int]:
         default_snakefile = "snakemake_global"
         default_cores = 4
@@ -1796,7 +2087,9 @@ class RunTab(ttk.Frame):
             return default_snakefile, default_cores
         if not isinstance(data, dict):
             return default_snakefile, default_cores
-        snakefile = str(data.get("snakefile", default_snakefile)).strip() or default_snakefile
+        snakefile = (
+            str(data.get("snakefile", default_snakefile)).strip() or default_snakefile
+        )
         cores = data.get("cores", default_cores)
         if isinstance(cores, str):
             try:
@@ -1806,13 +2099,17 @@ class RunTab(ttk.Frame):
         if not isinstance(cores, int):
             cores = default_cores
         return snakefile, max(1, cores)
+
     def _refresh_snakemake_settings_display(self) -> None:
         snakefile, cores = self._load_snakemake_settings()
         self.snakemake_file_var.set(snakefile)
         self.snakemake_cores_var.set(cores)
+
     def _build_single_command(self) -> Tuple[List[str], Path]:
         script_id = self.selected_script.get()
-        script = next((item for item in self.available_scripts if item["id"] == script_id), None)
+        script = next(
+            (item for item in self.available_scripts if item["id"] == script_id), None
+        )
         script_name = script["name"] if script else f"{script_id}.py"
         script_path = self._resolve_script_path(script_name)
         command = [sys.executable, str(script_path)]
@@ -1820,6 +2117,7 @@ class RunTab(ttk.Frame):
         if config_path and Path(config_path).exists():
             command.extend(["--config", str(config_path)])
         return command, script_path.parent
+
     def _build_snakemake_command(self) -> Tuple[List[str], Path, Optional[Path]]:
         snakefile_setting, cores_value = self._load_snakemake_settings()
         self.snakemake_file_var.set(snakefile_setting)
@@ -1832,7 +2130,9 @@ class RunTab(ttk.Frame):
         if not snakefile_path.exists():
             raise RuntimeError(f"Snakemake file not found: {snakefile_setting}")
         snakemake_exec = shutil.which("snakemake")
-        command = self._assemble_snakemake_command(str(snakefile_path), cores_value, snakemake_exec)
+        command = self._assemble_snakemake_command(
+            str(snakefile_path), cores_value, snakemake_exec
+        )
         return command, PARENT_DIR, None
 
     def _assemble_snakemake_command(
@@ -1849,6 +2149,7 @@ class RunTab(ttk.Frame):
         if snakemake_exec:
             return [snakemake_exec, *base_args]
         return [sys.executable, "-m", "snakemake", *base_args]
+
     def _cleanup_temp_snakefile(self) -> None:
         if self.temp_snakefile_path and self.temp_snakefile_path.exists():
             try:
@@ -1856,9 +2157,11 @@ class RunTab(ttk.Frame):
             except OSError:
                 pass
         self.temp_snakefile_path = None
+
     def _handle_process_output(self, level: str, message: str) -> None:
         tag = level if level in {"info", "error", "success"} else "info"
         self.add_log(tag, message)
+
     def _handle_process_exit(self, return_code: int) -> None:
         self.runner.cancel()
         self._stop_spinner()
@@ -1879,16 +2182,25 @@ class RunTab(ttk.Frame):
             self.status = "error"
             self.progress.set(0)
             if self.stop_requested:
-                self.add_log("error", f"Process exited with code {return_code} after stop request.")
-                messagebox.showerror("Execution Stopped", f"Process exited with code {return_code} after stop request.")
+                self.add_log(
+                    "error",
+                    f"Process exited with code {return_code} after stop request.",
+                )
+                messagebox.showerror(
+                    "Execution Stopped",
+                    f"Process exited with code {return_code} after stop request.",
+                )
             else:
                 self.add_log("error", f"Process exited with code {return_code}.")
-                messagebox.showerror("Execution Failed", f"Process exited with code {return_code}.")
+                messagebox.showerror(
+                    "Execution Failed", f"Process exited with code {return_code}."
+                )
             self._update_status_labels()
         self.stop_requested = False
         self.reset_requested = False
         self.last_run_script_id = None
         self.expected_output_dir = None
+
     def _finalize_reset(self) -> None:
         self.runner.cancel()
         self._stop_spinner()
@@ -1902,6 +2214,7 @@ class RunTab(ttk.Frame):
         self._update_status_labels()
         self.stop_requested = False
         self.reset_requested = False
+
     def handle_run(self) -> None:
         if self.runner.is_running():
             return
@@ -1961,6 +2274,7 @@ class RunTab(ttk.Frame):
             self.reset_requested = False
             self.last_run_script_id = None
             self.expected_output_dir = None
+
     def handle_stop(self) -> None:
         if not self.runner.is_running():
             return
@@ -1973,6 +2287,7 @@ class RunTab(ttk.Frame):
         self.progress.set(0)
         self.add_log("error", "Execution stopped by user.")
         self._update_status_labels()
+
     def handle_reset(self) -> None:
         if self.runner.is_running():
             self.reset_requested = True
@@ -1993,7 +2308,9 @@ class MapTab(ttk.Frame):
     def __init__(self, master: tk.Widget):
         super().__init__(master)
         self.file_vars = [tk.StringVar() for _ in range(self.MAX_LAYERS)]
-        self.layer_order = [tk.StringVar(value=str(i + 1)) for i in range(self.MAX_LAYERS)]
+        self.layer_order = [
+            tk.StringVar(value=str(i + 1)) for i in range(self.MAX_LAYERS)
+        ]
         self.layer_opacity = [tk.DoubleVar(value=0.7) for _ in range(self.MAX_LAYERS)]
         self.layer_names = [tk.StringVar(value="") for _ in range(self.MAX_LAYERS)]
         self._map_dir: Optional[Path] = None
@@ -2021,12 +2338,12 @@ class MapTab(ttk.Frame):
             )
             entry = ttk.Entry(selection, textvariable=self.file_vars[idx])
             entry.grid(row=idx, column=1, sticky="ew", pady=2)
-            ttk.Button(selection, text="Browse", command=lambda i=idx: self._browse(i)).grid(
-                row=idx, column=2, padx=(6, 0), pady=2
-            )
-            ttk.Button(selection, text="Clear", command=lambda i=idx: self._clear(i)).grid(
-                row=idx, column=3, padx=(6, 0), pady=2
-            )
+            ttk.Button(
+                selection, text="Browse", command=lambda i=idx: self._browse(i)
+            ).grid(row=idx, column=2, padx=(6, 0), pady=2)
+            ttk.Button(
+                selection, text="Clear", command=lambda i=idx: self._clear(i)
+            ).grid(row=idx, column=3, padx=(6, 0), pady=2)
             ttk.Label(selection, text="Display Name:").grid(
                 row=idx, column=4, sticky="e", padx=(12, 4)
             )
@@ -2036,9 +2353,13 @@ class MapTab(ttk.Frame):
             ttk.Label(selection, text="Opacity:").grid(
                 row=idx, column=6, sticky="e", padx=(12, 4)
             )
-            ttk.Scale(selection, variable=self.layer_opacity[idx], from_=0.1, to=1.0, orient="horizontal").grid(
-                row=idx, column=7, sticky="ew", pady=2
-            )
+            ttk.Scale(
+                selection,
+                variable=self.layer_opacity[idx],
+                from_=0.1,
+                to=1.0,
+                orient="horizontal",
+            ).grid(row=idx, column=7, sticky="ew", pady=2)
             ttk.Label(selection, text="Order:").grid(
                 row=idx, column=8, sticky="e", padx=(12, 4)
             )
@@ -2055,10 +2376,16 @@ class MapTab(ttk.Frame):
         buttons = ttk.Frame(self)
         buttons.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
         ttk.Button(buttons, text="Load Map", command=self._load).pack(side="left")
-        ttk.Button(buttons, text="Clear All", command=self._clear_all).pack(side="left", padx=(6, 0))
+        ttk.Button(buttons, text="Clear All", command=self._clear_all).pack(
+            side="left", padx=(6, 0)
+        )
 
         self.status_label = ttk.Label(
-            self, textvariable=self.status_var, wraplength=540, justify="left", foreground="#0d5d9b"
+            self,
+            textvariable=self.status_var,
+            wraplength=540,
+            justify="left",
+            foreground="#0d5d9b",
         )
         self.status_label.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 5))
 
@@ -2079,7 +2406,9 @@ class MapTab(ttk.Frame):
         legend_frame.rowconfigure(0, weight=1)
         self.legend_text = tk.Text(legend_frame, height=10, wrap="word")
         self.legend_text.grid(row=0, column=0, sticky="nsew")
-        legend_scroll = ttk.Scrollbar(legend_frame, orient="vertical", command=self.legend_text.yview)
+        legend_scroll = ttk.Scrollbar(
+            legend_frame, orient="vertical", command=self.legend_text.yview
+        )
         legend_scroll.grid(row=0, column=1, sticky="ns")
         self.legend_text.configure(yscrollcommand=legend_scroll.set)
         ttk.Label(
@@ -2144,8 +2473,12 @@ class MapTab(ttk.Frame):
                 continue
             entries.append((idx, Path(raw)))
         if not entries:
-            self._set_status("Select at least one layer before loading the map.", "warning")
-            messagebox.showwarning("Load Map", "Select at least one layer before loading the map.")
+            self._set_status(
+                "Select at least one layer before loading the map.", "warning"
+            )
+            messagebox.showwarning(
+                "Load Map", "Select at least one layer before loading the map."
+            )
             return
         temp_dir = Path(tempfile.mkdtemp(prefix="map_tab_"))
         layers: List[Dict[str, Any]] = []
@@ -2169,7 +2502,9 @@ class MapTab(ttk.Frame):
             suffix = path.suffix.lower()
             try:
                 if suffix in {".tif", ".tiff"}:
-                    png_path, bounds = geotiff_to_png_with_bounds(str(path), str(temp_dir))
+                    png_path, bounds = geotiff_to_png_with_bounds(
+                        str(path), str(temp_dir)
+                    )
                     layers.append(
                         {
                             "type": "raster",
@@ -2198,7 +2533,9 @@ class MapTab(ttk.Frame):
                         }
                     )
                 else:
-                    raise ValueError("Unsupported file type. Choose .tif, .tiff, or .geojson.")
+                    raise ValueError(
+                        "Unsupported file type. Choose .tif, .tiff, or .geojson."
+                    )
             except Exception as exc:
                 shutil.rmtree(temp_dir, ignore_errors=True)
                 self._set_status(f"Failed to load {path.name}: {exc}", "error")
@@ -2217,10 +2554,13 @@ class MapTab(ttk.Frame):
         self._map_view = show_map_in_tk(str(map_html), self.map_container)
         embedded = bool(self._map_view.get("embedded")) if self._map_view else False
         if embedded:
-            self._set_status(f"Loaded {len(layers)} layer(s) in the embedded map.", "success")
+            self._set_status(
+                f"Loaded {len(layers)} layer(s) in the embedded map.", "success"
+            )
         else:
             self._set_status(
-                f"Loaded {len(layers)} layer(s). The map opened in your browser.", "warning"
+                f"Loaded {len(layers)} layer(s). The map opened in your browser.",
+                "warning",
             )
 
     def _clear_map_display(self) -> None:
@@ -2261,6 +2601,7 @@ class MapTab(ttk.Frame):
 
 class ResultsTab(ttk.Frame):
     """Run results_analysis and display the aggregated JSON output."""
+
     def __init__(self, master: tk.Widget, _initial_data: Dict[str, Any]):
         super().__init__(master)
         self.runner = ProcessRunner()
@@ -2309,6 +2650,7 @@ class ResultsTab(ttk.Frame):
         self.notebook.add(self.map_tab, text="Map")
         self._build_analysis_tab()
         self._build_delete_tab()
+
     def _build_analysis_tab(self) -> None:
         frame = ttk.LabelFrame(self.analysis_tab, text="Results Analysis")
         frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
@@ -2325,9 +2667,13 @@ class ResultsTab(ttk.Frame):
         controls = ttk.Frame(frame)
         controls.grid(row=1, column=0, sticky="ew", pady=(10, 0))
         controls.columnconfigure(3, weight=1)
-        self.run_button = ttk.Button(controls, text="Run results_analysis.py", command=self.handle_run)
+        self.run_button = ttk.Button(
+            controls, text="Run results_analysis.py", command=self.handle_run
+        )
         self.run_button.grid(row=0, column=0, padx=(0, 6))
-        self.stop_button = ttk.Button(controls, text="Stop", command=self.handle_stop, state="disabled")
+        self.stop_button = ttk.Button(
+            controls, text="Stop", command=self.handle_stop, state="disabled"
+        )
         self.stop_button.grid(row=0, column=1, padx=(0, 6))
         self.status_label = ttk.Label(controls, text="Status: Idle")
         self.status_label.grid(row=0, column=2, sticky="w")
@@ -2346,9 +2692,13 @@ class ResultsTab(ttk.Frame):
         log_frame.grid(row=3, column=0, sticky="nsew")
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
-        self.log_text = tk.Text(log_frame, height=8, wrap="none", state="disabled", font=("Consolas", 10))
+        self.log_text = tk.Text(
+            log_frame, height=8, wrap="none", state="disabled", font=("Consolas", 10)
+        )
         self.log_text.grid(row=0, column=0, sticky="nsew")
-        log_scroll = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
+        log_scroll = ttk.Scrollbar(
+            log_frame, orient="vertical", command=self.log_text.yview
+        )
         log_scroll.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=log_scroll.set)
         for tag, color in {
@@ -2398,9 +2748,12 @@ class ResultsTab(ttk.Frame):
             self.aggregated_tree.heading(col, text=header)
             self.aggregated_tree.column(col, anchor="w", width=160)
         self.aggregated_tree.grid(row=1, column=0, sticky="nsew")
-        aggregated_scroll = ttk.Scrollbar(results_frame, orient="vertical", command=self.aggregated_tree.yview)
+        aggregated_scroll = ttk.Scrollbar(
+            results_frame, orient="vertical", command=self.aggregated_tree.yview
+        )
         aggregated_scroll.grid(row=1, column=1, sticky="ns")
         self.aggregated_tree.configure(yscrollcommand=aggregated_scroll.set)
+
     def _build_delete_tab(self) -> None:
         frame = ttk.LabelFrame(self.delete_tab, text="Delete Scenario Results")
         frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
@@ -2421,9 +2774,15 @@ class ResultsTab(ttk.Frame):
         controls = ttk.Frame(frame)
         controls.grid(row=2, column=0, sticky="ew", pady=(0, 8))
         controls.columnconfigure(2, weight=1)
-        self.delete_run_button = ttk.Button(controls, text="Run delete_scenario_results.py", command=self.handle_delete_run)
+        self.delete_run_button = ttk.Button(
+            controls,
+            text="Run delete_scenario_results.py",
+            command=self.handle_delete_run,
+        )
         self.delete_run_button.grid(row=0, column=0, padx=(0, 6))
-        self.delete_stop_button = ttk.Button(controls, text="Stop", command=self.handle_delete_stop, state="disabled")
+        self.delete_stop_button = ttk.Button(
+            controls, text="Stop", command=self.handle_delete_stop, state="disabled"
+        )
         self.delete_stop_button.grid(row=0, column=1, padx=(0, 6))
         self.delete_status_label = ttk.Label(controls, text="Status: Idle")
         self.delete_status_label.grid(row=0, column=2, sticky="w")
@@ -2432,9 +2791,13 @@ class ResultsTab(ttk.Frame):
         log_frame.grid(row=3, column=0, sticky="nsew")
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
-        self.delete_log_text = tk.Text(log_frame, height=14, wrap="none", state="disabled", font=("Consolas", 10))
+        self.delete_log_text = tk.Text(
+            log_frame, height=14, wrap="none", state="disabled", font=("Consolas", 10)
+        )
         self.delete_log_text.grid(row=0, column=0, sticky="nsew")
-        log_scroll = ttk.Scrollbar(log_frame, orient="vertical", command=self.delete_log_text.yview)
+        log_scroll = ttk.Scrollbar(
+            log_frame, orient="vertical", command=self.delete_log_text.yview
+        )
         log_scroll.grid(row=0, column=1, sticky="ns")
         self.delete_log_text.configure(yscrollcommand=log_scroll.set)
         for tag, color in {
@@ -2449,8 +2812,12 @@ class ResultsTab(ttk.Frame):
         input_row = ttk.Frame(frame)
         input_row.grid(row=4, column=0, sticky="ew", pady=(10, 0))
         input_row.columnconfigure(1, weight=1)
-        ttk.Label(input_row, text="Send Input:").grid(row=0, column=0, sticky="w", padx=(0, 6))
-        self.delete_input_entry = ttk.Entry(input_row, textvariable=self.delete_input_var, state="disabled")
+        ttk.Label(input_row, text="Send Input:").grid(
+            row=0, column=0, sticky="w", padx=(0, 6)
+        )
+        self.delete_input_entry = ttk.Entry(
+            input_row, textvariable=self.delete_input_var, state="disabled"
+        )
         self.delete_input_entry.grid(row=0, column=1, sticky="ew")
         self.delete_input_entry.bind("<Return>", self._handle_delete_send_event)
         self.delete_send_button = ttk.Button(
@@ -2458,13 +2825,16 @@ class ResultsTab(ttk.Frame):
         )
         self.delete_send_button.grid(row=0, column=2, padx=(6, 0))
         self._set_delete_running_state(False)
+
     def _format_command(self, cmd: List[str]) -> str:
         if hasattr(shlex, "join"):
             return shlex.join(cmd)
         return " ".join(cmd)
+
     def _set_running_state(self, running: bool) -> None:
         self.run_button.configure(state="disabled" if running else "normal")
         self.stop_button.configure(state="normal" if running else "disabled")
+
     def _update_status_labels(self) -> None:
         self.status_label.configure(text=f"Status: {self.status.capitalize()}")
         duration_text = "--"
@@ -2472,6 +2842,7 @@ class ResultsTab(ttk.Frame):
             end = self.end_time or time.time()
             duration_text = f"{int(end - self.start_time)}s"
         self.duration_label.configure(text=f"Duration: {duration_text}")
+
     def _append_log(self, level: str, message: str) -> None:
         tag = level if level in {"info", "success", "warning", "error"} else "info"
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -2479,20 +2850,25 @@ class ResultsTab(ttk.Frame):
         self.log_text.insert("end", f"[{timestamp}] {message}\n", tag)
         self.log_text.configure(state="disabled")
         self.log_text.see("end")
+
     def _clear_log(self) -> None:
         self.log_text.configure(state="normal")
         self.log_text.delete("1.0", "end")
         self.log_text.configure(state="disabled")
+
     def _start_spinner(self) -> None:
         self.progress_bar.configure(mode="indeterminate")
         self.progress_bar.start(10)
+
     def _stop_spinner(self) -> None:
         self.progress_bar.stop()
         self.progress_bar.configure(mode="determinate")
+
     def _start_duration_timer(self) -> None:
         self._cancel_duration_timer()
         if self.status == "running":
             self.after_id = self.after(1000, self._tick_duration)
+
     def _cancel_duration_timer(self) -> None:
         if self.after_id:
             try:
@@ -2500,11 +2876,13 @@ class ResultsTab(ttk.Frame):
             except tk.TclError:
                 pass
         self.after_id = None
+
     def _tick_duration(self) -> None:
         self.after_id = None
         if self.status == "running":
             self._update_status_labels()
             self.after_id = self.after(1000, self._tick_duration)
+
     def _resolve_script_path(self, script_name: str) -> Path:
         candidates = [
             PARENT_DIR / script_name,
@@ -2514,7 +2892,10 @@ class ResultsTab(ttk.Frame):
         for candidate in candidates:
             if candidate.exists():
                 return candidate
-        raise FileNotFoundError(f"Could not find {script_name} in the expected locations.")
+        raise FileNotFoundError(
+            f"Could not find {script_name} in the expected locations."
+        )
+
     def _resolve_results_json_path(self) -> Path:
         base_dir = self.expected_output_dir or PARENT_DIR
         json_path = base_dir / "aggregated_available_land.json"
@@ -2522,6 +2903,7 @@ class ResultsTab(ttk.Frame):
             return json_path.resolve()
         except Exception:
             return json_path
+
     def handle_run(self) -> None:
         if self.runner.is_running():
             return
@@ -2566,6 +2948,7 @@ class ResultsTab(ttk.Frame):
             self._update_status_labels()
             self.expected_output_dir = None
             messagebox.showerror("Execution Error", f"Failed to start process:\n{exc}")
+
     def handle_stop(self) -> None:
         if not self.runner.is_running():
             return
@@ -2574,9 +2957,11 @@ class ResultsTab(ttk.Frame):
         self._append_log("warning", "Stop requested. Waiting for process to exit...")
         self._update_status_labels()
         self.runner.stop()
+
     def _handle_process_output(self, level: str, message: str) -> None:
         tag = level if level in {"info", "success", "warning", "error"} else "info"
         self._append_log(tag, message)
+
     def _handle_process_exit(self, return_code: int) -> None:
         self.runner.cancel()
         self._stop_spinner()
@@ -2586,7 +2971,9 @@ class ResultsTab(ttk.Frame):
             self.status = "completed"
             self.progress.set(100)
             self._append_log("success", "Process completed successfully.")
-            status, message, _ = self.display_aggregated_json(self._resolve_results_json_path())
+            status, message, _ = self.display_aggregated_json(
+                self._resolve_results_json_path()
+            )
             if status == "success":
                 self._append_log("success", message)
             elif status in {"missing", "empty"}:
@@ -2597,13 +2984,17 @@ class ResultsTab(ttk.Frame):
             self.status = "stopped" if self.stop_requested else "error"
             self.progress.set(0)
             if self.stop_requested:
-                self._append_log("warning", f"Process exited with code {return_code} after stop request.")
+                self._append_log(
+                    "warning",
+                    f"Process exited with code {return_code} after stop request.",
+                )
             else:
                 self._append_log("error", f"Process exited with code {return_code}.")
         self._set_running_state(False)
         self._update_status_labels()
         self.stop_requested = False
         self.expected_output_dir = None
+
     def clear_aggregated_results(self) -> None:
         self.current_aggregated_rows = []
         if self.aggregated_tree:
@@ -2611,16 +3002,24 @@ class ResultsTab(ttk.Frame):
                 self.aggregated_tree.delete(item)
         self.latest_aggregated_path = None
         self._apply_aggregated_filters()
+
     def _populate_aggregated_tree(self, rows: List[Dict[str, Any]]) -> None:
         if not self.aggregated_tree:
             return
         self.aggregated_tree.delete(*self.aggregated_tree.get_children())
         for row in rows:
-            values = [self._format_aggregated_value(row.get(col)) for col in self.aggregated_columns]
+            values = [
+                self._format_aggregated_value(row.get(col))
+                for col in self.aggregated_columns
+            ]
             self.aggregated_tree.insert("", "end", values=values)
+
     def _update_delete_status(self) -> None:
         if self.delete_status_label:
-            self.delete_status_label.configure(text=f"Status: {self.delete_status.capitalize()}")
+            self.delete_status_label.configure(
+                text=f"Status: {self.delete_status.capitalize()}"
+            )
+
     def _set_delete_running_state(self, running: bool) -> None:
         if self.delete_run_button:
             self.delete_run_button.configure(state="disabled" if running else "normal")
@@ -2635,12 +3034,14 @@ class ResultsTab(ttk.Frame):
                 self.delete_input_var.set("")
         if self.delete_send_button:
             self.delete_send_button.configure(state=entry_state)
+
     def _delete_clear_log(self) -> None:
         if not self.delete_log_text:
             return
         self.delete_log_text.configure(state="normal")
         self.delete_log_text.delete("1.0", "end")
         self.delete_log_text.configure(state="disabled")
+
     def _delete_append_log(self, level: str, message: str) -> None:
         if not self.delete_log_text:
             return
@@ -2650,6 +3051,7 @@ class ResultsTab(ttk.Frame):
         self.delete_log_text.insert("end", f"[{timestamp}] {message}\n", tag)
         self.delete_log_text.configure(state="disabled")
         self.delete_log_text.see("end")
+
     def handle_delete_run(self) -> None:
         if self.delete_runner.is_running():
             return
@@ -2666,7 +3068,9 @@ class ResultsTab(ttk.Frame):
         self._update_delete_status()
         self._delete_clear_log()
         command = [sys.executable, "-u", str(script_path)]
-        self._delete_append_log("info", f"Starting process: {self._format_command(command)}")
+        self._delete_append_log(
+            "info", f"Starting process: {self._format_command(command)}"
+        )
         try:
             self.delete_runner.run(
                 self,
@@ -2683,13 +3087,17 @@ class ResultsTab(ttk.Frame):
             self._delete_append_log("error", f"Failed to start process: {exc}")
             self.delete_expected_dir = None
             messagebox.showerror("Execution Error", f"Failed to start process:\n{exc}")
+
     def handle_delete_stop(self) -> None:
         if not self.delete_runner.is_running():
             return
         self.delete_status = "stopping"
         self._update_delete_status()
-        self._delete_append_log("warning", "Stop requested. Waiting for process to exit...")
+        self._delete_append_log(
+            "warning", "Stop requested. Waiting for process to exit..."
+        )
         self.delete_runner.stop()
+
     def handle_delete_send(self) -> None:
         if not self.delete_runner.is_running():
             return
@@ -2704,11 +3112,14 @@ class ResultsTab(ttk.Frame):
             messagebox.showerror("Send Input Failed", str(exc))
         finally:
             self.delete_input_var.set("")
+
     def _handle_delete_send_event(self, _event: tk.Event) -> str:
         self.handle_delete_send()
         return "break"
+
     def _handle_delete_output(self, level: str, message: str) -> None:
         self._delete_append_log(level, message)
+
     def _handle_delete_exit(self, return_code: int) -> None:
         self.delete_runner.cancel()
         if return_code == 0 and self.delete_status != "stopping":
@@ -2716,16 +3127,23 @@ class ResultsTab(ttk.Frame):
             self._delete_append_log("success", "Process completed successfully.")
         else:
             if self.delete_status == "stopping":
-                self._delete_append_log("warning", f"Process exited with code {return_code} after stop request.")
+                self._delete_append_log(
+                    "warning",
+                    f"Process exited with code {return_code} after stop request.",
+                )
                 self.delete_status = "stopped"
             else:
-                self._delete_append_log("error", f"Process exited with code {return_code}.")
+                self._delete_append_log(
+                    "error", f"Process exited with code {return_code}."
+                )
                 self.delete_status = "error"
         self._set_delete_running_state(False)
         self._update_delete_status()
         self.delete_expected_dir = None
+
     def _handle_filter_change(self, _event: tk.Event) -> None:
         self._apply_aggregated_filters()
+
     def _apply_aggregated_filters(self) -> None:
         filters = {
             col: var.get().strip().lower()
@@ -2747,6 +3165,7 @@ class ResultsTab(ttk.Frame):
             if matches_all:
                 filtered_rows.append(row)
         self._populate_aggregated_tree(filtered_rows)
+
     def _format_aggregated_value(self, value: Any) -> str:
         if value is None:
             return ""
@@ -2754,6 +3173,7 @@ class ResultsTab(ttk.Frame):
             formatted = f"{value:.4f}".rstrip("0").rstrip(".")
             return formatted if formatted else "0"
         return str(value)
+
     def _normalise_aggregated_rows(self, data: Any) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
         if not isinstance(data, list):
@@ -2794,10 +3214,14 @@ class ResultsTab(ttk.Frame):
                         }
                     )
         return rows
+
     def _set_aggregated_rows(self, rows: List[Dict[str, Any]]) -> None:
         self.current_aggregated_rows = rows
         self._apply_aggregated_filters()
-    def display_aggregated_json(self, json_path: Optional[Path] = None) -> Tuple[str, str, int]:
+
+    def display_aggregated_json(
+        self, json_path: Optional[Path] = None
+    ) -> Tuple[str, str, int]:
         if not self.aggregated_tree:
             return ("error", "Aggregated results view unavailable.", 0)
         target = json_path or (PARENT_DIR / "aggregated_available_land.json")
@@ -2814,15 +3238,22 @@ class ResultsTab(ttk.Frame):
             payload = json.loads(raw_data) if raw_data.strip() else []
         except (OSError, json.JSONDecodeError) as exc:
             self.clear_aggregated_results()
-            return ("error", f"Failed to load aggregated results from {resolved}: {exc}", 0)
+            return (
+                "error",
+                f"Failed to load aggregated results from {resolved}: {exc}",
+                0,
+            )
         rows = self._normalise_aggregated_rows(payload)
         if not rows:
             self.clear_aggregated_results()
             return ("empty", f"No aggregated entries found in {resolved}", 0)
         self._set_aggregated_rows(rows)
         return ("success", f"Loaded {len(rows)} rows from {resolved}", len(rows))
+
+
 class PythonScriptManagerApp(tk.Tk):
     """Main application window."""
+
     def __init__(self) -> None:
         super().__init__()
         self.title("Python Script Manager (Tkinter)")
@@ -2842,10 +3273,12 @@ class PythonScriptManagerApp(tk.Tk):
         header = ttk.Frame(outer)
         header.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 0))
         header.columnconfigure(0, weight=1)
-        ttk.Label(header, text="Python Script Manager", font=("Segoe UI", 16, "bold")).grid(
-            row=0, column=0, sticky="w"
+        ttk.Label(
+            header, text="Python Script Manager", font=("Segoe UI", 16, "bold")
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Button(header, text="Reload UI", command=self.reload_ui).grid(
+            row=0, column=1, sticky="e"
         )
-        ttk.Button(header, text="Reload UI", command=self.reload_ui).grid(row=0, column=1, sticky="e")
 
         self.notebook = ttk.Notebook(outer)
         self.notebook.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
@@ -2865,7 +3298,9 @@ class PythonScriptManagerApp(tk.Tk):
         self.notebook_tabs.extend([self.run_tab, self.results_tab])
 
     def reload_ui(self) -> None:
-        current_index = self.notebook.index(self.notebook.select()) if self.notebook.tabs() else 0
+        current_index = (
+            self.notebook.index(self.notebook.select()) if self.notebook.tabs() else 0
+        )
         for tab in getattr(self, "notebook_tabs", []):
             try:
                 self.notebook.forget(tab)
@@ -2879,8 +3314,12 @@ class PythonScriptManagerApp(tk.Tk):
         if self.notebook.tabs():
             restored_index = min(current_index, len(self.notebook.tabs()) - 1)
             self.notebook.select(restored_index)
+
+
 def main() -> None:
     app = PythonScriptManagerApp()
     app.mainloop()
+
+
 if __name__ == "__main__":
     main()

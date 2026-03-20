@@ -39,10 +39,7 @@ from shapely.geometry import shape
 from shapely.ops import unary_union
 
 
-
-
 logger = logging.getLogger(__name__)
-
 
 
 TARGET_CRS = CRS.from_epsg(4326)
@@ -65,7 +62,11 @@ def _merge_rasters(paths: list[Path]):
 
 def _array_to_gdf(data, transform, nodata, crs) -> gpd.GeoDataFrame:
     mask = data != nodata
-    geoms = [shape(geom) for geom, val in shapes(data, mask=mask, transform=transform) if val != nodata]
+    geoms = [
+        shape(geom)
+        for geom, val in shapes(data, mask=mask, transform=transform)
+        if val != nodata
+    ]
     return gpd.GeoDataFrame({"geometry": geoms}, crs=crs)
 
 
@@ -145,12 +146,15 @@ def aggregate_available_land(
     if not groups:
         print("No available land rasters found.")
         return
+
     def to_sci(value: float) -> str:
         return f"{value:.2e}"
 
-    def run_for_subset(subset: dict[tuple[str, str], list[tuple[str, Path, dict]]],
-                       out_gpkg: Path,
-                       out_json: Path) -> None:
+    def run_for_subset(
+        subset: dict[tuple[str, str], list[tuple[str, Path, dict]]],
+        out_gpkg: Path,
+        out_json: Path,
+    ) -> None:
         out_gpkg.parent.mkdir(parents=True, exist_ok=True)
         out_json.parent.mkdir(parents=True, exist_ok=True)
 
@@ -198,7 +202,9 @@ def aggregate_available_land(
                     "scenario": scen,
                     "technology": tech,
                     "aggregated": {
-                        "eligibility_share_%": round(share_agg * 100, 2) if share_agg is not None else None,
+                        "eligibility_share_%": round(share_agg * 100, 2)
+                        if share_agg is not None
+                        else None,
                         "available_area_km2": to_sci(area_sum / 1e6),
                         "power_potential_TW": round(power_sum / 1e6, 2),
                     },
@@ -290,4 +296,6 @@ if __name__ == "__main__":
         ),
     )
     args = parser.parse_args()
-    aggregate_available_land(args.root, args.output, args.json_output, args.per_scenario_files)
+    aggregate_available_land(
+        args.root, args.output, args.json_output, args.per_scenario_files
+    )
