@@ -1,5 +1,5 @@
 
-study_region_name: Denmark #[mandatory][string] all files and the results folder will be named like that
+study_region_name: Odense #[mandatory][string] all files and the results folder will be named like that
 country_code: DNK #[mandatory][string: 3-letter ISO code] also needed for global wind atlas
 
 
