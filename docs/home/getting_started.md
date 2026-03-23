@@ -39,24 +39,24 @@ You can find the LAVA GitHub repository [here](https://github.com/DEA-GE/LAVA).
 
 1. **Clone the repository**: Open a terminal, navigate to a location of your choice and run:
 ```bash
-    git clone https://github.com/DEA-GE/LAVA.git
+git clone https://github.com/DEA-GE/LAVA.git
 ```
 ```bash
-    cd LAVA
+cd LAVA
 ```
 
 This will create a local copy of the project in a folder named `LAVA` and opens that folder in the terminal.
 
 2. **Create the Conda environment** using the provided environment file that lists all necessary dependencies:
 ```bash
-    conda env create -f envs/requirements.yaml
+conda env create -f envs/requirements.yaml
 ```
 
 This will create a new Conda environment (named `lava`) with all required packages.
 
 3. **Activate the environment**:
 ```bash
-    conda activate lava
+conda activate lava
 ```
 
 ## Data Setup
