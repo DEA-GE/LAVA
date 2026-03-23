@@ -132,10 +132,10 @@ def osm_to_gpkg(
                 else:
                     print(
                         f"Overpass query failed for '{feature_key}' "
-                        f"after {max_retries} attempts: {e}"
+                        f"after {max_retries} attempts: {e}. Skipping."
                     )
-
-        if result is None:
+        else:
+            # Loop completed without break — all retries exhausted, skip this query spec
             continue
 
         if result.elements():
