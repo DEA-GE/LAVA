@@ -118,13 +118,11 @@ def osm_to_gpkg(
 
         # Execute query with retry logic (up to max_retries attempts on failure)
         result = None
-        last_error = None
         for attempt in range(1, max_retries + 1):
             try:
                 result = overpass.query(query, timeout=timeout)
                 break
             except Exception as e:
-                last_error = e
                 if attempt < max_retries:
                     print(
                         f"Overpass query failed for '{feature_key}' "
