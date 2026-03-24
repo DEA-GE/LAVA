@@ -65,6 +65,6 @@ transmission_inclusion_buffer: 10000
 roads_inclusion_buffer: null
 
 # area filter
-min_pixels_connected: null
+min_pixels_connected: 0
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
