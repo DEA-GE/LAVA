@@ -125,7 +125,7 @@ if input_area == "available_land":
     for tech in suitability_techs:
         path = os.path.join(
             data_path_available_land,
-            f"{region_name}_{tech}_{scenario}_available_land_{local_crs_tag}.tif",
+            f"{region_name}_{tech}_{scenario}_available_land.tif",
         )
         potential[tech] = rasterio.open(path).read(1)
         # Reference grid
