@@ -9,7 +9,7 @@ projection_manual: Null # e.g. 'ESRI:54009' Mollweide (if used, then resolution 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
-  50: 200
+  50: 100
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 #| Code | Class                    |
@@ -40,8 +40,8 @@ max_population: 3 #people per pixel
 # spatial elements (buffer in meters)
 railways_buffer: 100
 roads_buffer: 100
-airports_buffer: 5000
-waterbodies_buffer: 50
+airports_buffer: 3000
+waterbodies_buffer: 100
 military_buffer: 100
 coastlines_buffer: 500
 protectedAreas_buffer: 0
@@ -61,24 +61,10 @@ max_solar_production: null #kWh/kW/year
 
 # inclusion filters (connected with AND logic) (meters)
 substations_inclusion_buffer: null
-transmission_inclusion_buffer: null
+transmission_inclusion_buffer: 10000
 roads_inclusion_buffer: null
 
 # area filter
-min_pixels_connected: 5
+min_pixels_connected: null
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
-
-
-# -- timeseries assumptions---------------------------------------------
-# Technology assumptions
-panel: 'CSi.yaml'
-
-tech_derate: 0.95
-
-# --Suitability and cost assumptions--------------------------------------------
-# Solar resource groups (kWh/m²/year)
-rg_thr: 
-    SG1: [1000, 1300]
-    SG2: [1300, 1600]
-    SG3: [1600, 3000]

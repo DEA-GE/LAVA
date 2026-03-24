@@ -9,8 +9,8 @@ projection_manual: null # e.g. 'ESRI:54009' Mollweide (if used, then resolution 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
-  50: 500
-  70: 0
+  50: 100
+  10: 0
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 #| Code | Class                    |
@@ -42,13 +42,13 @@ max_population: 3 #people per pixel
 railways_buffer: 100
 roads_buffer: 100
 airports_buffer: 5000
-waterbodies_buffer: 50
-military_buffer: 500
+waterbodies_buffer: 100
+military_buffer: 100
 coastlines_buffer: 500
 protectedAreas_buffer: 0
 transmission_lines_buffer: 100
-generators_buffer: 100
-plants_buffer: 100 
+generators_buffer: null
+plants_buffer: null 
 
 # additional exclusion rasters
 max_forest_density: null # (0–10 % = non‑forest/scrub, 10–40 % = sparse woodland, 40–70 % = moderately dense forest, >70 % = dense forest).
@@ -62,25 +62,10 @@ max_wind_speed: null #m/s
 
 # inclusion filters (connected with AND logic) (meters)
 substations_inclusion_buffer: null
-transmission_inclusion_buffer: null
+transmission_inclusion_buffer: 50000
 roads_inclusion_buffer: null
 
 # area filter
-min_pixels_connected: 5
+min_pixels_connected: null
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
-
-
-# -- timeseries assumptions---------------------------------------------
-# Technology assumptions
-turbine: 'HW_distributed_farm.yaml'
-
-tech_derate: 0.95
-
-# --Suitability and cost assumptions--------------------------------------------
-# Wind resource groups (m/s)
-rg_thr: 
-    WG1: [4.5, 5.5]
-    WG2: [5.5, 6.5]
-    WG3: [6.5, 7.5]
-    WG4: [7.5, 25]
