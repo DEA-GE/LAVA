@@ -1,4 +1,5 @@
 # Basic Workflow
+Basic workflow --> identify available land (no timeseries data)
 
 This guide walks through the end-to-end workflow for running the Land Availability Analysis (LAVA)
 tool on a new study region. The steps below assume that you have already cloned the repository, created the
@@ -11,6 +12,12 @@ tool on a new study region. The steps below assume that you have already cloned 
 2. Run `spatial_data_prep.py` to download and prepare necessary data.
 3. Inspect the pre-processed data (optional but recommended) with `data_explore.ipynb`.
 4. Run `Exclusion.py` for each technology to create available-land rasters.
+
+<p align="center">
+    <img src="../assets/basic_workflow.jpg" alt="Figure: Flowchart of the basic workflow" width="50%"><br>
+    <img src="../assets/legend_horizontal.jpg" alt="Legend" width="50%"><br>
+    <em>Figure: Flowchart of the basic workflow</em>
+</p>
 
 ## Configuration files
 
