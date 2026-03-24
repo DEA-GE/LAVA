@@ -182,7 +182,7 @@ for cutout_file in cutout_files:
             potentialPath = os.path.join(
                 data_path,
                 "available_land",
-                f"{region_name}_{technology}_{scenario}_available_land_{local_crs_tag}.tif",
+                f"{region_name}_{technology}_{scenario}_available_land.tif",
             )
             excluder.add_raster(potentialPath, codes=1, invert=True)
         elif input_area == "study_region":

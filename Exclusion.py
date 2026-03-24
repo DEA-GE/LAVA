@@ -614,7 +614,7 @@ output_dir = os.path.join(data_path, "available_land")
 os.makedirs(output_dir, exist_ok=True)
 output_file_available_land = os.path.join(
     output_dir,
-    f"{region_name_clean}_{technology}_{scenario}_available_land_{local_crs_tag}.tif",
+    f"{region_name_clean}_{technology}_{scenario}_available_land.tif",
 )
 # Write the array to a new .tif file
 with rasterio.open(output_file_available_land, "w", **metadata) as dst:
