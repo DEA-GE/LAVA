@@ -98,8 +98,8 @@ ERA5_variables: [wind, influx, temperature] # [mandatory][wind, influx, temperat
 
 # timeseries settings
 available_land: # lava_scenarios/external_vector
-    enable: True
-    raster: data/{study_region_name}/available_land/{study_region_name}_{technology}_{scenario}_available_land.tif # data/{study_region_name}/available_land/{study_region_name}_{technology}_{scenario}_available_land.tif
+    enable: False
+    raster: data/Odense/available_land/Odense_solar_ref_available_land.tif
 
 weather_year: 2019 # Weather year for timeseries generation
 cutout_name: DNK-{year}-era5 # Cutout file name template

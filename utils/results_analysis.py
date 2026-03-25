@@ -122,7 +122,7 @@ def _build_groups(root: Path) -> dict[tuple[str, str], list[tuple[str, Path, dic
         info_dict = parse_info_json(info_file)
         if not info_dict:
             continue
-        pattern = f"{region}_{tech}_{scen}_available_land_*.tif"
+        pattern = f"{region}_{tech}_{scen}_available_land.tif"
         for raster in info_file.parent.glob(pattern):
             groups.setdefault((tech, scen), []).append((region, raster, info_dict))
     return groups
