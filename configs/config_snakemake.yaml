@@ -1,19 +1,20 @@
 # General
 #region parameters.
 
-study_region_name: Beijing
-scenario: new-smk-test
-technologies: ['onshorewind']
+study_region_name: [Odense, Ringsted]
+scenario: [ref]
+technologies: [solar]
 
 #snakemake specific parameters
 cores: 4
 snakefile: snakemake/Snakefile
-weather_years: [2015] #[str(y) for y in range(2010, 2011)]
+weather_years: [2019]
 
 stages:
   spatial_data_prep: true
   exclusion: true
-  suitability: true
-  weather_data_prep: true
-  weather_bias_adjust: true
-  energy_profiles: true
+  suitability: false
+  timeseries: true
+  weather_data_prep: false
+  weather_bias_adjust: false
+  energy_profiles: false

@@ -1,15 +1,15 @@
 
-study_region_name: Odense #[mandatory][string] all files and the results folder will be named like that
+study_region_name: Odense #[mandatory][string] all files and the results folder will be named like that; will be replaced by Snakemake when looping through multiple regions
 country_code: DNK #[mandatory][string: 3-letter ISO code] also needed for global wind atlas
 
 
 #--define study region----------------------------------------------------------------------
 # use ADM boundary 
-GADM_source: gadm #[mandatory][string: gadm/wb], gadm: https://gadm.org/maps.html, wb: https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (downloaded via space2stats client (WorldBank)) 
+GADM_source: gadm #[mandatory][string: gadm/wb], gadm: https://gadm.org/maps.html, wb: https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (downloaded via space2stats client (WorldBank)) or "{region_name}" when looping with Snakemake
 GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{ADM_level}) or on WorldBank https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (NAM_{ADM_level})
 GADM_level: 2 #[situational][integer]
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: #[situational][string] if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+custom_study_area_filename: #[situational][string] if you need a dynamic filename, then use "{region_name}.geojson" in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
 
 #--data retrieval----------------------------------------------------------------------
@@ -106,12 +106,12 @@ cutout_name: DNK-{year}-era5 # Cutout file name template
 cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files 
 drop_leap_day: True # Whether to drop February 29 in leap years
 test_mode: False # Quick test mode: only compute the first week (168 hours)
-shapes_path: data/{study_region_name}/{study_region_name}_EPSG4326.geojson # Path to a GeoJSON file with region polygons
-shapes_name_column: NAME #  Name of the column in the GeoJSON that identifies each region
+shapes_path: data/{study_region_name}/{study_region_name}_EPSG4326.geojson # Path to a GeoJSON file with region polygons; data/{study_region_name}/{study_region_name}_EPSG4326.geojson
+shapes_name_column: NAME_2 #  Name of the column in the GeoJSON that identifies each region
 show_progress: False # Show atlite progress bars
 
 technologies:
-    enable: [onwind] # List of technologies to process (onwind, offwind, windspeeds, solar)
+    enable: [onwind, windspeeds] # List of technologies to process (onwind, offwind, windspeeds, solar)
     onwind:
         resource:
             method: wind

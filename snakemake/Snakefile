@@ -69,6 +69,15 @@ if DO_SUITABILITY:
         scenario=scenario,
     )
 
+if DO_TIMESERIES:
+    ALL_TARGETS += expand(
+        logpath("{region}", "timeseries_{technology}_{weather_year}_{scenario}.done"),
+        region=regions,
+        technology=technologies,
+        weather_year=weather_years,
+        scenario=scenario,
+    )
+
 
 if DO_WEATHER_DATA_PREP:
     ALL_TARGETS += expand(

@@ -9,9 +9,11 @@ import geopandas as gpd
 import os
 import yaml
 import logging
+import argparse
 from atlite.gis import ExclusionContainer
 import rasterio
 from pathlib import Path
+from utils.data_preprocessing import clean_region_name
 
 
 logging.basicConfig(level=logging.INFO)
@@ -50,9 +52,23 @@ def load_turbine_or_panel(name, dirname):
 with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-# Set variables from config (prepend dirname to all constructed paths)
-study_region_name = config["study_region_name"]
-year = config["weather_year"]
+# CLI args (fall back to config.yaml defaults)
+parser = argparse.ArgumentParser()
+parser.add_argument("--region", default=config["study_region_name"])
+parser.add_argument("--weather_year", default=config["weather_year"], type=int)
+parser.add_argument("--scenario", default=config.get("scenario", "ref"))
+parser.add_argument("--technology", default=config.get("technology", "solar"))
+args = parser.parse_args()
+
+study_region_name = clean_region_name(args.region)
+year = int(args.weather_year)
+scenario = args.scenario
+technology_exclusion = args.technology
+
+logging.info(
+    f"region={study_region_name}, year={year}, scenario={scenario}, technology={technology_exclusion}"
+)
+
 cutout_name = config["cutout_name"].format(year=year)
 cutout_dir = os.path.join(dirname, config["cutout_dir"])
 cutout_path = os.path.join(cutout_dir, f"{cutout_name}.nc")
@@ -68,7 +84,17 @@ technologies = config["technologies"]
 enabled_techs = technologies.pop(
     "enable", list(technologies.keys())
 )  # Extract enable list, default to all
-available_land_raster = config["available_land"]["raster"]
+
+# Resolve available_land raster path with placeholders
+available_land_raster_template = config["available_land"]["raster"]
+available_land_raster = os.path.join(
+    dirname,
+    available_land_raster_template.format(
+        study_region_name=study_region_name,
+        technology=technology_exclusion,
+        scenario=scenario,
+    ),
+)
 
 logging.info(f"  Technologies to process: {enabled_techs}")
 
