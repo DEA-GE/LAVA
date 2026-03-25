@@ -43,9 +43,33 @@ References
 - Wang, Y., Chao, Q., Zhao, L., & Chang, R. (2022). *Assessment of wind and photovoltaic power potential in China*. Carbon Neutrality, 1(1), 15. https://doi.org/10.1007/s43979-022-00020-w  
 
 
+## Distances to high-voltage power lines
+
+### Solar PV (Zink, 2024a)
+
+| Region | Median | P95 | Sample |
+|---|---|---|---|
+|EU	| 1.96 km	| 11.03 km |	23658|
+|Africa|	0.9 km|	2.5 km|	348|
+
+
+### Wind onshore (Zink, 2024b)
+
+| Region | Median | P95 | Sample |
+|---|---|---|---|
+|EU|	2.9 km|	14.1 km|	22883|
+|Africa	|2.3 km	|8 km	|154|
+
+References
+
+- Zink, C. (2024a). GIS-based Evaluation of Suitability and Implementation Prospects for Solar PV Energy in Africa.
+- Zink, C. (2024b). Proposing a Methodology to Evaluate the Feasability and Implementation Potiential of Wind Energy in Africa Using GIS Data. https://doi.org/10.1109/PowerAfrica61624.2024.10759357
+
+
+
 
 ## Technology parameters
 
 ### Solar PV
 
-Information on optimal tilt: https://www.solarpaneltilt.com/ 
+Information on optimal tilt: [solarpaneltilt.com](https://www.solarpaneltilt.com/ )

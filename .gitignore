@@ -89,6 +89,7 @@
 !docs/requirements-docs.txt
 !docs/index.md
 !docs/assets
+!docs/assets/**
 !docs/assets/custom.css
 !docs/assets/literature_overview.xlsx
 !docs/assets/exclusion_parameters_overview.xlsx
