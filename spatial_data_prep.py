@@ -92,10 +92,9 @@ OSM_source = config["OSM_source"]  # either 'geofabrik' or 'overpass'
 consider_forest_density = config.get("forest_density", 0)
 
 # ----------------------------
-study_region_name = config[
-    "study_region_name"
-]  # this defines the folder where the data is saved and the prefix in the files.
-region_name_clean = clean_region_name(study_region_name)
+study_region_name = (
+    config.get("study_region_name") or "unknown_region_name"
+)  # when no name is set in config, use default
 OSM_folder_name = config[
     "OSM_folder_name"
 ]  # usually same as country_code, only needed if OSM is to be considered
@@ -106,16 +105,14 @@ adm_source = config.get("GADM_source", "gadm")  # gadm or wb (WorldBank via spac
 adm_region_name = config.get(
     "GADM_region_name"
 )  # if country is studied, then use country name
-country_code = config[
-    "country_code"
-]  # 3-digit ISO code  #PRT  #Städteregion Aachen in level 2 #Porto in level 1 #Elbe-Elster in level 2 #Zell am See in level 2
+country_code = config["country_code"]
 adm_level = config.get("GADM_level")
 # or use custom region
 custom_study_area_filename = config.get("custom_study_area_filename", None)
 
 # Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--region", default=region_name_clean, help="study region name")
+parser.add_argument("--region", default=study_region_name, help="study region name")
 parser.add_argument(
     "--method",
     default="manual",
@@ -123,16 +120,9 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-# If running via Snakemake, use the region name and folder name from command line arguments
-if args.method == "snakemake":
-    region_name = args.region
-    print(region_name)
-    region_name_clean = clean_region_name(
-        region_name
-    )  # Clean the region name for file naming
-    print(f"Running via snakemake - measures: region={region_name_clean}")
-else:
-    print(f"Running manually - measures: region={region_name_clean}")
+# Clean region name (uses --region if passed via snakemake, otherwise config default)
+region_name_clean = clean_region_name(args.region)
+print(f"Running ({args.method}) - region={region_name_clean}")
 
 ##################################################
 # north facing pixels
@@ -173,6 +163,10 @@ logging.basicConfig(
 )  # source: https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
 
 logging.info(f"\nPrepping {region_name_clean}...")
+
+# Resolve {region_name} placeholder in GADM_region_name if present
+if adm_region_name and "{region_name}" in adm_region_name:
+    adm_region_name = adm_region_name.format(region_name=region_name_clean)
 
 # get region boundary
 if custom_study_area_filename:
