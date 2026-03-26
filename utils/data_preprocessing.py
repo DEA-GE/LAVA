@@ -81,7 +81,7 @@ def download_admin_boundary_WB(
         if level == 0:
             print("Warning: region_name is ignored when level=0 (country boundary)")
         else:
-            name_col = f"NAM_{level}"
+            name_col = "shapeName"
             if name_col not in boundaries.columns:
                 raise ValueError(
                     f"Column '{name_col}' not found in boundaries. Available columns: {boundaries.columns.tolist()}"
@@ -90,7 +90,7 @@ def download_admin_boundary_WB(
             boundaries = boundaries[boundaries[name_col] == region_name]
 
             if boundaries.empty:
-                print(f"Warning: No region found with NAME_{level}='{region_name}'")
+                print(f"Warning: No region found with shapeName='{region_name}'")
                 print(f"Available regions: {boundaries[name_col].unique().tolist()}")
 
     return boundaries
