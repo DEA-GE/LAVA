@@ -166,7 +166,7 @@ logging.info(f"\nPrepping {region_name_clean}...")
 
 # Resolve {region_name} placeholder in GADM_region_name if present
 if adm_region_name and "{region_name}" in adm_region_name:
-    adm_region_name = adm_region_name.format(region_name=region_name_clean)
+    adm_region_name = adm_region_name.format(region_name=args.region)
 
 # get region boundary
 if custom_study_area_filename:
