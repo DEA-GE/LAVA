@@ -6,4 +6,4 @@ rule spatial_data_prep:
     params:
         method="snakemake"
     shell:
-        "python spatial_data_prep.py --region {wildcards.region} --method {params.method}"
+        "python spatial_data_prep.py --region {wildcards.region:q} --method {params.method:q}"
