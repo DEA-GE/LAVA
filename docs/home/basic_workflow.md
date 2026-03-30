@@ -54,8 +54,10 @@ Create technology-specific available-land rasters by running `Exclusion.py`. The
 flags mirror the configuration entries so that single technologies or scenarios can be processed
 independently. Alternatively you can specify in `config.yaml` under the headline *#--exclusions--* the variables "scenario" and "technology". There are configuration files for the land exclusion for wind onshore and utility-scale solar PV.
 ```bash
-python Exclusion.py --technology onshorewind --scenario ref
 python Exclusion.py --technology solar --scenario ref
+```
+```bash
+python Exclusion.py --technology onshorewind --scenario ref
 ```
 
 The script loads the prepared rasters and vector layers, applies the filters defined in the
