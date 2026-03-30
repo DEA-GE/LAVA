@@ -14,6 +14,7 @@ nav:
   - Knowledge Base:
     - General Methodology: knowledge_base/general_methodology.md
     - Recommendations for Parameters: knowledge_base/recommendations_for_parameters.md
+    - Reanalysis: knowledge_base/reanalysis.md
     - Literature: knowledge_base/literature.md
   - Contributing:
     - Instructions: contributing/contributing.md
