@@ -10,8 +10,6 @@ Reanalysis data has multiple advantages, e.g. global coverage, which enables sim
 
 ## netCDF: data format for gridded data
 
-<figure>
-  <img src="../assets/xarray.png" alt="xarray">
-  <figcaption>Figure: Dataset diagram (from <a href="https://docs.xarray.dev/en/stable/user-guide/data-structures.html">xarray documentation</a>)</figcaption>
-</figure>
+![](../assets/xarray.png)
+*Figure: Dataset diagram from [xarray documentation](https://docs.xarray.dev/en/stable/user-guide/data-structures.html)*
 
