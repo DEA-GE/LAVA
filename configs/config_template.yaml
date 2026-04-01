@@ -6,7 +6,7 @@ country_code: DNK #[mandatory][string: 3-letter ISO code] also needed for global
 #--define study region----------------------------------------------------------------------
 # use ADM boundary 
 GADM_source: gadm #[mandatory][string: gadm/wb], gadm: https://gadm.org/maps.html, wb: https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (downloaded via space2stats client (WorldBank)) or "{region_name}" when looping with Snakemake
-GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{ADM_level}) or on WorldBank https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (NAM_{ADM_level})
+GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{ADM_level}) or on WorldBank https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (NAM_{ADM_level}) or "{region_name}" when looping with Snakemake
 GADM_level: 2 #[situational][integer]
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
 custom_study_area_filename: #[situational][string] if you need a dynamic filename, then use "{region_name}.geojson" in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
