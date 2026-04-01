@@ -65,6 +65,7 @@ Most input data is downloaded automatically in the workflow except the DEM from 
 
 - **DEM**: Download the DEM for your study region from [GEBCO](https://download.gebco.net/). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder **DEM** (digital elevation model) in the **Raw_Spatial_Data** folder and name it **gebco_cutout.tif**. This data provides the elevation in each pixel. It is also possible to use a different dataset.
 - **ESAworldcover**: In order to automatically download landcover data you need to create an account [here](https://documentation.dataspace.copernicus.eu/Registration.html). The very first time you run the LAVA tool you need to click on a link in the terminal and login to Copernicus. Afterwards, your login will be remembered.
+- **ERA5 Copernicus**: If you want to download ERA5 data via Copernicus to be used for generating timeseries data, you need to install the Copernicus Climate Data Store `cdsapi` package (`pip install cdsapi`) and register and setup your CDS API key as described [on their website here](https://cds.climate.copernicus.eu/how-to-api).
 
 The tool is now ready to be used. The first step is to fill out the `config.yaml` file.
 

@@ -32,3 +32,4 @@ dependencies:
     - OSMPythonTools
     - distancerasters
     - space2stats-client
+    - cdsapi
