@@ -85,8 +85,8 @@ def osm_to_gpkg(
     overpass = Overpass()
     all_elements = []
 
-    max_retries = 3
-    retry_delay = 3  # seconds between retries
+    max_retries = 5
+    retry_delay = 5  # seconds between retries
 
     # Process each query specification
     for query_spec in query_specs:
