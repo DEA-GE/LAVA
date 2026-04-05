@@ -67,3 +67,12 @@ for traceability.
 
 !!! note 
     A template to document the exclusion parameters and data sources can be downloaded [here](../assets/exclusion_parameters_overview.xlsx).
+
+## Batch processing with Snakemake
+
+When analysing multiple study regions, you can use a snakemake workflow to automatically execute all scripts for all regions one after another. Adjust `config_snakemake.yaml` and run the batch job with the following comamand in the terminal:
+```bash
+snakemake -s snakemake/Snakefile --cores 1 --resources openeo_req=1 --dryrun
+```
+
+You can parallelize by using multiple cores. You can use a maximum of 2 openeo_req to download the landcover data.

@@ -14,7 +14,7 @@ stages:
   spatial_data_prep: true
   exclusion: true
   suitability: false
-  timeseries: true
+  timeseries: false
   weather_data_prep: false
   weather_bias_adjust: false
   energy_profiles: false
