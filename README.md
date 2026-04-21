@@ -11,26 +11,27 @@ The LAVA tool is flexible research software with a limited user-interface. For u
 Find the tool documentation [here](https://lava-tool.readthedocs.io/en/latest/).
 
 
-## Tool setup
-__a) clone the repository (using Git Bash):__
+## Installation (pixi)
+Clone the repository:
+```sh
+git clone https://github.com/DEA-GE/LAVA.git
+cd LAVA
+```
 
-`git clone https://github.com/DEA-GE/LAVA.git`
+Install dependencies in a new environment based on the `pixi.toml` file:
+```sh
+pixi install
+```
 
-After cloning, navigate to the top-level folder of the repo in your command window.
+Activate the environment:
+```sh
+pixi shell
+```
 
-__b) install python dependencies__
-
-The Python package requirements to use the LAVA tool are in the `requirements.yaml` file. You can install these requirements in a new environment using `conda`:
-
-`conda env create -f envs/requirements.yaml`
-
-Then activate this new environment using
-
-`conda activate lava`
-
+For more details, see https://pixi.prefix.dev/latest/ (or your local PIXI docs).
 You are now ready to run the scripts in this repository.
 
-__c) input data setup__
+## Input data setup
 
 In order to run the tool with the default data setup do the following:
 * Download the Digital Elevation Model (DEM) for you study region from [GEBCO Gridded Bathymetry Data](https://download.gebco.net/). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder __"DEM"__ (digital elevation model) and name it __*gebco_cutout.tif*__. This data provides the elevation in each pixel.
