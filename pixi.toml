@@ -1,0 +1,44 @@
+[workspace]
+authors = ["LAVA <noreply@lava.example>"]
+channels = ["conda-forge", "bioconda"]
+name = "lava"
+description = "Renewable energy potentials based on land availability"
+platforms = ["linux-64", "win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.12"
+atlite = "*"
+cfgrib = "*"
+gdal = "*"
+geopandas = "*"
+richdem = "*"
+shapely = "*"
+unidecode = "*"
+pyyaml = "*"
+pandas = "*"
+matplotlib = "*"
+numpy = "*"
+pygadm = "*"
+jupyter = "*"
+ipython = "*"
+ipykernel = "*"
+openeo = "*"
+fiona = "*"
+requests = "*"
+openpyxl = "*"
+xdem = "*"
+snakemake = "*"
+leafmap = "*"
+localtileserver = "*"
+
+[pypi-dependencies]
+OSMPythonTools = "*"
+distancerasters = "*"
+space2stats-client = "*"
+cdsapi = "*"
+
+[environments]
+default = { features = [], solve-group = "default" }
