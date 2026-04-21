@@ -6,7 +6,7 @@ country_code: CHN #3-letter ISO code; also needed for global wind atlas
 #--define study region----------------------------------------------------------------------
 # use GADM boundary (https://gadm.org/maps.html)
 GADM_region_name:  #exact name as in GADM file (NAME_{gadm_level})
-GADM_level: 
+GADM_level:
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
 custom_study_area_filename: '{region_name}.geojson' #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
 
@@ -17,8 +17,8 @@ landcover_source: openeo   #'file' or 'openeo' or leave empty to not download (D
 resolution_landcover: 0.008999280057498208  # for openeo download, in degress (EPSG4326); 0.008999280057498208 degrees is ca. 1000m at equator
 landcover_filename: #filename including file ending of local landcover file in Raw_Spatial_Data/landcover
 
-# DEM 
-DEM_filename: gebco_cutout.tif 
+# DEM
+DEM_filename: gebco_cutout.tif
 
 # OSM data
 OSM_source: overpass #geofabrik or overpass
@@ -37,13 +37,13 @@ transmission_lines: 1
 generators: 1
 plants: 1
 
-# coastlines 
+# coastlines
 coastlines: 1
 
 # wind and solar resources (GWA and GSA)
 wind_atlas: 1
 solar_atlas: 1
-country_name_solar_atlas: China # name of country, check https://globalsolaratlas.info/download  
+country_name_solar_atlas: China # name of country, check https://globalsolaratlas.info/download
 solar_atlas_measure: LTAym_YearlyMonthlyTotals # check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
 
 # protected areas
@@ -64,8 +64,8 @@ compute_terrain_ruggedness: 1
 CRS_manual:  #set CRS instead of calculating local UTM zone
 
 # additional polygons and rasters
-additional_exclusion_polygons_folder_name: 
-additional_exclusion_rasters_folder_name: 
+additional_exclusion_polygons_folder_name:
+additional_exclusion_rasters_folder_name:
 
 
 #--exclusions----------------------------------------------------------------------
@@ -76,7 +76,7 @@ additional_exclusion_rasters_folder_name:
 scenario: ref
 technology: onshorewind #onshorewind or solar, used for the filename of the available area
 
-# model areas 
+# model areas
 model_areas_filename:
 
 
@@ -91,10 +91,10 @@ study_area:
 # shape simplification for overpass
 target_vertices:  360
 tolerance_min: 0.0  # Minimum simplification tolerance
-tolerance_max: 0.5  # Maximum simplification tolerance, 
+tolerance_max: 0.5  # Maximum simplification tolerance,
 
 # GEOFABRIK: OSM feature classes for shapefiles (fclass names need to be in a list!)
-fclass: 
+fclass:
   railways: null # null means nothing is filtered
   roads: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link']
   airports: ['airport', 'airfield']
@@ -102,7 +102,7 @@ fclass:
   military: ['military']
 
 # OVERPASS API: OSM features to fetch
-# the name before "_" should match the binary filtering above. 
+# the name before "_" should match the binary filtering above.
 # all OSM keys with its values: https://wiki.openstreetmap.org/wiki/Map_features
 overpass_features:
   railways: &railways ['rail']
@@ -153,7 +153,7 @@ weather_year: 2015
 weather_data_extend: study_region # 'study_region' or 'geo_bounds' or "country_code"
 
 # If 'geo_bounds' is selected, define the bounding box here (geographical coordinates)
-weather_data_geo_bounds: { 
+weather_data_geo_bounds: {
     'west': 73,
     'south': 15,
     'east': 135,
@@ -161,7 +161,7 @@ weather_data_geo_bounds: {
 }
 
 # Apply bias correction to ERA5 wind data based on Global Wind Atlas and Global Solar Atlas data
-weather_bias_correction: { 
+weather_bias_correction: {
   onshorewind: true,
   offshorewind: true,
   solar: false

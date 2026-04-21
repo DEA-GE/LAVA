@@ -199,7 +199,7 @@ def rasterize(
 
     """
     Rasterize a vector file into an in-memory NumPy array.
-    
+
     Parameters
     ----------
     geojson_path : str
@@ -216,7 +216,7 @@ def rasterize(
         Background value for pixels outside geometries.
     pad : float
         Extra buffer (in meters) added around vector bounds.
-    
+
     Returns
     -------
     raster : np.ndarray

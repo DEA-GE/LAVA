@@ -25,7 +25,7 @@ Under the headline *#--exclusions--* in the configuration the variables **scenar
 
 For the exclusion criterias copy the files `onshorewind_template.yaml` and `solar_template.yaml`. Rename them to `onshorewind.yaml` and `solar.yaml` respectively. Fill these files out in order to set the exclusion parameters.
 
-!!! note 
+!!! note
     An overview of possible exclusion criterias found in selected literature can be downloaded [here](../assets/literature_overview.xlsx).
 
 ## Prepare data
@@ -64,7 +64,7 @@ technology configuration, and writes `*_available_land_*.tif` files under
 **data/{RegionName}/available_land/**. A log of each scenario run is stored in the region folder
 for traceability.
 
-!!! note 
+!!! note
     A template to document the exclusion parameters and data sources can be downloaded [here](../assets/exclusion_parameters_overview.xlsx).
 
 ## Batch processing with Snakemake

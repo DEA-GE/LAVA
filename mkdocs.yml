@@ -3,7 +3,7 @@ repo_url: https://github.com/DEA-GE/LAVA
 docs_dir: docs
 
 nav:
-  - Home: 
+  - Home:
     - Home: index.md
     - Getting Started: home/getting_started.md
     - Basic Workflow: home/basic_workflow.md

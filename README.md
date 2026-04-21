@@ -1,11 +1,11 @@
-# LAVA - *L*and *AV*ailability *A*nalysis 
+# LAVA - *L*and *AV*ailability *A*nalysis
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/DEA-GE/LAVA/main.svg)](https://results.pre-commit.ci/latest/github/DEA-GE/LAVA/main)
 
 LAVA is a tool to calculate the available area in a user defined study region for building renewable energy generators like utility-scale ground-mounted solar PV and wind onshore.
 First, all needed data is downloaded and preprocessed to bring it into the right format. Then the land eligibility analysis is done with the help of [`atlite`](https://github.com/PyPSA/atlite). Additionally, a suitable analysis can be performed and timeseries data for the available area derived.
-The LAVA tool is flexible research software with a limited user-interface. For user-friendly online GIS tools to identify available land have a look at [Energy Access Explorer](https://www.energyaccessexplorer.org/tool/s/) and [REZoning](https://rezoning.energydata.info/). 
+The LAVA tool is flexible research software with a limited user-interface. For user-friendly online GIS tools to identify available land have a look at [Energy Access Explorer](https://www.energyaccessexplorer.org/tool/s/) and [REZoning](https://rezoning.energydata.info/).
 
 ## Documentation
 Find the tool documentation [here](https://lava-tool.readthedocs.io/en/latest/).
@@ -39,7 +39,7 @@ In order to run the tool with the default data setup do the following:
 
 
 ## Quick start - Basic workflow
-The basic workflow identifies suitable areas for solar PV and onshore wind based on user-defined parameters. 
+The basic workflow identifies suitable areas for solar PV and onshore wind based on user-defined parameters.
 1. Adjust configuration files (or use default values for test case).
 2. Data download and pre-processing: run the script `spatial_data_prep.py`. You can run from the terminal via<br>
    `python spatial_data_prep.py`

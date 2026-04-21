@@ -101,16 +101,16 @@ topography_modifier:
     }
 
 # Regional cost modifiers (factors relative to average investment cost)
-region_modifier: { 
+region_modifier: {
     'North': { 'onshorewind': 1.055, 'solar': 1.083},
-    'East': { 'onshorewind': 1.090, 'solar': 1.125}, 
-    'Central': { 'onshorewind': 1.084, 'solar': 1.111}, 
-    'Northeast': { 'onshorewind': 1.054, 'solar': 1.028}, 
-    'Northwest': { 'onshorewind': 1.000, 'solar': 1.000}, 
+    'East': { 'onshorewind': 1.090, 'solar': 1.125},
+    'Central': { 'onshorewind': 1.084, 'solar': 1.111},
+    'Northeast': { 'onshorewind': 1.054, 'solar': 1.028},
+    'Northwest': { 'onshorewind': 1.000, 'solar': 1.000},
     'South': { 'onshorewind': 1.122, 'solar': 1.160},
 }
 
-region_set: { 
+region_set: {
     'Anhui': 'East',
     'Beijing': 'North',
     'Chongqing': 'Central',

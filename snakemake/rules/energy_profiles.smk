@@ -4,7 +4,7 @@ rule energy_profiles:
     output:
         touch(logpath("{region}", "energy_profiles_{technology}_{weather_year}_{scenario}.done"))
     params:
-        method="snakemake", 
+        method="snakemake",
         scenario=scenario
     shell:
         (

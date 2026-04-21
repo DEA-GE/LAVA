@@ -12,4 +12,3 @@ Reanalysis data has multiple advantages, e.g. global coverage, which enables sim
 
 ![](../assets/xarray.png)
 *Figure: Dataset diagram from [xarray documentation](https://docs.xarray.dev/en/stable/user-guide/data-structures.html)*
-

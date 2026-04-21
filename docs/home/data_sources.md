@@ -17,9 +17,9 @@ Following data must be downloaded (partly manually 🔧, partly automatically �
 - **Mean wind speeds** 🤖: [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) has data on mean wind speeds with high spatial resolution. The data is automatically downloaded and processed by the script. If it is not working, try checking if the 3-letter country code used in `config.yaml` and in the Global Wind Atlas match.
 
 - **Solar radiation** 🤖: [Global Solar Atlas](https://globalsolaratlas.info/download) has data on longterm yearly average of potential photovoltaic electricity production (PVOUT) in kWh/kWp with high spatial resolution. The data is automatically downloaded and processed by the script.
-  
+
   ⚠️ For some areas there is no data, especially for many areas north of 60°N (e.g. Greenland, Iceland, parts of Sweden, Norway, Finland, Russia).
-  
+
   ⚠️ For some countries you cannot download the default measure "LTAym_YearlyMonthlyTotals" which lets the script fail. Check the used measure directly in the download area of Global Solar Atlas and replace it in `config.yaml` under "advanced details" (e.g. "LTAy_YearlySum" instead of "LTAym_YearlyMonthlyTotals").
 
 ---

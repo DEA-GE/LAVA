@@ -5,7 +5,7 @@ rule exclusion:
         touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
     params:
         method="snakemake",
-        scenario=scenario 
+        scenario=scenario
     shell:
         (
             "python Exclusion.py --region {wildcards.region} "

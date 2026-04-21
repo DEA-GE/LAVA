@@ -76,7 +76,7 @@ panel: 'CSi.yaml'
 tech_derate: 0.95
 
 # Solar resource groups (kWh/m²/year)
-rg_thr: 
+rg_thr:
     SG1: [1000, 1300]
     SG2: [1300, 1600]
     SG3: [1600, .inf]

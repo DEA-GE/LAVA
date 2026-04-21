@@ -4,7 +4,7 @@ country_code: DNK #[mandatory][string: 3-letter ISO code] also needed for global
 
 
 #--define study region----------------------------------------------------------------------
-# use ADM boundary 
+# use ADM boundary
 GADM_source: gadm #[mandatory][string: gadm/wb], gadm: https://gadm.org/maps.html, wb: https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (downloaded via space2stats client (WorldBank)) or "{region_name}" when looping with Snakemake
 GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{ADM_level}) or on WorldBank https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (NAM_{ADM_level}) or "{region_name}" when looping with Snakemake
 GADM_level: 2 #[situational][integer]
@@ -14,11 +14,11 @@ custom_study_area_filename: #[situational][string] if you need a dynamic filenam
 
 #--data retrieval----------------------------------------------------------------------
 # landcover
-landcover_source: openeo   #[mandatory][string: file/openeo/ ] or leave empty to not download 
+landcover_source: openeo   #[mandatory][string: file/openeo/ ] or leave empty to not download
 resolution_landcover:  #[optional][float] set manual resolution for openeo download, in degress (EPSG4326); 0.008999280057498208 degrees is ca. 1000m at equator
 landcover_filename: #[situational][string] filename including file ending of local landcover file in Raw_Spatial_Data/landcover
 
-# DEM 
+# DEM
 DEM_filename: gebco_cutout.tif #[mandatory][string] name of DEM file
 
 # OSM data
@@ -38,7 +38,7 @@ transmission_lines: 1
 generators: 1
 plants: 1
 
-# coastlines 
+# coastlines
 coastlines: 1
 
 # population data
@@ -48,7 +48,7 @@ population_year: 2020 #[situational][integer] year of population data (2015-2030
 # wind and solar resources (GWA and GSA)
 wind_atlas: 1
 solar_atlas: 1
-country_name_solar_atlas: Denmark #[mandatory][string] name of country, check https://globalsolaratlas.info/download  
+country_name_solar_atlas: Denmark #[mandatory][string] name of country, check https://globalsolaratlas.info/download
 solar_atlas_measure: LTAym_YearlyMonthlyTotals #[situational][string] check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
 
 # protected areas
@@ -79,8 +79,8 @@ additional_exclusion_rasters_folder_name: #[optional][string]
 scenario: ref
 technology: solar #onshorewind or solar, used for the filename of the available area
 
-# model areas 
-model_areas_filename: 
+# model areas
+model_areas_filename:
 
 
 
@@ -89,8 +89,8 @@ model_areas_filename:
 weather_data_folder: Raw_Spatial_Data/weather_data #[mandatory][string] folder where weather data cutout will be stored
 weather_data_extend: gadm_country # [mandatory][gadm_country/wb_country/bbox/downloaded_region/{name of custom area file incl file ending}]
 bbox: [xmin, ymin, xmax, ymax] # [situational][xmin, ymin, xmax, ymax] only needed if weather_data_extend is set to bbox; in EPSG4326; Odense: [9.8828, 54.9881, 10.876700000000001, 55.780899999999995]
-weather_years: 
-    years: [2019] # list of historical weather years 
+weather_years:
+    years: [2019] # list of historical weather years
     start: 01-01 # start date for weather data download in MM-DD format
     end: 12-31 # end date for weather data download in MM-DD format
 ERA5_variables: [wind, influx, temperature] # [mandatory][wind, influx, temperature] list of ERA5 variables to download; wind energy: wind; solar energy: influx, temperature
@@ -103,7 +103,7 @@ available_land: # lava_scenarios/external_vector
 
 weather_year: 2019 # Weather year for timeseries generation
 cutout_name: DNK-{year}-era5 # Cutout file name template
-cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files 
+cutout_dir: Raw_Spatial_Data/weather_data # Local directory for cutout files
 drop_leap_day: True # Whether to drop February 29 in leap years
 test_mode: False # Quick test mode: only compute the first week (168 hours)
 shapes_path: data/{study_region_name}/{study_region_name}_EPSG4326.geojson # Path to a GeoJSON file with region polygons; data/{study_region_name}/{study_region_name}_EPSG4326.geojson
@@ -146,6 +146,3 @@ technologies:
             tracking: null
         correction_factor: 1.0
         clip_p_max_pu: 0.01
-
-
-

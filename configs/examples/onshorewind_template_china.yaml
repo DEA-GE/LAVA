@@ -50,7 +50,7 @@ coastlines_buffer: 1000
 protectedAreas_buffer: 2000
 transmission_lines_buffer: 1000
 generators_buffer: 1000
-plants_buffer: 1000 
+plants_buffer: 1000
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
@@ -78,7 +78,7 @@ tech_derate: 0.95
 
 # --Suitability and cost assumptions--------------------------------------------
 # Wind resource groups (m/s)
-rg_thr: 
+rg_thr:
     WG1: [4.5, 5.5]
     WG2: [5.5, 6.5]
     WG3: [6.5, 7.5]

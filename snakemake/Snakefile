@@ -8,7 +8,7 @@ with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
     config_snakemake = yaml.load(f, Loader=yaml.FullLoader)
 
 
-#define parameters , keep them in list as it iterates, multiple input can be included. 
+#define parameters , keep them in list as it iterates, multiple input can be included.
 regions = config_snakemake["study_region_name"]
 technologies = config_snakemake["technologies"]
 scenario= config_snakemake["scenario"]
@@ -22,8 +22,8 @@ for r in regions:
     Path(f"data/{r}/snakemake_log").mkdir(parents=True, exist_ok=True)
 
 """script to run in terminal
-The snakemake workflow will parallelize (--cores > 1) everything else but the spatial_data_prep script. 
-The resources are limited to openeo cause the api is throwing problems with parallelization. 
+The snakemake workflow will parallelize (--cores > 1) everything else but the spatial_data_prep script.
+The resources are limited to openeo cause the api is throwing problems with parallelization.
     use thi line ---->  snakemake --cores 4 --resources openeo_req=1
 to use a specific Snakefile, use the --snakefile option
     use this line ----> snakemake --snakefile snakemake/Snakefile_short_short --cores 4 --resources openeo_req=1

@@ -10,10 +10,10 @@ study_area:
 # shape simplification for overpass
 target_vertices:  360
 tolerance_min: 0.0  # Minimum simplification tolerance
-tolerance_max: 0.5  # Maximum simplification tolerance, 
+tolerance_max: 0.5  # Maximum simplification tolerance,
 
 # GEOFABRIK: OSM feature classes for shapefiles (fclass names need to be in a list!)
-fclass: 
+fclass:
   railways: null # null means nothing is filtered
   roads: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link']
   airports: ['airport', 'airfield']
@@ -21,7 +21,7 @@ fclass:
   military: ['military']
 
 # OVERPASS API: OSM features to fetch
-# the name before "_" should match the binary filtering above. 
+# the name before "_" should match the binary filtering above.
 # all OSM keys with its values: https://wiki.openstreetmap.org/wiki/Map_features
 overpass_features:
   railways: &railways ['rail']
@@ -54,6 +54,3 @@ Z: 50
 
 # world database of protected areas
 wdpa_consider_status: ["Adopted", "Designated", "Established", "Inscribed"] #all possibilies: "Adopted", "Designated", "Established", "Inscribed", "Proposed"
-
-
-

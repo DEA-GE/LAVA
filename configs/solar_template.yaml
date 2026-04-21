@@ -3,7 +3,7 @@
 # deployment density
 deployment_density: 50 # MW/km²
 
-# exclusion container manual resolution and projection 
+# exclusion container manual resolution and projection
 resolution_manual: Null # meters
 projection_manual: Null # e.g. 'ESRI:54009' Mollweide (if used, then resolution needs to be set manually as well)
 
@@ -47,7 +47,7 @@ coastlines_buffer: 500
 protectedAreas_buffer: 0
 transmission_lines_buffer: 100
 generators_buffer: Null
-plants_buffer: Null 
+plants_buffer: Null
 
 # additional exclusion rasters
 max_forest_density: null # (0–10 % = non‑forest/scrub, 10–40 % = sparse woodland, 40–70 % = moderately dense forest, >70 % = dense forest).
