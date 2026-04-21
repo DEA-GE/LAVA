@@ -13,23 +13,23 @@ repos:
     # Run the formatter.
   - id: ruff-format
 
-  # Find common spelling mistakes
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
-    hooks:
-      - id: codespell
-        args: ['--ignore-regex="(\b[A-Z]+\b)"']
-        types_or: [python, rst, markdown]
-        files: ^(scripts|rules)/
-  
-  # Run some default pre-commit hooks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      - id: check-added-large-files
-        args: ["--maxkb=2000"]
-      - id: check-merge-conflict
-      - id: check-yaml
-        exclude: "pixi.lock"
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
+# Find common spelling mistakes
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.3.0
+  hooks:
+    - id: codespell
+      args: ['--ignore-regex="(\b[A-Z]+\b)"']
+      types_or: [python, rst, markdown]
+      files: ^(scripts|rules)/
+
+# Run some default pre-commit hooks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+    - id: check-added-large-files
+      args: ["--maxkb=2000"]
+    - id: check-merge-conflict
+    - id: check-yaml
+      exclude: "pixi.lock"
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
