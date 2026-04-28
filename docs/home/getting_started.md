@@ -6,7 +6,17 @@ This section will guide you through setting up the LAVA project on your local sy
 
 Before installing and running **LAVA**, ensure you have the following:
 
-- [Pixi](https://pixi.prefix.dev/latest/) installed on your system. Pixi is used to create and manage the project environment from `pixi.toml`.
+- [Pixi](https://pixi.prefix.dev/latest/) (recommended) or [Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) (Anaconda or Miniconda) or  installed on your system for managing the environment and Python.
+
+!!! note
+    Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH (search for the following folders in your machine).
+
+    ```console
+    # add to system PATH ("users" might differ on your machine)
+    set PATH=C:\users\miniconda
+    set PATH=C:\users\miniconda\Scripts
+    ```
+
 - [Git](https://git-scm.com/install/) (optional) if you plan to clone the repository using Git.
 - [VSCode](https://code.visualstudio.com/download) or another code editor for editing configuration files and scripts. In VSCode you should link the command prompt to the terminal by doing the following: a) Press *Ctrl + Shift + P* to show all commands. b) Type *Select Terminal: Select Default Profile* and click it. c) Click on "Command Prompt".
 - A system with sufficient disk space (min. 15 GB) and RAM (16 GB or higher), especially if processing large datasets.
@@ -32,19 +42,33 @@ You can find the LAVA GitHub repository [here](https://github.com/DEA-GE/LAVA).
 **Clone the repository**: Open a terminal, navigate to a location of your choice and run:
 ```bash
 git clone https://github.com/DEA-GE/LAVA.git
+```
+```bash
 cd LAVA
 ```
 This will create a local copy of the project in a folder named `LAVA` and opens that folder in the terminal.
 
-**Install dependencies using Pixi**. This reads the `pixi.toml` file and creates the required environment:
+**Recommended: Environment management using Pixi**. This reads the `pixi.toml` file and creates the required environment:
 ```bash
 pixi install
 ```
 This will install all dependencies defined for the project.
 
-**Activate the environment**:
+You can activate the environment with the following commnad:
 ```bash
 pixi shell
+```
+
+**Alternative: Environment management using Conda** using the provided environment file that lists all necessary dependencies:
+```bash
+conda env create -f envs/requirements.yaml
+```
+
+This will create a new Conda environment (named `lava`) with all required packages.
+
+You can activate the environment with the following commnad:
+```bash
+conda activate lava
 ```
 
 ## Data Setup

@@ -8,7 +8,7 @@ Even with a well-configured setup, you may encounter issues when running the LAV
 
 **Common causes & solutions:**
 
-- **Missing or misconfigured GDAL/OGR:** Ensure that the Pixi environment includes GDAL/OGR and it is properly activated. (The provided environment should have it, but if you see `ModuleNotFoundError` for `osgeo` or `ogr`, the environment might not be active or installed correctly.)
+- **Missing or misconfigured GDAL/OGR:** Ensure that the Pixi/Conda environment includes GDAL/OGR and it is properly activated. (The provided environment should have it, but if you see `ModuleNotFoundError` for `osgeo` or `ogr`, the environment might not be active or installed correctly.)
 - **Unsupported file format or driver issues:** Check that your input files are in a supported format. For example, if you're using a KML or another less common format, GDAL may need an extra driver. Stick to common formats like Shapefile or GeoJSON for vector data. If you must use another format, ensure GDAL supports it and the appropriate driver is available.
 - **Incorrect file paths:** An "unable to open file" error often means the path in your config is wrong or the file is missing. Double-check that the path to your shapefiles or other data in the YAML config is correct relative to the project directory (or provide an absolute path).
 - **Data corruption or projection issues:** Sometimes an OGR error can indicate a corrupted file or a projection mismatch. Try opening the file in a GIS software to ensure it's valid. If it's a projection issue (e.g., the pipeline expects WGS84 but the data is in a local projection), either reproject your data or update the config/processing to handle that projection.

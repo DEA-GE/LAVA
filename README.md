@@ -11,13 +11,14 @@ The LAVA tool is flexible research software with a limited user-interface. For u
 Find the tool documentation [here](https://lava-tool.readthedocs.io/en/latest/).
 
 
-## Installation (pixi)
+## Installation
 Clone the repository:
 ```sh
 git clone https://github.com/DEA-GE/LAVA.git
 cd LAVA
 ```
 
+### Recommended: Pixi
 Install dependencies in a new environment based on the `pixi.toml` file:
 ```sh
 pixi install
@@ -30,6 +31,18 @@ pixi shell
 
 For more details, see https://pixi.prefix.dev/latest/ (or your local PIXI docs).
 You are now ready to run the scripts in this repository.
+
+### Alternative: Conda
+The Python package requirements to use the LAVA tool are in the `requirements.yaml` file. You can install these requirements in a new environment using `conda`:
+
+```sh
+conda env create -f envs/requirements.yaml
+```
+
+Activate the environment:
+```sh
+conda activate lava
+```
 
 ## Input data setup
 

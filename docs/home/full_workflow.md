@@ -11,11 +11,6 @@ tool on a new study region.
 3. Inspect the pre-processed data (optional but recommended) with `data_explore.ipynb`.
 4. Run `Exclusion.py` for each technology to create available-land rasters.
 
-## Prerequisites
-
-The steps below assume that you have already cloned the repository, installed the Pixi environment from `pixi.toml`, and downloaded the manual datasets. Those steps are documented in the
-[Getting Started](getting_started.md) instructions.
-
 ## Configuration files
 
 In the **configs-folder** copy the file `config_template.yaml`, rename it to `config.yaml` and fill it out. This is your main configuration file for the data download.

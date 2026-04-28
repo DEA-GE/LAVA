@@ -53,3 +53,4 @@ markdown_extensions:
   - toc:
       title: On this page
       permalink: true
+  - pymdownx.superfences

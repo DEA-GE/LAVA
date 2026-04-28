@@ -1,0 +1,35 @@
+# manually generated for specific packages
+# platform: win-64
+
+name: lava
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - atlite=0.4.1=pyhd8ed1ab_0
+  - gdal=3.10.3=py312h07de9ea_12
+  - geopandas=1.1.1=pyhd8ed1ab_0
+  - richdem=2.3.0=py312h275c25d_12
+  - shapely=2.1.1=py312h3f81574_0
+  - unidecode            # was not installed previously; no version available
+  - pyyaml=6.0.2=py312h31fea79_2
+  - pandas=2.3.1=py312hc128f0a_0
+  - matplotlib=3.10.5=py312h2e8e312_0
+  - numpy=2.2.6=py312h3150e54_0
+  - pygadm=0.5.3=pyhd8ed1ab_1
+  - jupyter=1.1.1=pyhd8ed1ab_1
+  - ipython=9.4.0=pyh6be1c34_0
+  - ipykernel=6.30.0=pyh3521513_0
+  - openeo=0.43.0=pyhd8ed1ab_0
+  - fiona=1.10.1=py312h6e88f47_3
+  - requests=2.32.4=pyhd8ed1ab_0
+  - openpyxl=3.1.5=py312he70551f_1
+  - xdem=0.1.6=pyhd8ed1ab_0
+  - snakemake
+  - pip=25.2=pyh8b19718_0
+
+  - pip:
+      - OSMPythonTools==0.3.6
+      - distancerasters==0.3.3
+      - geonamescache==3.0.0
