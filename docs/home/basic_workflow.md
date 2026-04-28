@@ -3,8 +3,7 @@ Basic workflow --> identify available land (no timeseries data)
 
 This guide walks through the end-to-end workflow for running the Land Availability Analysis (LAVA)
 tool on a new study region. The steps below assume that you have already cloned the repository, created the
-`lava` Conda environment from `envs/requirements.yaml`, and downloaded the manual datasets. Those steps are documented in the
-[Getting Started](getting_started.md) instructions.
+`lava` environment and finished the data setup. Those steps are documented in the [Getting Started](getting_started.md) instructions.
 
 ## Overview of the basic workflow
 

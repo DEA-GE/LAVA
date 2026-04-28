@@ -5,6 +5,8 @@
 !envs
 !envs/requirements.yaml
 !envs/win-64.lock.yaml
+!pixi.toml
+!pixi.lock
 # --- Main scripts ---
 !spatial_data_prep.py
 !Exclusion.py
