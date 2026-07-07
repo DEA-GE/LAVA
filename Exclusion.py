@@ -120,94 +120,9 @@ else:
         res = json.load(fp)
 
 
-# Paths and existence checks
-landcoverPath = os.path.join(
-    data_path,
-    f"landcover_{config['landcover_source']}_{region_name_clean}_{global_crs_tag}.tif",
-)
-landcover = 1 if os.path.isfile(landcoverPath) else 0
-demRasterPath = os.path.join(
-    data_path, f"DEM_{region_name_clean}_{global_crs_tag}{resampled}.tif"
-)
-dem = 1 if os.path.isfile(demRasterPath) else 0
-slopeRasterPath = os.path.join(
-    data_from_DEM, f"slope_{region_name_clean}_{global_crs_tag}{resampled}.tif"
-)
-slope = 1 if os.path.isfile(slopeRasterPath) else 0
-terrain_ruggedness_path = os.path.join(
-    data_from_DEM, f"TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif"
-)
-terrain_ruggedness = 1 if os.path.isfile(terrain_ruggedness_path) else 0
-populationPath = os.path.join(
-    data_path, f"population_{region_name_clean}_{global_crs_tag}.tif"
-)
-population = 1 if os.path.isfile(populationPath) else 0
-windRasterPath = os.path.join(
-    data_path, f"wind_{region_name_clean}_{global_crs_tag}{resampled}.tif"
-)
-wind = 1 if os.path.isfile(windRasterPath) else 0
-solarRasterPath = os.path.join(
-    data_path, f"solar_{region_name_clean}_{global_crs_tag}{resampled}.tif"
-)
-solar = 1 if os.path.isfile(solarRasterPath) else 0
-
 regionPath = os.path.join(data_path, f"{region_name_clean}_{global_crs_tag}.geojson")
 region = gpd.read_file(regionPath)
 region = region.to_crs(local_crs_obj)
-
-northfacingRasterPath = os.path.join(
-    data_from_DEM, f"north_facing_{region_name_clean}_{global_crs_tag}{resampled}.tif"
-)
-nfacing = 1 if os.path.isfile(northfacingRasterPath) else 0
-coastlinesPath = os.path.join(
-    data_path, f"goas_{region_name_clean}_{global_crs_tag}.gpkg"
-)
-coastlines = 1 if os.path.isfile(coastlinesPath) else 0
-protectedAreasPath = os.path.join(
-    data_path,
-    f"protected_areas_{config['protected_areas_source']}_{region_name_clean}_{global_crs_tag}.gpkg",
-)
-protectedAreas = 1 if os.path.isfile(protectedAreasPath) else 0
-forestDensityPath = os.path.join(
-    data_path, f"forest_density_{region_name_clean}_{global_crs_tag}.tif"
-)
-forestDensity = 1 if os.path.isfile(forestDensityPath) else 0
-
-# OSM
-roadsPath = os.path.join(data_path_OSM, "roads.gpkg")
-roads = 1 if os.path.isfile(roadsPath) else 0
-railwaysPath = os.path.join(data_path_OSM, "railways.gpkg")
-railways = 1 if os.path.isfile(railwaysPath) else 0
-airportsPath = os.path.join(data_path_OSM, "airports.gpkg")
-airports = 1 if os.path.isfile(airportsPath) else 0
-waterbodiesPath = os.path.join(data_path_OSM, "waterbodies.gpkg")
-waterbodies = 1 if os.path.isfile(waterbodiesPath) else 0
-militaryPath = os.path.join(data_path_OSM, "military.gpkg")
-military = 1 if os.path.isfile(militaryPath) else 0
-substationsPath = os.path.join(data_path_OSM, "substations.gpkg")
-substations = 1 if os.path.isfile(substationsPath) else 0
-transmissionPath = os.path.join(data_path_OSM, "transmission_lines.gpkg")
-transmission = 1 if os.path.isfile(transmissionPath) else 0
-generatorsPath = os.path.join(data_path_OSM, "generators.gpkg")
-generators = 1 if os.path.isfile(generatorsPath) else 0
-plantsPath = os.path.join(data_path_OSM, "plants.gpkg")
-plants = 1 if os.path.isfile(plantsPath) else 0
-
-# Additional exclusion polygons
-additional_exclusion_polygons_folderPath = os.path.join(
-    data_path, "additional_exclusion_polygons"
-)
-additional_exclusion_polygons = (
-    1 if os.path.exists(additional_exclusion_polygons_folderPath) else 0
-)
-# Additional exclusion rasters
-additional_exclusion_rasters_folderPath = os.path.join(
-    data_path, "additional_exclusion_rasters"
-)
-additional_exclusion_rasters = (
-    1 if os.path.exists(additional_exclusion_rasters_folderPath) else 0
-)
-
 
 # perform exclusions
 
@@ -221,80 +136,106 @@ info_list_not_available = []
 # initiate Exclusion container
 excluder = atlite.ExclusionContainer(crs=local_crs_obj, res=res)
 
-# add landcover exclusions
-if tech_config["landcover_codes"]:
+
+# --- Landcover ---
+landcoverPath = os.path.join(
+    data_path,
+    f"landcover_{config['landcover_source']}_{region_name_clean}_{global_crs_tag}.tif",
+)
+if tech_config["landcover_codes"] and os.path.isfile(landcoverPath):
     input_codes = tech_config["landcover_codes"]
     for key, value in input_codes.items():
         excluder.add_raster(landcoverPath, codes=key, buffer=value, crs=global_crs_obj)
     info_list_exclusion.append(
         f"landcover codes which are excluded (code, buffer in meters): {input_codes}"
     )
+elif tech_config["landcover_codes"] and not os.path.isfile(landcoverPath):
+    info_list_not_available.append("landcover")
 else:
-    print("landcover not selected in config.")
+    info_list_not_selected.append("landcover")
 
-# add elevation exclusions
+
+# --- Elevation ---
+demRasterPath = os.path.join(
+    data_path, f"DEM_{region_name_clean}_{global_crs_tag}{resampled}.tif"
+)
 param = tech_config["max_elevation"]
-if dem == 1 and param is not None:
+if os.path.isfile(demRasterPath) and param is not None:
     excluder.add_raster(demRasterPath, codes=range(param, 10000), crs=global_crs_obj)
     info_list_exclusion.append(f"max elevation: {param}")
-elif dem == 1 and param is None:
+elif os.path.isfile(demRasterPath) and param is None:
     info_list_not_selected.append("DEM")
-elif dem == 0:
+else:
     info_list_not_available.append("DEM")
 
-# add slope exclusions
+
+# --- Slope ---
+slopeRasterPath = os.path.join(
+    data_from_DEM, f"slope_{region_name_clean}_{global_crs_tag}{resampled}.tif"
+)
 param = tech_config["max_slope"]
-if slope == 1 and param is not None:
+if os.path.isfile(slopeRasterPath) and param is not None:
     excluder.add_raster(slopeRasterPath, codes=range(param, 90), crs=global_crs_obj)
     info_list_exclusion.append(f"max slope: {param}")
-elif slope == 1 and param is None:
+elif os.path.isfile(slopeRasterPath) and param is None:
     info_list_not_selected.append("slope")
-elif slope == 0:
+else:
     info_list_not_available.append("slope")
 
-# add terrain ruggedness exclusions
+
+# --- Terrain Ruggedness ---
+terrain_ruggedness_path = os.path.join(
+    data_from_DEM, f"TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif"
+)
 param = tech_config["max_terrain_ruggedness"]
-if terrain_ruggedness == 1 and param is not None:
+if os.path.isfile(terrain_ruggedness_path) and param is not None:
     excluder.add_raster(
         terrain_ruggedness_path, codes=range(0, param), invert=True, crs=global_crs_obj
     )
     info_list_exclusion.append(f"max terrain ruggedness: {param}")
-elif terrain_ruggedness == 1 and param is None:
+elif os.path.isfile(terrain_ruggedness_path) and param is None:
     info_list_not_selected.append("terrain_ruggedness")
-elif terrain_ruggedness == 0:
+else:
     info_list_not_available.append("terrain_ruggedness")
 
 
-# add population exclusions
+# --- Population ---
 def lower_end_filter(mask):
     """Filter out values below a lower end."""
     lower_end = tech_config["max_population"]
     return mask > lower_end
 
 
+populationPath = os.path.join(
+    data_path, f"population_{region_name_clean}_{global_crs_tag}.tif"
+)
 param = tech_config.get("max_population")
-if population == 1 and param is not None:
+if os.path.isfile(populationPath) and param is not None:
     excluder.add_raster(
         populationPath, codes=lower_end_filter, crs=global_crs_obj, nodata=None
     )  # nodata=None, otherwise no data values get excluded (assumption: in no data pixels there is no population)
     info_list_exclusion.append(f"max population per pixel: {param}")
-elif population == 1 and param is None:
+elif os.path.isfile(populationPath) and param is None:
     info_list_not_selected.append("population")
-elif population == 0:
+else:
     info_list_not_available.append("population")
 
-# add north facing exclusion
+
+# --- North Facing ---
+northfacingRasterPath = os.path.join(
+    data_from_DEM, f"north_facing_{region_name_clean}_{global_crs_tag}{resampled}.tif"
+)
 param = tech_config.get("north_facing_pixels", None)
-if nfacing == 1 and param is not None:
+if os.path.isfile(northfacingRasterPath) and param is not None:
     excluder.add_raster(northfacingRasterPath, codes=1, crs=global_crs_obj)
     info_list_exclusion.append("north facing pixels")
-elif nfacing == 1 and param is None:
+elif os.path.isfile(northfacingRasterPath) and param is None:
     info_list_not_selected.append("nfacing")
-elif nfacing == 0:
+else:
     info_list_not_available.append("nfacing")
 
 
-# add wind exclusions
+# --- Wind Speed ---
 def wind_filter(mask):
     """Filter out values outside the desired wind speed range."""
     min_val = tech_config["min_wind_speed"]
@@ -307,25 +248,29 @@ def wind_filter(mask):
         return mask > max_val
 
 
+windRasterPath = os.path.join(
+    data_path, f"wind_{region_name_clean}_{global_crs_tag}{resampled}.tif"
+)
 if technology in ["onshorewind", "offshorewind"] and (
     tech_config["min_wind_speed"] is not None
     or tech_config["max_wind_speed"] is not None
 ):
     min_wind_speed = tech_config["min_wind_speed"]
     max_wind_speed = tech_config["max_wind_speed"]
-    excluder.add_raster(windRasterPath, codes=wind_filter, crs=global_crs_obj)
-    if min_wind_speed is not None and max_wind_speed is not None:
-        info = f"min wind speed: {min_wind_speed}, max wind speed: {max_wind_speed}"
-    elif min_wind_speed is not None:
-        info = f"min wind speed: {min_wind_speed}"
-    elif max_wind_speed is not None:
-        info = f"max wind speed: {max_wind_speed}"
-    info_list_exclusion.append(f"{info}")
-elif wind == 0:
-    info_list_not_available.append("wind")
+    if os.path.isfile(windRasterPath):
+        excluder.add_raster(windRasterPath, codes=wind_filter, crs=global_crs_obj)
+        if min_wind_speed is not None and max_wind_speed is not None:
+            info = f"min wind speed: {min_wind_speed}, max wind speed: {max_wind_speed}"
+        elif min_wind_speed is not None:
+            info = f"min wind speed: {min_wind_speed}"
+        elif max_wind_speed is not None:
+            info = f"max wind speed: {max_wind_speed}"
+        info_list_exclusion.append(info)
+    else:
+        info_list_not_available.append("wind")
 
 
-# add solar exclusions
+# --- Solar Production ---
 def solar_filter(mask):  # desired yearly, specific solar production (kWh/m²/year)
     """Filter out values outside the desired solar production range (kWh/m²/year)."""
     min_val = tech_config.get("min_solar_production")
@@ -338,142 +283,175 @@ def solar_filter(mask):  # desired yearly, specific solar production (kWh/m²/ye
         return mask > max_val
 
 
+solarRasterPath = os.path.join(
+    data_path, f"solar_{region_name_clean}_{global_crs_tag}{resampled}.tif"
+)
 if technology == "solar" and (
     tech_config.get("min_solar_production") is not None
     or tech_config.get("max_solar_production") is not None
 ):
     min_solar_production = tech_config.get("min_solar_production")
     max_solar_production = tech_config.get("max_solar_production")
+    if os.path.isfile(solarRasterPath):
+        excluder.add_raster(solarRasterPath, codes=solar_filter, crs=global_crs_obj)
+        if min_solar_production is not None and max_solar_production is not None:
+            info = f"min_solar_production: {min_solar_production}, max_solar_production: {max_solar_production}"
+        elif min_solar_production is not None:
+            info = f"min_solar_production: {min_solar_production}"
+        elif max_solar_production is not None:
+            info = f"max_solar_production: {max_solar_production}"
+        info_list_exclusion.append(info)
+    else:
+        info_list_not_available.append("solar")
 
-    excluder.add_raster(solarRasterPath, codes=solar_filter, crs=global_crs_obj)
-    if min_solar_production is not None and max_solar_production is not None:
-        info = f"min_solar_production: {min_solar_production}, max_solar_production: {max_solar_production}"
-    elif min_solar_production is not None:
-        info = f"min_solar_production: {min_solar_production}"
-    elif max_solar_production is not None:
-        info = f"max_solar_production: {max_solar_production}"
-    info_list_exclusion.append(info)
-elif solar == 0:
-    info_list_not_available.append("solar")
 
-
-# add exclusions from vector data
-# Railways
+# --- Railways ---
+railwaysPath = os.path.join(data_path_OSM, "railways.gpkg")
 param = tech_config["railways_buffer"]
-if railways == 1 and param is not None:
+if os.path.isfile(railwaysPath) and param is not None:
     excluder.add_geometry(railwaysPath, buffer=param)
     info_list_exclusion.append(f"railways buffer: {param}")
-elif railways == 1 and param is None:
+elif os.path.isfile(railwaysPath) and param is None:
     info_list_not_selected.append("railways")
-elif railways == 0:
+else:
     info_list_not_available.append("railways")
 
-# Roads
+
+# --- Roads ---
+roadsPath = os.path.join(data_path_OSM, "roads.gpkg")
 param = tech_config["roads_buffer"]
-if roads == 1 and param is not None:
+if os.path.isfile(roadsPath) and param is not None:
     excluder.add_geometry(roadsPath, buffer=param)
     info_list_exclusion.append(f"roads buffer: {param}")
-elif roads == 1 and param is None:
+elif os.path.isfile(roadsPath) and param is None:
     info_list_not_selected.append("roads")
-elif roads == 0:
+else:
     info_list_not_available.append("roads")
 
-# Airports
+
+# --- Airports ---
+airportsPath = os.path.join(data_path_OSM, "airports.gpkg")
 param = tech_config["airports_buffer"]
-if airports == 1 and param is not None:
+if os.path.isfile(airportsPath) and param is not None:
     excluder.add_geometry(airportsPath, buffer=param)
     info_list_exclusion.append(f"airports buffer: {param}")
-elif airports == 1 and param is None:
+elif os.path.isfile(airportsPath) and param is None:
     info_list_not_selected.append("airports")
-elif airports == 0:
+else:
     info_list_not_available.append("airports")
 
-# Waterbodies
+
+# --- Waterbodies ---
+waterbodiesPath = os.path.join(data_path_OSM, "waterbodies.gpkg")
 param = tech_config["waterbodies_buffer"]
-if waterbodies == 1 and param is not None:
+if os.path.isfile(waterbodiesPath) and param is not None:
     excluder.add_geometry(waterbodiesPath, buffer=param)
     info_list_exclusion.append(f"waterbodies buffer: {param}")
-elif waterbodies == 1 and param is None:
+elif os.path.isfile(waterbodiesPath) and param is None:
     info_list_not_selected.append("waterbodies")
-elif waterbodies == 0:
+else:
     info_list_not_available.append("waterbodies")
 
-# Military
+
+# --- Military ---
+militaryPath = os.path.join(data_path_OSM, "military.gpkg")
 param = tech_config["military_buffer"]
-if military == 1 and param is not None:
+if os.path.isfile(militaryPath) and param is not None:
     excluder.add_geometry(militaryPath, buffer=param)
     info_list_exclusion.append(f"military buffer: {param}")
-elif military == 1 and param is None:
+elif os.path.isfile(militaryPath) and param is None:
     info_list_not_selected.append("military")
-elif military == 0:
+else:
     info_list_not_available.append("military")
 
-# Coastlines
+
+# --- Coastlines ---
+coastlinesPath = os.path.join(
+    data_path, f"goas_{region_name_clean}_{global_crs_tag}.gpkg"
+)
 param = tech_config["coastlines_buffer"]
-if coastlines == 1 and param is not None:
+if os.path.isfile(coastlinesPath) and param is not None:
     excluder.add_geometry(coastlinesPath, buffer=param)
     info_list_exclusion.append(f"coastlines buffer: {param}")
-elif coastlines == 1 and param is None:
+elif os.path.isfile(coastlinesPath) and param is None:
     info_list_not_selected.append("coastlines")
-elif coastlines == 0:
+else:
     info_list_not_available.append("coastlines")
 
-# Protected Areas
+
+# --- Protected Areas ---
+protectedAreasPath = os.path.join(
+    data_path,
+    f"protected_areas_{config['protected_areas_source']}_{region_name_clean}_{global_crs_tag}.gpkg",
+)
 param = tech_config["protectedAreas_buffer"]
-if protectedAreas == 1 and param is not None:
+if os.path.isfile(protectedAreasPath) and param is not None:
     excluder.add_geometry(protectedAreasPath, buffer=param)
     info_list_exclusion.append(f"protected areas buffer: {param}")
-elif protectedAreas == 1 and param is None:
+elif os.path.isfile(protectedAreasPath) and param is None:
     info_list_not_selected.append("protectedAreas")
-elif protectedAreas == 0:
+else:
     info_list_not_available.append("protectedAreas")
 
-# Forest Density (optional; raster threshold like terrain ruggedness)
+
+# --- Forest Density ---
+forestDensityPath = os.path.join(
+    data_path, f"forest_density_{region_name_clean}_{global_crs_tag}.tif"
+)
 param = tech_config.get("max_forest_density")
-if forestDensity == 1 and param is not None:
+if os.path.isfile(forestDensityPath) and param is not None:
     excluder.add_raster(
         forestDensityPath, codes=range(0, param), invert=True, crs=global_crs_obj
     )
     info_list_exclusion.append(f"max forest density included: {param}")
-elif forestDensity == 1 and param is None:
+elif os.path.isfile(forestDensityPath) and param is None:
     info_list_not_selected.append("forestDensity")
-elif forestDensity == 0:
+else:
     info_list_not_available.append("forestDensity")
 
-# Transmission Lines
+
+# --- Transmission Lines ---
+transmissionPath = os.path.join(data_path_OSM, "transmission_lines.gpkg")
 param = tech_config["transmission_lines_buffer"]
-if transmission == 1 and param is not None:
+if os.path.isfile(transmissionPath) and param is not None:
     excluder.add_geometry(transmissionPath, buffer=param)
     info_list_exclusion.append(f"transmission buffer: {param}")
-elif transmission == 1 and param is None:
+elif os.path.isfile(transmissionPath) and param is None:
     info_list_not_selected.append("transmission")
-elif transmission == 0:
+else:
     info_list_not_available.append("transmission")
 
-# existing generators (points)
+
+# --- Existing Generators ---
+generatorsPath = os.path.join(data_path_OSM, "generators.gpkg")
 param = tech_config["generators_buffer"]
-if generators == 1 and param is not None:
+if os.path.isfile(generatorsPath) and param is not None:
     excluder.add_geometry(generatorsPath, buffer=param)
     info_list_exclusion.append(f"existing generators buffer: {param}")
-elif generators == 1 and param is None:
+elif os.path.isfile(generatorsPath) and param is None:
     info_list_not_selected.append("existing generators")
-elif generators == 0:
+else:
     info_list_not_available.append("existing generators")
 
-# existing plants (polygons)
+
+# --- Existing Plants ---
+plantsPath = os.path.join(data_path_OSM, "plants.gpkg")
 param = tech_config["plants_buffer"]
-if plants == 1 and param is not None:
+if os.path.isfile(plantsPath) and param is not None:
     excluder.add_geometry(plantsPath, buffer=param)
     info_list_exclusion.append(f"existing plants buffer: {param}")
-elif plants == 1 and param is None:
+elif os.path.isfile(plantsPath) and param is None:
     info_list_not_selected.append("existing plants")
-elif plants == 0:
+else:
     info_list_not_available.append("existing plants")
 
 
-# add additional exclusion polygons
+# --- Additional Exclusion Polygons ---
+additional_exclusion_polygons_folderPath = os.path.join(
+    data_path, "additional_exclusion_polygons"
+)
 buffer_config = tech_config.get("additional_exclusion_polygons_buffer")
-if additional_exclusion_polygons == 1 and buffer_config:
+if os.path.exists(additional_exclusion_polygons_folderPath) and buffer_config:
     for filename in os.listdir(additional_exclusion_polygons_folderPath):
         if filename in buffer_config:  # check if buffer is defined
             buffer_value = buffer_config[filename]
@@ -482,25 +460,18 @@ if additional_exclusion_polygons == 1 and buffer_config:
             info_list_exclusion.append(
                 f"additional exclusion polygons file: {filename}: {buffer_value}"
             )
-elif (
-    additional_exclusion_polygons == 1
-    and tech_config["additional_exclusion_polygons_buffer"] is None
-):
+elif os.path.exists(additional_exclusion_polygons_folderPath) and not buffer_config:
     info_list_not_selected.append("additional_exclusion_polygons_buffer")
-elif additional_exclusion_polygons == 0:
+else:
     info_list_not_available.append("additional_exclusion_polygons_buffer")
 
-# if additional_exclusion_polygons==1 and tech_config['additional_exclusion_polygons_buffer']:
-#     for i, (buffer_value, filename) in enumerate(zip(tech_config['additional_exclusion_polygons_buffer'], os.listdir(additional_exclusion_polygons_folderPath))):
-#         filepath = os.path.join(additional_exclusion_polygons_folderPath, filename)    # Construct the full file path
-#         excluder.add_geometry(filepath, buffer=buffer_value)
-#         info_list_exclusion.append(f'additional exclusion polygon file {i+1}: {buffer_value}')
-# elif additional_exclusion_polygons == 1 and tech_config['additional_exclusion_polygons_buffer'] is None: info_list_not_selected.append("additional_exclusion_polygons_buffer")
-# elif additional_exclusion_polygons == 0: info_list_not_available.append("additional_exclusion_polygons_buffer")
 
-# add additional exclusion rasters
+# --- Additional Exclusion Rasters ---
+additional_exclusion_rasters_folderPath = os.path.join(
+    data_path, "additional_exclusion_rasters"
+)
 buffer_config = tech_config.get("additional_exclusion_rasters_buffer")
-if additional_exclusion_rasters == 1 and buffer_config:
+if os.path.exists(additional_exclusion_rasters_folderPath) and buffer_config:
     for filename in os.listdir(additional_exclusion_rasters_folderPath):
         if filename in buffer_config:  # check if buffer is defined
             buffer_value = buffer_config[filename]
@@ -511,42 +482,46 @@ if additional_exclusion_rasters == 1 and buffer_config:
             info_list_exclusion.append(
                 f"additional exclusion raster file: {filename}: {buffer_value}"
             )
-elif additional_exclusion_rasters == 1 and not buffer_config:
+elif os.path.exists(additional_exclusion_rasters_folderPath) and not buffer_config:
     info_list_not_selected.append("additional_exclusion_rasters_buffer")
-elif additional_exclusion_rasters == 0:
-    info_list_not_available.append("additional_exclusion_polygons_buffer")
+else:
+    info_list_not_available.append("additional_exclusion_rasters_buffer")
 
 
 # INCLUSION
-# Substations (Inclusion Buffer)
+
+# --- Substations (Inclusion Buffer) ---
+substationsPath = os.path.join(data_path_OSM, "substations.gpkg")
 param = tech_config["substations_inclusion_buffer"]
-if substations == 1 and param is not None:
+if os.path.isfile(substationsPath) and param is not None:
     excluder.add_geometry(substationsPath, buffer=param, invert=True)
     info_list_exclusion.append(f"substations inclusion buffer: {param}")
-elif substations == 1 and param is None:
+elif os.path.isfile(substationsPath) and param is None:
     info_list_not_selected.append("substations")
-elif substations == 0:
+else:
     info_list_not_available.append("substations")
 
-# Transmission (Inclusion Buffer)
+
+# --- Transmission Lines (Inclusion Buffer) ---
 param = tech_config["transmission_inclusion_buffer"]
-if transmission == 1 and param is not None:
+if os.path.isfile(transmissionPath) and param is not None:
     excluder.add_geometry(transmissionPath, buffer=param, invert=True)
     info_list_exclusion.append(f"transmission inclusion buffer: {param}")
-elif transmission == 1 and param is None:
-    info_list_not_selected.append("transmission")
-elif transmission == 0:
-    info_list_not_available.append("transmission")
+elif os.path.isfile(transmissionPath) and param is None:
+    info_list_not_selected.append("transmission inclusion")
+else:
+    info_list_not_available.append("transmission inclusion")
 
-# Roads (Inclusion Buffer)
+
+# --- Roads (Inclusion Buffer) ---
 param = tech_config["roads_inclusion_buffer"]
-if roads == 1 and param is not None:
+if os.path.isfile(roadsPath) and param is not None:
     excluder.add_geometry(roadsPath, buffer=param, invert=True)
     info_list_exclusion.append(f"roads inclusion buffer: {param}")
-elif roads == 1 and param is None:
-    info_list_not_selected.append("roads")
-elif roads == 0:
-    info_list_not_available.append("roads")
+elif os.path.isfile(roadsPath) and param is None:
+    info_list_not_selected.append("roads inclusion")
+else:
+    info_list_not_available.append("roads inclusion")
 
 
 # data info
