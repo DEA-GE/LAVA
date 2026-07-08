@@ -21,6 +21,9 @@ landcover_filename: #[situational][string] filename including file ending of loc
 # DEM 
 DEM_filename: gebco_cutout.tif #[mandatory][string] name of DEM file
 
+# buildings
+buildings_filename: #[situational][string] name of buildings file in Raw_Spatial_Data/buildings; only needed if local file is used as source
+
 # OSM data
 OSM_source: overpass #[mandatory][string: overpass/geofabrik]
 OSM_folder_name:  #[situational][string] name of the folder within /Raw_Spatial_Data/OSM with all raw OSM shapefiles from Geofabrik; only needed if Geofabrik used as OSM source

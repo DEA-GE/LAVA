@@ -73,9 +73,10 @@ conda activate lava
 
 ## Data Setup
 
-Most input data is downloaded automatically in the workflow except the DEM from GEBCO which must be retrieved manually and placed in the right folder. Furthermore a Copernicus account for the automatic download of landcover data is required.
+Most input data is downloaded automatically in the workflow except the DEM from GEBCO and the buildings raster from GHSL which must be retrieved manually and placed in the right folder. Furthermore a Copernicus account for the automatic download of landcover data is required.
 
 - **DEM**: Download the DEM for your study region from [GEBCO](https://download.gebco.net/). Use the download tool. Select a larger area around your study region. Set a tick for a GeoTIFF file under "Grid" and download the file from the basket. Put the file into the folder **DEM** (digital elevation model) in the **Raw_Spatial_Data** folder and name it **gebco_cutout.tif**. This data provides the elevation in each pixel. It is also possible to use a different dataset.
+- **Buildings raster** (optional): If you want to use the buildings raster do the following: Download all tiles for your study region from [GHSL EMC_BUILT](https://human-settlement.emergency.copernicus.eu/emc_built_s.php) in Mollweide 10m (select on the left hand side). If you need to download multiple tiles, merge them using GDAL in the terminal. Put the file into the folder **buildings** in the **Raw_Spatial_Data** folder and give it a name. Copy/paste the filename into the config file to the variable *buildings_filename*. If *buildings_filename* is empty in the config file, this dataset is skipped. The buildings raster gives the buildings footprint in square-meters in every 10m pixel. Every pixel can have a buildings footpring between 0 and 100 sqm.
 - **ESAworldcover**: In order to automatically download landcover data you need to create an account [here](https://documentation.dataspace.copernicus.eu/Registration.html). The very first time you run the LAVA tool you need to click on a link in the terminal and login to Copernicus. Afterwards, your login will be remembered.
 - **ERA5 Copernicus**: If you want to download ERA5 data via Copernicus to be used for generating timeseries data, you need to install the Copernicus Climate Data Store `cdsapi` package (`pip install cdsapi`) and register and setup your CDS API key as described [on their website here](https://cds.climate.copernicus.eu/how-to-api).
 
@@ -97,6 +98,7 @@ Understanding the repository layout will help in navigating the project and conf
 ├── 📁 envs
 ├── 📁 Raw_Spatial_Data/
 │   ├── 📁 additional_exclusion_polygons
+│   ├── 📁 buildings
 │   ├── 📁 custom_study_area
 │   ├── 📁 DEM
 │   ├── 📁 global_solar_wind_atlas
@@ -116,6 +118,7 @@ Understanding the repository layout will help in navigating the project and conf
         │   └── aspect
         ├── 📁 OSM_infrastructure/
         ├── 📁 proximity/
+        ├── buildings
         ├── DEM
         ├── region_polygon
         ├── solar

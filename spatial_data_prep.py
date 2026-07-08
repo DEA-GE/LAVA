@@ -90,6 +90,9 @@ CRS_manual = config["CRS_manual"]  # if None use empty string
 consider_protected_areas = config["protected_areas_source"]
 OSM_source = config["OSM_source"]  # either 'geofabrik' or 'overpass'
 consider_forest_density = config.get("forest_density", 0)
+buildings_filename = config.get(
+    "buildings_filename", None
+)  # optional, only needed if local file is used as source
 
 # ----------------------------
 study_region_name = (
@@ -1045,6 +1048,32 @@ if consider_solar_atlas == 1:
     # solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}.tif')
     # solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}_resampled.tif')
     # co_register(solar_raster_clipped_reprojected_filePath, processed_landcover_filePath, 'nearest', solar_raster_co_registered_filePath, dtype='float32')
+
+# buildings raster
+if buildings_filename:
+    print("\nprocessing buildings raster")
+    try:
+        buildings_filePath = os.path.join(
+            output_dir,
+            f"buildings_{region_name_clean}_ESRI54009.tif",
+        )
+        if not os.path.exists(
+            buildings_filePath
+        ):  # process data if file not exists in output folder
+            buildings_raw_filePath = os.path.join(
+                data_path,
+                "buildings",
+                buildings_filename,
+            )
+            clip_raster(
+                buildings_raw_filePath,
+                region_name_clean,
+                region_mollweide,
+                output_dir,
+                "buildings",
+            )
+    except Exception as e:
+        logging.error(f"buildings data failed: {e}")
 
 
 print("\nDone!")

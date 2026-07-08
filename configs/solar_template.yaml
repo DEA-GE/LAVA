@@ -34,6 +34,10 @@ max_slope: 15 #degrees
 max_terrain_ruggedness: Null #terrain ruggedness index
 north_facing_pixels: Null # 1 (on) or 0 (off)
 
+# buildings raster
+max_buildings_footprint: Null #in sqm (each pixel can have a buildings footprint between 0 and 100 sqm, with 100 sqm meaning the whole pixel is a building)
+buildings_buffer: 0 #in meters
+
 # population
 max_population: 3 #people per pixel
 

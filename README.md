@@ -66,7 +66,7 @@ With the advanced workflow it is also possible to perform a suitability analysis
 ## Default input data
 | Data name            | Data source |
 |----------------------|-------------|
-| DEM (Elevation)      | [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) |
+| DEM (Elevation) (manual)     | [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) |
 | Landcover            | [ESA WorldCover](https://esa-worldcover.org/en) via openEO API (Copernicus Data Space)|
 | Population raster    | [worldpop](https://hub.worldpop.org/project/categories?id=3) |
 | Spatial features <br>(road, railways, airports, waterbodies,<br>military, substations, power lines, generators)     | OpenStreetMap via overpass or [Geofabrik](https://download.geofabrik.de/) |
@@ -74,6 +74,7 @@ With the advanced workflow it is also possible to perform a suitability analysis
 | Protected Areas      | [World Database of Protected Areas (WDPA) – Protected Planet](https://www.protectedplanet.net/) |
 | Mean Wind Speeds     | [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) |
 | Solar Radiation      | [Global Solar Atlas](https://globalsolaratlas.info/download) |
+| Buildings raster (manual)     | [EMC_BUILT from GHSL](https://human-settlement.emergency.copernicus.eu/emc_built_s.php) |
 
 
 

@@ -183,6 +183,25 @@ else:
     info_list_not_available.append("slope")
 
 
+# --- Buildings ---
+buildingsRasterPath = os.path.join(
+    data_path, f"buildings_{region_name_clean}_ESRI54009.tif"
+)
+param = tech_config["max_buildings_footprint"]
+if os.path.isfile(buildingsRasterPath) and param is not None:
+    excluder.add_raster(
+        buildingsRasterPath,
+        codes=range(param, 101),
+        buffer=tech_config["buildings_buffer"],
+        crs=rasterio.crs.CRS.from_user_input("ESRI:54009"),
+    )
+    info_list_exclusion.append(f"max buildings footprint: {param}")
+elif os.path.isfile(buildingsRasterPath) and param is None:
+    info_list_not_selected.append("buildings raster")
+else:
+    info_list_not_available.append("buildings raster")
+
+
 # --- Terrain Ruggedness ---
 terrain_ruggedness_path = os.path.join(
     data_from_DEM, f"TerrainRuggednessIndex_{region_name_clean}_{global_crs_tag}.tif"
