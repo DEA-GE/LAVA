@@ -137,6 +137,62 @@ def union(arrays):
     return union_mask.astype(int)
 
 
+def overlay_value_raster(
+    mask_array,
+    dst_transform,
+    dst_crs,
+    src_array,
+    src_transform,
+    src_crs,
+    src_nodata=None,
+):
+    """
+    Reproject a continuous value array onto the eligible-land mask grid and
+    return values only for eligible pixels (mask == True), NaN elsewhere.
+    Everything is done in-memory; no files are written.
+
+    Parameters
+    ----------
+    mask_array : numpy.ndarray (bool)
+        Boolean array where True marks eligible pixels.
+    dst_transform : affine.Affine
+        Affine transform of the output/mask grid.
+    dst_crs : CRS-like
+        CRS of the output/mask grid.
+    src_array : numpy.ndarray
+        2-D array of source values (e.g. wind speed or PV output).
+    src_transform : affine.Affine
+        Affine transform of *src_array*.
+    src_crs : CRS-like
+        CRS of *src_array*.
+    src_nodata : float or None
+        Nodata value of the source array.
+
+    Returns
+    -------
+    numpy.ndarray (float32)
+        Array of the same shape as *mask_array* with reprojected values where
+        the mask is True and np.nan elsewhere.
+    """
+    height, width = mask_array.shape
+    dst_array = np.full((height, width), fill_value=np.nan, dtype=np.float32)
+
+    reproject(
+        source=src_array.astype(np.float32),
+        destination=dst_array,
+        src_transform=src_transform,
+        src_crs=src_crs,
+        dst_transform=dst_transform,
+        dst_crs=dst_crs,
+        resampling=Resampling.nearest,
+        src_nodata=src_nodata,
+        dst_nodata=np.nan,
+    )
+
+    dst_array[~mask_array] = np.nan
+    return dst_array
+
+
 # Function to compute difference between two masked arrays
 def diff(array1, array2):
     # Compute difference mask (where data1 is present but data2 is not)

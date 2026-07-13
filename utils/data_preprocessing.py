@@ -318,8 +318,13 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
     filename = os.path.splitext(filename)[0]
 
     with rasterio.open(input_raster_path) as src:
-        # Mask the raster using the vector file's geometry
-        out_image, out_transform = mask(src, gdf.geometry.apply(mapping), crop=True)
+        # Mask the raster using the vector file's geometry.
+        # all_touched=True keeps every pixel that touches the polygon boundary,
+        # not just pixels whose centre falls inside — prevents edge pixels from
+        # being incorrectly dropped at the region boundary.
+        out_image, out_transform = mask(
+            src, gdf.geometry.apply(mapping), crop=True, all_touched=True
+        )
         # Copy the metadata from the source raster
         out_meta = src.meta.copy()
         # Update the metadata for the clipped raster
@@ -399,8 +404,13 @@ def clip_reproject_raster(
     }
 
     with rasterio.open(input_raster_path) as src:
-        # Mask the raster using the vector file's geometry
-        out_image, out_transform = mask(src, gdf.geometry.apply(mapping), crop=True)
+        # Mask the raster using the vector file's geometry.
+        # all_touched=True keeps every pixel that touches the polygon boundary,
+        # not just pixels whose centre falls inside — prevents edge pixels from
+        # being incorrectly dropped at the region boundary.
+        out_image, out_transform = mask(
+            src, gdf.geometry.apply(mapping), crop=True, all_touched=True
+        )
         # Copy the metadata from the source raster
         out_meta = src.meta.copy()
         # Update the metadata for the clipped raster

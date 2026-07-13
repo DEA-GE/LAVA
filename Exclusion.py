@@ -12,7 +12,7 @@ import rasterio
 import yaml
 from utils.data_preprocessing import clean_region_name, log_scenario_run
 from rasterstats import zonal_stats
-from utils.raster_analysis import area_filter
+from utils.raster_analysis import area_filter, overlay_value_raster
 
 # Record the starting time
 start_time = time.time()
@@ -582,19 +582,16 @@ masked_area_filtered = area_filter(masked, min_size=min_pixels_connected)
 # array to be used
 array = masked_area_filtered
 
-# Convert boolean array to integers (1 for True, 0 for False)
-int_array = array.astype(np.uint8)
+# Define output directory
+output_dir = os.path.join(data_path, "available_land")
+os.makedirs(output_dir, exist_ok=True)
 
-# Set 0 (False) to be the nodata value
-nodata_value = 0
-
-# save eligible land array as .tif file
-# Define the metadata for the new file
-# You'll need to adjust these parameters based on your specific data
-metadata = {
+# --- Save binary (0/1) available-land raster ---
+binary_array = array.astype(np.uint8)
+binary_metadata = {
     "driver": "GTiff",
-    "dtype": rasterio.uint8,
-    "nodata": nodata_value,
+    "dtype": "uint8",
+    "nodata": 0,
     "width": array.shape[1],
     "height": array.shape[0],
     "count": 1,
@@ -602,17 +599,48 @@ metadata = {
     "transform": transform,
     "compress": "LZW",
 }
-
-# Define output directory
-output_dir = os.path.join(data_path, "available_land")
-os.makedirs(output_dir, exist_ok=True)
 output_file_available_land = os.path.join(
     output_dir,
     f"{region_name_clean}_{technology}_{scenario}_available_land.tif",
 )
-# Write the array to a new .tif file
-with rasterio.open(output_file_available_land, "w", **metadata) as dst:
-    dst.write(array, 1)
+with rasterio.open(output_file_available_land, "w", **binary_metadata) as dst:
+    dst.write(binary_array, 1)
+
+# --- Save colored value raster (wind speed / PV output) for wind and solar technologies ---
+_value_raster_map = {
+    "onshorewind": windRasterPath,
+    "offshorewind": windRasterPath,
+    "solar": solarRasterPath,
+}
+value_raster_path = _value_raster_map.get(technology)
+
+if value_raster_path is not None and os.path.isfile(value_raster_path):
+    with rasterio.open(value_raster_path) as src:
+        src_array = src.read(1)
+        src_transform = src.transform
+        src_crs = src.crs
+        src_nodata = src.nodata
+    values_array = overlay_value_raster(
+        array, transform, local_crs_obj, src_array, src_transform, src_crs, src_nodata
+    )
+    output_file_values = os.path.join(
+        output_dir,
+        f"{region_name_clean}_{technology}_{scenario}_available_land_ResourceValues.tif",
+    )
+    with rasterio.open(
+        output_file_values,
+        "w",
+        driver="GTiff",
+        dtype="float32",
+        nodata=float("nan"),
+        width=array.shape[1],
+        height=array.shape[0],
+        count=1,
+        crs=local_crs_obj,
+        transform=transform,
+        compress="LZW",
+    ) as dst:
+        dst.write(values_array, 1)
 
 
 # model area stats
