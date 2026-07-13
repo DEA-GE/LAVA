@@ -64,17 +64,17 @@ With the advanced workflow it is also possible to perform a suitability analysis
 
 
 ## Default input data
-| Data name            | Data source |
-|----------------------|-------------|
-| DEM (Elevation) (manual)     | [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) |
-| Landcover            | [ESA WorldCover](https://esa-worldcover.org/en) via openEO API (Copernicus Data Space)|
-| Population raster    | [worldpop](https://hub.worldpop.org/project/categories?id=3) |
-| Spatial features <br>(road, railways, airports, waterbodies,<br>military, substations, power lines, generators)     | OpenStreetMap via overpass or [Geofabrik](https://download.geofabrik.de/) |
-| Coastlines           | Global Oceans and Seas ([Marine Regions](https://marineregions.org/downloads.php)) |
-| Protected Areas      | [World Database of Protected Areas (WDPA) – Protected Planet](https://www.protectedplanet.net/) |
-| Mean Wind Speeds     | [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) |
-| Solar Radiation      | [Global Solar Atlas](https://globalsolaratlas.info/download) |
-| Buildings raster (manual)     | [EMC_BUILT from GHSL](https://human-settlement.emergency.copernicus.eu/emc_built_s.php) |
+| Data name                 | Data source | License |
+|---------------------------|-------------|-------------|
+| DEM (Elevation) (manual)  | [GEBCO Gridded Bathymetry Data](https://download.gebco.net/) (15 arcsec (463m @equator)) | ["[...] in the public domain [...]"](https://www.gebco.net/data-products/gridded-bathymetry/terms-of-use ) |
+| Landcover                 | [ESA WorldCover](https://esa-worldcover.org/en) via openEO (10m)| [CC BY 4.0](https://esa-worldcover.org/en/data-access)   |
+| Population raster         | [worldpop](https://hub.worldpop.org/project/categories?id=3) (100m) | [CC BY 4.0](https://www.worldpop.org/faq/)    |
+| Spatial features <br>(road, railways, airports, waterbodies,<br>military, substations, power lines, generators)     | OpenStreetMap via overpass or [Geofabrik](https://download.geofabrik.de/) | [ODbL](https://www.openstreetmap.org/copyright)  |
+| Coastlines                | Global Oceans and Seas ([Marine Regions](https://marineregions.org/downloads.php)) |  [CC BY 4.0](https://www.marineregions.org/disclaimer.php) |
+| Protected Areas           | [WDPA – Protected Planet](https://www.protectedplanet.net/) | [CC BY 4.0](https://www.protectedplanet.net/en/legal)  |
+| Mean Wind Speeds          | [Global Wind Atlas](https://globalwindatlas.info/en/download/gis-files) (250m) |  [CC BY 4.0](https://globalwindatlas.info/en/about/TermsOfUse) |
+| Solar Radiation           | [Global Solar Atlas](https://globalsolaratlas.info/download) (30 arcsec (~1 km)) |  [CC BY 4.0](https://globalsolaratlas.info/support/terms-of-use) |
+| Buildings raster (manual) | [EMC_BUILT from GHSL](https://human-settlement.emergency.copernicus.eu/emc_built_s.php) (10m) | [CC BY 4.0](https://human-settlement.emergency.copernicus.eu/GHSLhowToCite.php)  |
 
 
 
