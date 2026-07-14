@@ -548,7 +548,7 @@ if population_data == "worldpop":
                 region,
                 output_dir,
                 "population",
-                dtype="uint16",
+                dtype="float32",
             )
     except Exception as e:
         logging.error(f"population data failed: {e}")
@@ -572,7 +572,7 @@ if population_data == "file":
                 region,
                 output_dir,
                 "population",
-                dtype="uint16",
+                dtype="float32",
             )
     except Exception as e:
         logging.error(f"population data failed: {e}")
