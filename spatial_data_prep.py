@@ -548,6 +548,7 @@ if population_data == "worldpop":
                 region,
                 output_dir,
                 "population",
+                dtype="uint16",
             )
     except Exception as e:
         logging.error(f"population data failed: {e}")
@@ -571,6 +572,7 @@ if population_data == "file":
                 region,
                 output_dir,
                 "population",
+                dtype="uint16",
             )
     except Exception as e:
         logging.error(f"population data failed: {e}")
@@ -1071,6 +1073,7 @@ if buildings_filename:
                 region_mollweide,
                 output_dir,
                 "buildings",
+                dtype="uint8",
             )
     except Exception as e:
         logging.error(f"buildings data failed: {e}")

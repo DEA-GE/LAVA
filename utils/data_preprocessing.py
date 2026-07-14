@@ -299,7 +299,9 @@ def geopandas_clip_reproject(geopandas_file, gdf, target_crs_obj):
     return geopandas_clipped
 
 
-def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name=None):
+def clip_raster(
+    input_raster_path, region_name_clean, gdf, output_dir, data_name=None, dtype=None
+):
     """
     Clips a raster to the geometry defined in a GeoDataFrame and saves the clipped raster.
 
@@ -308,6 +310,8 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
     - region_name_clean (str): Cleaned name of the region for filename purposes.
     - gdf (GeoDataFrame): GeoDataFrame containing the geometry to clip to.
     - output_dir (str): Directory to save the clipped raster.
+    - data_name (str, optional): Output filename prefix.
+    - dtype (str, optional): Output raster dtype key (e.g. 'int8', 'int16', 'float32'). If None, keep source dtype.
 
     Returns:
     - None. Saves the clipped raster as a new GeoTIFF in the output directory.
@@ -316,6 +320,20 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
     # get the filename from file path and remove its extension
     filename = os.path.basename(input_raster_path)
     filename = os.path.splitext(filename)[0]
+
+    dtype_options = {
+        "int8": rasterio.int8,
+        "uint8": rasterio.uint8,
+        "int16": rasterio.int16,
+        "uint16": rasterio.uint16,
+        "float32": rasterio.float32,
+        "float64": rasterio.float64,
+    }
+
+    if dtype is not None and dtype not in dtype_options:
+        raise ValueError(
+            f"Unsupported dtype '{dtype}'. Supported values are: {list(dtype_options.keys())}"
+        )
 
     with rasterio.open(input_raster_path) as src:
         # Mask the raster using the vector file's geometry.
@@ -333,8 +351,14 @@ def clip_raster(input_raster_path, region_name_clean, gdf, output_dir, data_name
                 "height": out_image.shape[1],
                 "width": out_image.shape[2],
                 "transform": out_transform,
+                "compress": "DEFLATE",
             }
         )
+
+        if dtype is not None:
+            out_dtype = dtype_options[dtype]
+            out_image = out_image.astype(out_dtype, copy=False)
+            out_meta.update({"dtype": out_dtype})
 
         ori_raster_crs = str(src.crs)
         ori_raster_crs = ori_raster_crs.replace(":", "")
