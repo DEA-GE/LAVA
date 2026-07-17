@@ -78,10 +78,6 @@ additional_exclusion_rasters_folder_name: #[optional][string]
 
 # see onshorewind.yaml and solar.yaml
 
-# scenario name (written in available area filename)
-scenario: ref
-technology: solar #onshorewind or solar, used for the filename of the available area
-
 # model areas 
 model_areas_filename: 
 

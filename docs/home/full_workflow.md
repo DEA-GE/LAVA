@@ -14,7 +14,6 @@ tool on a new study region.
 ## Configuration files
 
 In the **configs-folder** copy the file `config_template.yaml`, rename it to `config.yaml` and fill it out. This is your main configuration file for the data download.
-Under the headline *#--exclusions--* in the configuration the variables `scenario` and `technology` are used to control the available land output.
 
 For the exclusion criterias copy the files `onshorewind_template.yaml` and `solar_template.yaml`. Rename them to `onshorewind.yaml` and `solar.yaml` respectively. Fill these files out in order to set the exclusion parameters.
 
@@ -49,8 +48,8 @@ Create technology-specific available-land rasters by running `Exclusion.py`. The
 flags mirror the configuration entries so that single technologies or scenarios can be processed
 independently.
 ```bash
-python Exclusion.py --region <RegionName> --technology onshorewind --scenario ref
-python Exclusion.py --region <RegionName> --technology solar --scenario ref
+python Exclusion.py --technology onshorewind --scenario ref --region <RegionName>
+python Exclusion.py --technology solar --scenario ref --region <RegionName>
 ```
 
 The script loads the prepared rasters and vector layers, applies the filters defined in the

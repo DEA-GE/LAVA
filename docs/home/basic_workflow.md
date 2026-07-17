@@ -21,7 +21,6 @@ tool on a new study region. The steps below assume that you have already cloned 
 ## Configuration files
 
 In the **configs-folder** copy the file `config_template.yaml`, rename it to `config.yaml` and fill it out. This is your main configuration file for the data download.
-Under the headline *#--exclusions--* in the configuration the variables **scenario** and **technology** are used to control the available land output.
 
 For the exclusion criterias copy the files `onshorewind_template.yaml` and `solar_template.yaml`. Rename them to `onshorewind.yaml` and `solar.yaml` respectively. Fill these files out in order to set the exclusion parameters.
 
@@ -50,13 +49,13 @@ codes to support tuning of exclusion thresholds.
 ## Land eligibility exclusions
 
 Create technology-specific available-land rasters by running `Exclusion.py`. The command-line
-flags mirror the configuration entries so that single technologies or scenarios can be processed
-independently. Alternatively you can specify in `config.yaml` under the headline *#--exclusions--* the variables "scenario" and "technology". There are configuration files for the land exclusion for wind onshore and utility-scale solar PV.
+flags must provide the study region, technology, and scenario so that single runs can be processed
+independently. There are configuration files for the land exclusion for wind onshore and utility-scale solar PV.
 ```bash
-python Exclusion.py --technology solar --scenario ref
+python Exclusion.py --technology solar --scenario ref --region Odense
 ```
 ```bash
-python Exclusion.py --technology onshorewind --scenario ref
+python Exclusion.py --technology onshorewind --scenario ref --region Odense
 ```
 
 The script loads the prepared rasters and vector layers, applies the filters defined in the
