@@ -1,6 +1,4 @@
 rule exclusion:
-    input:
-        logpath("{region}", "spatial_data_prep.done")
     output:
         touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
     params:
