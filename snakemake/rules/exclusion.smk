@@ -1,13 +1,13 @@
 rule exclusion:
-    input:
-        logpath("{region}", "spatial_data_prep.done")
     output:
-        touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
+        Path("data")
+        / "{region}"
+        / "available_land"
+        / "{region}_{technology}_{scenario}_available_land.tif"
     params:
-        method="snakemake",
-        scenario=scenario 
+        method="snakemake"
     shell:
         (
             "python Exclusion.py --region {wildcards.region} "
-            "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
+            "--technology {wildcards.technology} --method {params.method} --scenario {wildcards.scenario}"
         )

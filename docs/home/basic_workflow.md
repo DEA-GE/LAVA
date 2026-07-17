@@ -23,6 +23,7 @@ tool on a new study region. The steps below assume that you have already cloned 
 In the **configs-folder** copy the file `config_template.yaml`, rename it to `config.yaml` and fill it out. This is your main configuration file for the data download.
 
 For the exclusion criterias copy the files `onshorewind_template.yaml` and `solar_template.yaml`. Rename them to `onshorewind.yaml` and `solar.yaml` respectively. Fill these files out in order to set the exclusion parameters.
+The top-level values in each technology file define the reference scenario. Use `reference_scenario` to name that base case and `additional_scenarios` to define only the values that change in other scenarios.
 
 !!! note 
     An overview of possible exclusion criterias found in selected literature can be downloaded [here](../assets/literature_overview.xlsx).
@@ -52,10 +53,10 @@ Create technology-specific available-land rasters by running `Exclusion.py`. The
 flags must provide the study region, technology, and scenario so that single runs can be processed
 independently. There are configuration files for the land exclusion for wind onshore and utility-scale solar PV.
 ```bash
-python Exclusion.py --technology solar --scenario ref --region Odense
+python Exclusion.py --technology solar --scenario <ScenarioName> --region Odense
 ```
 ```bash
-python Exclusion.py --technology onshorewind --scenario ref --region Odense
+python Exclusion.py --technology onshorewind --scenario <ScenarioName> --region Odense
 ```
 
 The script loads the prepared rasters and vector layers, applies the filters defined in the
@@ -68,7 +69,7 @@ for traceability.
 
 ## Batch processing with Snakemake
 
-When analysing multiple study regions, you can use a snakemake workflow to automatically execute all scripts for all regions one after another. Adjust `config_snakemake.yaml` and run the batch job with the following comamand in the terminal:
+When analysing multiple study regions, you can use a snakemake workflow to automatically execute all scripts for all regions one after another. Adjust `config_snakemake.yaml`, especially the `scenarios` list, and run the batch job with the following comamand in the terminal:
 ```bash
 snakemake -s snakemake/Snakefile --cores 1 --resources openeo_req=1
 ```

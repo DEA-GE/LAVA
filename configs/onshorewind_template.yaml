@@ -1,3 +1,5 @@
+reference_scenario: ref
+
 #--exclusions----------------------------------------------------------------------
 
 # deployment density
@@ -9,8 +11,7 @@ projection_manual: null # e.g. 'ESRI:54009' Mollweide (if used, then resolution 
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 landcover_codes: #dictionary of landcover code with corresponding buffer in meters
-  50: 100
-  10: 0
+  50: 0
 
 #landcover codes (buffer in meters) (here landcover codes for openeo as default example)
 #| Code | Class                    |
@@ -73,3 +74,10 @@ roads_inclusion_buffer: null
 min_pixels_connected: 0
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
+
+
+# add additional scenarios, e.g. strictrailways to override ref scenario values
+# scenario names cannot have any special characters or spaces, only letters
+additional_scenarios:
+  strictrailways:
+    railways_buffer: 500

@@ -12,6 +12,7 @@ from utils.data_preprocessing import clean_region_name, rel_path
 import pickle
 import argparse
 import glob
+from utils.tech_config import load_tech_config
 
 # ------------------------------------------- Load configuration
 dirname = os.getcwd()
@@ -20,31 +21,30 @@ with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
 
 region_name = config["study_region_name"]
 region_name = clean_region_name(region_name)
-technology = config["technology"]
-scenario = config.get("scenario", "ref")  # scenario, e.g., 'ref' or 'high'
 weather_year = config["weather_year"]
 
 # override values via command line arguments through snakemake
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", default=region_name, help="region name")
-parser.add_argument("--technology", default=technology, help="technology type")
+parser.add_argument("--technology", required=True, help="technology type")
 parser.add_argument(
     "--method",
     default="manual",
     help="method to run the script, e.g., snakemake or manual",
 )
-parser.add_argument("--scenario", default=scenario, help="scenario name")
+parser.add_argument("--scenario", required=True, help="scenario name")
 parser.add_argument(
     "--weather_year", default=weather_year, help="weather year for the energy profiles"
 )
 args = parser.parse_args()
 
+region_name = clean_region_name(args.region)
+technology = args.technology
+scenario = args.scenario
+weather_year = args.weather_year
+
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
-    region_name = args.region
-    technology = args.technology
-    scenario = args.scenario
-    weather_year = args.weather_year
     print(
         f"Running via snakemake - measures: region={region_name}, technology={technology}, scenario={scenario}, weather_year={weather_year}"
     )
@@ -54,9 +54,7 @@ else:
     )
 
 # load the technology specific configuration file
-tech_config_file = os.path.join("configs", f"{technology}.yaml")
-with open(tech_config_file, "r", encoding="utf-8") as f:
-    tech_config = yaml.load(f, Loader=yaml.FullLoader)
+tech_config = load_tech_config(technology, scenario)
 
 data_path = os.path.join(dirname, "data", region_name)
 output_path = os.path.join(data_path, "energy_profiles")

@@ -1,10 +1,17 @@
 rule suitability:
     input:
-        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario)
+        lambda wildcards: expand(
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_available_land.tif",
+            region=[wildcards.region],
+            technology=technologies,
+            scenario=[wildcards.scenario],
+        )
     output:
         touch(logpath("{region}", "suitability_{scenario}.done"))
     params:
-        method="snakemake",
-        scenario=scenario
+        method="snakemake"
     shell:
-        "python suitability.py --region {wildcards.region} --method {params.method} --scenario {params.scenario}"
+        "python suitability.py --region {wildcards.region} --method {params.method} --scenario {wildcards.scenario}"

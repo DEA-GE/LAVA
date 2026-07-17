@@ -56,8 +56,8 @@ with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") a
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", default=config["study_region_name"])
 parser.add_argument("--weather_year", default=config["weather_year"], type=int)
-parser.add_argument("--scenario", default=config.get("scenario", "ref"))
-parser.add_argument("--technology", default=config.get("technology", "solar"))
+parser.add_argument("--scenario", required=True)
+parser.add_argument("--technology", required=True)
 args = parser.parse_args()
 
 study_region_name = clean_region_name(args.region)

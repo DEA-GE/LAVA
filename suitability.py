@@ -19,6 +19,7 @@ from utils.raster_analysis import (
     overlap,
     rasterize,
 )
+from utils.tech_config import load_tech_config
 
 
 # ------------------------------------------- Initialization -------------------------------------------
@@ -31,23 +32,10 @@ suitability_config_file = os.path.join("configs", "suitability.yaml")
 with open(suitability_config_file, "r", encoding="utf-8") as f:
     config_suitability = yaml.load(f, Loader=yaml.FullLoader)
 
-# Load the configs for relevant technologies
-suitability_techs = config_suitability["suitability_techs"]
-tech_configs = {}
-for tech in suitability_techs:
-    tech_config_file = os.path.join("configs", f"{tech}.yaml")
-    with open(tech_config_file, "r", encoding="utf-8") as f:
-        tech_configs[tech] = yaml.load(f, Loader=yaml.FullLoader)
-if len(suitability_techs) > 1:
-    multi_tech = True
-else:
-    multi_tech = False
-
 region_name = config[
     "study_region_name"
 ]  # if country is studied, then use country name
 region_name = clean_region_name(region_name)
-scenario = config["scenario"]
 
 # Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
@@ -57,13 +45,24 @@ parser.add_argument(
     default="manual",
     help="method to run the script, e.g., snakemake or manual",
 )
-parser.add_argument("--scenario", default=scenario, help="scenario name")
+parser.add_argument("--scenario", required=True, help="scenario name")
 args = parser.parse_args()
+
+region_name = clean_region_name(args.region)
+scenario = args.scenario
+
+# Load the configs for relevant technologies
+suitability_techs = config_suitability["suitability_techs"]
+tech_configs = {}
+for tech in suitability_techs:
+    tech_configs[tech] = load_tech_config(tech, scenario)
+if len(suitability_techs) > 1:
+    multi_tech = True
+else:
+    multi_tech = False
 
 # If running via Snakemake, use the region name and folder name from command line arguments
 if args.method == "snakemake":
-    region_name = clean_region_name(args.region)
-    scenario = args.scenario
     print(
         f"Running via snakemake - measures: region={region_name}, scenario={scenario}"
     )
