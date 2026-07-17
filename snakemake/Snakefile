@@ -64,7 +64,10 @@ if DO_SPATIAL_DATA_PREP:
 
 if DO_EXCLUSION:
     ALL_TARGETS += expand(
-        logpath("{region}", "exclusion_{technology}_{scenario}.done"),
+        Path("data")
+        / "{region}"
+        / "available_land"
+        / "{region}_{technology}_{scenario}_available_land.tif",
         region=regions,
         technology=technologies,
         scenario=scenarios,

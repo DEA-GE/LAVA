@@ -1,6 +1,9 @@
 rule exclusion:
     output:
-        touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
+        Path("data")
+        / "{region}"
+        / "available_land"
+        / "{region}_{technology}_{scenario}_available_land.tif"
     params:
         method="snakemake"
     shell:

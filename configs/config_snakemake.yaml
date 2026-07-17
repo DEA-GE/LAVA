@@ -1,7 +1,7 @@
 # General
 #region parameters.
 
-study_region_name: [Odense, Ringsted]
+study_region_name: [Odense]
 scenarios: [ref]
 technologies: [solar]
 
@@ -11,7 +11,7 @@ snakefile: snakemake/Snakefile
 weather_years: [2019]
 
 stages:
-  spatial_data_prep: true
+  spatial_data_prep: false
   exclusion: true
   suitability: false
   timeseries: false

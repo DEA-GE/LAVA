@@ -1,7 +1,10 @@
 rule suitability:
     input:
         lambda wildcards: expand(
-            logpath("{region}", "exclusion_{technology}_{scenario}.done"),
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_available_land.tif",
             region=[wildcards.region],
             technology=technologies,
             scenario=[wildcards.scenario],

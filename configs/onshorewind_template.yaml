@@ -76,6 +76,7 @@ min_pixels_connected: 0
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
 
+# add additional scenarios, e.g. strictrailways to override ref scenario values
 additional_scenarios:
-  relaxed_roads:
-    roads_buffer: 50
+  strictrailways:
+    railways_buffer: 500
