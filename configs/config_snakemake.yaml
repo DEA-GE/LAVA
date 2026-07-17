@@ -2,7 +2,7 @@
 #region parameters.
 
 study_region_name: [Odense, Ringsted]
-scenario: [ref]
+scenarios: [ref]
 technologies: [solar]
 
 #snakemake specific parameters

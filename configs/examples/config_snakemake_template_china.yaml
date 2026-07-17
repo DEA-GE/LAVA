@@ -1,8 +1,8 @@
 # General
 #region parameters.
 
-study_region_name: Beijing 
-scenario: new-smk-test
+study_region_name: [Beijing]
+scenarios: [new-smk-test]
 technologies: ['onshorewind'] #onshorewind or solar
 
 #snakemake specific parameters

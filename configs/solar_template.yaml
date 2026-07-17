@@ -1,3 +1,5 @@
+reference_scenario: ref
+
 #--exclusions------------------Odense default: 16.98%, 51.90km²---------------------------------------------
 
 # deployment density
@@ -72,3 +74,7 @@ roads_inclusion_buffer: null
 min_pixels_connected: 0
 min_pixels_x: # currently not working, use min_pixels_connected instead
 min_pixels_y: # currently not working, use min_pixels_connected instead
+
+additional_scenarios:
+  relaxed_roads:
+    roads_buffer: 50

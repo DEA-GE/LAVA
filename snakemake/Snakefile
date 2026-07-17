@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import yaml
+from utils.tech_config import validate_selected_scenarios
 
 
 
@@ -11,8 +12,10 @@ with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
 #define parameters , keep them in list as it iterates, multiple input can be included. 
 regions = config_snakemake["study_region_name"]
 technologies = config_snakemake["technologies"]
-scenario= config_snakemake["scenario"]
+scenarios = config_snakemake["scenarios"]
 weather_years = config_snakemake["weather_years"]
+
+validate_selected_scenarios(technologies, scenarios)
 
 def logpath(region, filename):
     return Path("data") / region / "snakemake_log" / filename
@@ -58,15 +61,14 @@ if DO_EXCLUSION:
         logpath("{region}", "exclusion_{technology}_{scenario}.done"),
         region=regions,
         technology=technologies,
-        scenario=scenario,
+        scenario=scenarios,
     )
 
 if DO_SUITABILITY:
     ALL_TARGETS += expand(
-        logpath("{region}", "suitability_{technology}_{scenario}.done"),
+        logpath("{region}", "suitability_{scenario}.done"),
         region=regions,
-        technology=technologies,
-        scenario=scenario,
+        scenario=scenarios,
     )
 
 if DO_TIMESERIES:
@@ -75,7 +77,7 @@ if DO_TIMESERIES:
         region=regions,
         technology=technologies,
         weather_year=weather_years,
-        scenario=scenario,
+        scenario=scenarios,
     )
 
 
@@ -96,7 +98,7 @@ if DO_ENERGY_PROFILES:
     ALL_TARGETS += expand(
         logpath("{region}", "energy_profiles_{technology}_{weather_year}_{scenario}.done"),
         region=regions,
-        scenario=scenario,
+        scenario=scenarios,
         technology=technologies,
         weather_year=weather_years,
     )

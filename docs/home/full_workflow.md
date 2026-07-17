@@ -16,6 +16,7 @@ tool on a new study region.
 In the **configs-folder** copy the file `config_template.yaml`, rename it to `config.yaml` and fill it out. This is your main configuration file for the data download.
 
 For the exclusion criterias copy the files `onshorewind_template.yaml` and `solar_template.yaml`. Rename them to `onshorewind.yaml` and `solar.yaml` respectively. Fill these files out in order to set the exclusion parameters.
+The top-level values in each technology file define the reference scenario. Use `reference_scenario` to set its name and `additional_scenarios` to store only the changed values for additional scenarios.
 
 ## Prepare spatial data
 
@@ -48,8 +49,8 @@ Create technology-specific available-land rasters by running `Exclusion.py`. The
 flags mirror the configuration entries so that single technologies or scenarios can be processed
 independently.
 ```bash
-python Exclusion.py --technology onshorewind --scenario ref --region <RegionName>
-python Exclusion.py --technology solar --scenario ref --region <RegionName>
+python Exclusion.py --technology onshorewind --scenario <ScenarioName> --region <RegionName>
+python Exclusion.py --technology solar --scenario <ScenarioName> --region <RegionName>
 ```
 
 The script loads the prepared rasters and vector layers, applies the filters defined in the
@@ -63,7 +64,7 @@ Run `suitability.py` after both solar and wind exclusions are available. The scr
 resource layers, applies terrain and region modifiers, and exports cost multipliers together with
 thresholded resource-grade rasters in `data/<RegionName>/suitability/`.
 ```bash
-python suitability.py --region <RegionName> --scenario ref
+python suitability.py --region <RegionName> --scenario <ScenarioName>
 ```
 
 ## Energy profile simulation
@@ -72,8 +73,8 @@ Energy profiles combine the available land, suitability grades, and weather cut-
 `configs/config.yaml` points `weather_data_path` to the directory that contains the prepared
 atlite cut-outs. Then run:
 ```bash
-python energy_profiles.py --region <RegionName> --technology onshorewind --scenario ref --weather_year 2019
-python energy_profiles.py --region <RegionName> --technology solar --scenario ref --weather_year 2019
+python energy_profiles.py --region <RegionName> --technology onshorewind --scenario <ScenarioName> --weather_year 2019
+python energy_profiles.py --region <RegionName> --technology solar --scenario <ScenarioName> --weather_year 2019
 ```
 
 Outputs are written to `data/<RegionName>/energy_profiles/` and include resource-grade time series
@@ -82,8 +83,8 @@ as well as diagnostic plots documenting the available area shares.
 ## Batch processing with Snakemake
 
 For large-scale studies the `snakemake/Snakefile` orchestrates all stages across multiple regions,
-technologies, and weather years. The workflow creates `snakemake_log` sentinels to prevent reruns
-of completed steps. Launch it (after customising the region lists at the top of the Snakefile) with:
+technologies, scenarios, and weather years. The workflow creates `snakemake_log` sentinels to prevent reruns
+of completed steps. Launch it after customising `config_snakemake.yaml`, including the `scenarios` list:
 ```bash
 snakemake --cores 4 --resources openeo_req=1
 ```

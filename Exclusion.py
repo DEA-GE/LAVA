@@ -13,6 +13,7 @@ import yaml
 from utils.data_preprocessing import clean_region_name, log_scenario_run
 from rasterstats import zonal_stats
 from utils.raster_analysis import area_filter, overlay_value_raster
+from utils.tech_config import load_tech_config
 
 # Record the starting time
 start_time = time.time()
@@ -55,9 +56,7 @@ else:
 
 
 # load the technology specific configuration file
-tech_config_file = os.path.join("configs", f"{technology}.yaml")
-with open(tech_config_file, "r", encoding="utf-8") as f:
-    tech_config = yaml.load(f, Loader=yaml.FullLoader)
+tech_config = load_tech_config(technology, scenario)
 
 resampled = ""  #'_resampled'
 
@@ -665,7 +664,7 @@ print(f"elapsed time: {elapsed}")
 # save info in textfile
 with open(
     os.path.join(
-        output_dir, f"{region_name_clean}_{scenario}_{technology}_exclusion_info.txt"
+        output_dir, f"{region_name_clean}_{technology}_{scenario}_exclusion_info.txt"
     ),
     "w",
 ) as file:
@@ -706,7 +705,7 @@ if config["model_areas_filename"]:
 with open(
     os.path.join(
         output_dir,
-        f"{region_name_clean}_{scenario}_{technology}_exclusion_info.json",
+        f"{region_name_clean}_{technology}_{scenario}_exclusion_info.json",
     ),
     "w",
 ) as file:
