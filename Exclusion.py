@@ -620,7 +620,8 @@ if value_raster_path is not None and os.path.isfile(value_raster_path):
         count=1,
         crs=local_crs_obj,
         transform=transform,
-        compress="LZW",
+        compress="deflate",
+        predictor=3,
     ) as dst:
         dst.write(values_array, 1)
 
