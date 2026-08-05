@@ -2,8 +2,10 @@
 #region parameters.
 
 study_region_name: [Odense]
-scenarios: [ref]
-technologies: [solar]
+technologies: [solar, onshorewind]
+technology_scenarios:
+  solar: [ref]
+  onshorewind: [ref]
 
 #snakemake specific parameters
 cores: 4

@@ -18,10 +18,20 @@ with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
 #define parameters , keep them in list as it iterates, multiple input can be included. 
 regions = config_snakemake["study_region_name"]
 technologies = config_snakemake["technologies"]
-scenarios = config_snakemake["scenarios"]
+scenarios = config_snakemake.get("scenarios", [])
+technology_scenarios = config_snakemake.get("technology_scenarios", {})
 weather_years = config_snakemake["weather_years"]
 
-validate_selected_scenarios(technologies, scenarios)
+
+def get_scenarios_for_technology(technology):
+    return technology_scenarios.get(technology, scenarios)
+
+
+validate_selected_scenarios(
+    technologies,
+    scenarios,
+    technology_scenarios=technology_scenarios,
+)
 
 def logpath(region, filename):
     return Path("data") / region / "snakemake_log" / filename
@@ -63,31 +73,40 @@ if DO_SPATIAL_DATA_PREP:
     )
 
 if DO_EXCLUSION:
-    ALL_TARGETS += expand(
-        Path("data")
-        / "{region}"
-        / "available_land"
-        / "{region}_{technology}_{scenario}_available_land.tif",
-        region=regions,
-        technology=technologies,
-        scenario=scenarios,
-    )
+    for technology in technologies:
+        tech_scenarios = get_scenarios_for_technology(technology)
+        ALL_TARGETS += expand(
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_available_land.tif",
+            region=regions,
+            technology=[technology],
+            scenario=tech_scenarios,
+        )
 
 if DO_SUITABILITY:
+    suitability_scenarios = list(
+        dict.fromkeys(
+            [scenario for technology in technologies for scenario in get_scenarios_for_technology(technology)]
+        )
+    )
     ALL_TARGETS += expand(
         logpath("{region}", "suitability_{scenario}.done"),
         region=regions,
-        scenario=scenarios,
+        scenario=suitability_scenarios,
     )
 
 if DO_TIMESERIES:
-    ALL_TARGETS += expand(
-        logpath("{region}", "timeseries_{technology}_{weather_year}_{scenario}.done"),
-        region=regions,
-        technology=technologies,
-        weather_year=weather_years,
-        scenario=scenarios,
-    )
+    for technology in technologies:
+        tech_scenarios = get_scenarios_for_technology(technology)
+        ALL_TARGETS += expand(
+            logpath("{region}", "timeseries_{technology}_{weather_year}_{scenario}.done"),
+            region=regions,
+            technology=[technology],
+            weather_year=weather_years,
+            scenario=tech_scenarios,
+        )
 
 
 if DO_WEATHER_DATA_PREP:
@@ -104,13 +123,15 @@ if DO_WEATHER_BIAS_ADJUST:
     )
 
 if DO_ENERGY_PROFILES:
-    ALL_TARGETS += expand(
-        logpath("{region}", "energy_profiles_{technology}_{weather_year}_{scenario}.done"),
-        region=regions,
-        scenario=scenarios,
-        technology=technologies,
-        weather_year=weather_years,
-    )
+    for technology in technologies:
+        tech_scenarios = get_scenarios_for_technology(technology)
+        ALL_TARGETS += expand(
+            logpath("{region}", "energy_profiles_{technology}_{weather_year}_{scenario}.done"),
+            region=regions,
+            scenario=tech_scenarios,
+            technology=[technology],
+            weather_year=weather_years,
+        )
 
 rule all:
     input:
