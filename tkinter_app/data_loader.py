@@ -29,6 +29,24 @@ SUITABILITY_PATH = CONFIGS_PATH / "suitability.yaml"
 SNAKEMAKE_PATH = CONFIGS_PATH / "config_snakemake.yaml"
 SAMPLE_RESULTS_PATH = ROOT_DIR / "src" / "sample-results.json"
 
+GADM_SOURCE_OPTIONS = ("gadm", "wb")
+LANDCOVER_SOURCE_OPTIONS = ("openeo", "file")
+OSM_SOURCE_OPTIONS = ("overpass", "geofabrik")
+POPULATION_SOURCE_OPTIONS = ("worldpop", "file", "0")
+PROTECTED_AREAS_SOURCE_OPTIONS = ("WDPA", "file", "0")
+INPUT_AREA_OPTIONS = ("resource_grades", "available_land", "study_region")
+WEATHER_DATA_EXTEND_OPTIONS = (
+    "gadm_country",
+    "wb_country",
+    "bbox",
+    "downloaded_region",
+)
+LEGACY_WEATHER_DATA_EXTEND_OPTIONS = (
+    "study_region",
+    "geo_bounds",
+    "country_code",
+)
+
 YAML_RT: Optional[YAML] = None  # type: ignore[assignment]
 if YAML is not None:
     YAML_RT = YAML(typ="rt")
@@ -198,6 +216,11 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "description": "Administrative or custom study area inputs.",
         "parameters": [
             {
+                "key": "GADM_source",
+                "type": "string",
+                "description": "Administrative-boundary source ('gadm' or 'wb').",
+            },
+            {
                 "key": "GADM_region_name",
                 "type": "string",
                 "description": "Exact GADM name given a specific administrative level. Found in column NAME_(level) - e.g. NAME_1 .",
@@ -360,7 +383,7 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             {
                 "key": "protected_areas_source",
                 "type": "string",
-                "description": "Protected areas source (WDPA or file).",
+                "description": "Protected areas source (WDPA, file, or 0 to disable).",
             },
             {
                 "key": "protected_areas_filename",
@@ -414,6 +437,33 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "description": "Weather data settings.",
         "parameters": [
             {
+                "key": "weather_data_folder",
+                "type": "string",
+                "description": "Directory where downloaded weather data is stored.",
+            },
+            {
+                "key": "weather_data_extend",
+                "type": "string",
+                "description": (
+                    "Weather download extent mode or a custom study-area filename."
+                ),
+            },
+            {
+                "key": "bbox",
+                "type": "array",
+                "description": "Bounding box [xmin, ymin, xmax, ymax] for bbox mode.",
+            },
+            {
+                "key": "weather_years",
+                "type": "mapping",
+                "description": "Download years and MM-DD start/end dates.",
+            },
+            {
+                "key": "ERA5_variables",
+                "type": "array",
+                "description": "ERA5 feature groups to download.",
+            },
+            {
                 "key": "weather_external_data_path",
                 "type": "string",
                 "description": "Optional external weather data directory.",
@@ -427,16 +477,6 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "key": "weather_year",
                 "type": "number",
                 "description": "Weather dataset year.",
-            },
-            {
-                "key": "weather_data_extend",
-                "type": "string",
-                "description": "Weather download extent mode.",
-            },
-            {
-                "key": "weather_data_geo_bounds",
-                "type": "mapping",
-                "description": "Geographical bounds used when geo_bounds is selected.",
             },
             {
                 "key": "weather_bias_correction",
@@ -1564,8 +1604,55 @@ def validate_configuration_documents(
                 "The custom study area overrides the configured GADM region.",
             )
 
-        osm_source = str(config.get("OSM_source") or "").strip().lower()
-        if osm_source not in {"overpass", "geofabrik"}:
+        gadm_source = str(config.get("GADM_source") or "gadm").strip()
+        if gadm_source not in GADM_SOURCE_OPTIONS:
+            add(
+                "error",
+                "config.yaml",
+                "GADM_source",
+                "Administrative-boundary source must be 'gadm' or 'wb'.",
+            )
+
+        landcover_source = str(config.get("landcover_source") or "").strip()
+        if landcover_source and landcover_source not in LANDCOVER_SOURCE_OPTIONS:
+            add(
+                "error",
+                "config.yaml",
+                "landcover_source",
+                "Landcover source must be 'openeo', 'file', or blank.",
+            )
+
+        population_source = str(config.get("population_source") or "0").strip()
+        if population_source not in POPULATION_SOURCE_OPTIONS:
+            add(
+                "error",
+                "config.yaml",
+                "population_source",
+                "Population source must be 'worldpop', 'file', or 0.",
+            )
+
+        protected_areas_source = str(
+            config.get("protected_areas_source") or "0"
+        ).strip()
+        if protected_areas_source not in PROTECTED_AREAS_SOURCE_OPTIONS:
+            add(
+                "error",
+                "config.yaml",
+                "protected_areas_source",
+                "Protected-areas source must be 'WDPA', 'file', or 0.",
+            )
+
+        input_area = str(config.get("input_area") or "").strip()
+        if input_area and input_area not in INPUT_AREA_OPTIONS:
+            add(
+                "error",
+                "config.yaml",
+                "input_area",
+                "Input area must be resource_grades, available_land, or study_region.",
+            )
+
+        osm_source = str(config.get("OSM_source") or "").strip()
+        if osm_source not in OSM_SOURCE_OPTIONS:
             add(
                 "error",
                 "config.yaml",
@@ -1580,35 +1667,32 @@ def validate_configuration_documents(
                 "A Geofabrik folder name is required when using Geofabrik.",
             )
 
-        weather_extend = str(config.get("weather_data_extend") or "").strip().lower()
-        if weather_extend and weather_extend not in {
-            "study_region",
-            "geo_bounds",
-            "country_code",
-        }:
+        weather_extend = str(config.get("weather_data_extend") or "").strip()
+        if weather_extend in LEGACY_WEATHER_DATA_EXTEND_OPTIONS:
             add(
                 "error",
                 "config.yaml",
                 "weather_data_extend",
-                "Weather extent must be study_region, geo_bounds, or country_code.",
+                "Weather extent uses a retired value. Choose gadm_country, "
+                "wb_country, bbox, downloaded_region, or enter a custom study-area "
+                "filename.",
             )
-        if weather_extend == "geo_bounds":
-            bounds = config.get("weather_data_geo_bounds")
-            required_bounds = ("west", "south", "east", "north")
-            if not isinstance(bounds, Mapping) or any(
-                not nonempty(bounds.get(k)) for k in required_bounds
+        if weather_extend == "bbox":
+            bounds = config.get("bbox")
+            if (
+                not isinstance(bounds, Sequence)
+                or isinstance(bounds, (str, bytes, bytearray))
+                or len(bounds) != 4
             ):
                 add(
                     "error",
                     "config.yaml",
-                    "weather_data_geo_bounds",
-                    "Geo bounds require west, south, east, and north values.",
+                    "bbox",
+                    "Bounding-box mode requires [xmin, ymin, xmax, ymax].",
                 )
             else:
                 try:
-                    west, south, east, north = (
-                        float(bounds[k]) for k in required_bounds
-                    )
+                    west, south, east, north = (float(value) for value in bounds)
                     valid_order = west < east and south < north
                     valid_range = (
                         -180 <= west <= 180
@@ -1622,8 +1706,9 @@ def validate_configuration_documents(
                     add(
                         "error",
                         "config.yaml",
-                        "weather_data_geo_bounds",
-                        "Geo bounds must be numeric, ordered, and within valid longitude/latitude ranges.",
+                        "bbox",
+                        "Bounding-box values must be numeric, ordered, and within "
+                        "valid longitude/latitude ranges.",
                     )
 
         if enabled(config.get("solar_atlas")):

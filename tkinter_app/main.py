@@ -57,6 +57,14 @@ if str(PARENT_DIR) not in sys.path:
 from flag_mapper import make_path, ui_bool_to_numeric, yaml_numeric_to_ui_bool  # type: ignore  # noqa: E402
 from data_loader import (  # type: ignore  # noqa: E402
     CONFIG_SNAKEMAKE_STAGE_FLAGS,
+    GADM_SOURCE_OPTIONS,
+    INPUT_AREA_OPTIONS,
+    LANDCOVER_SOURCE_OPTIONS,
+    LEGACY_WEATHER_DATA_EXTEND_OPTIONS,
+    OSM_SOURCE_OPTIONS,
+    POPULATION_SOURCE_OPTIONS,
+    PROTECTED_AREAS_SOURCE_OPTIONS,
+    WEATHER_DATA_EXTEND_OPTIONS,
     cast_value,
     round_trip_available,
     load_initial_sections,
@@ -114,12 +122,13 @@ DOCUMENT_CATEGORIES = {
 }
 
 PARAMETER_CHOICES: Dict[str, List[str]] = {
-    "landcover_source": ["openeo", "file"],
-    "OSM_source": ["overpass", "geofabrik"],
-    "population_source": ["worldpop", "file"],
-    "protected_areas_source": ["WDPA", "file"],
-    "input_area": ["resource_grades", "available_land", "study_region"],
-    "weather_data_extend": ["study_region", "geo_bounds", "country_code"],
+    "GADM_source": list(GADM_SOURCE_OPTIONS),
+    "landcover_source": list(LANDCOVER_SOURCE_OPTIONS),
+    "OSM_source": list(OSM_SOURCE_OPTIONS),
+    "population_source": list(POPULATION_SOURCE_OPTIONS),
+    "protected_areas_source": list(PROTECTED_AREAS_SOURCE_OPTIONS),
+    "input_area": list(INPUT_AREA_OPTIONS),
+    "weather_data_extend": list(WEATHER_DATA_EXTEND_OPTIONS),
     "technology": ["onshorewind", "solar", "offshorewind"],
 }
 
@@ -130,6 +139,7 @@ PARAMETER_PICKERS: Dict[str, str] = {
     "protected_areas_filename": "filename",
     "forest_density_filename": "filename",
     "model_areas_filename": "filename",
+    "weather_data_extend": "filename",
     "weather_external_data_path": "directory",
     "additional_exclusion_polygons_folder_name": "folder_name",
     "additional_exclusion_rasters_folder_name": "folder_name",
@@ -5984,6 +5994,22 @@ class RunTab(ttk.Frame):
                     report,
                     "Model-areas dataset",
                     PARENT_DIR / "Raw_Spatial_Data" / "model_areas" / model_areas,
+                )
+
+        if "weather_data_prep" in stage_set:
+            weather_extent = str(config.get("weather_data_extend") or "").strip()
+            if (
+                weather_extent
+                and weather_extent not in WEATHER_DATA_EXTEND_OPTIONS
+                and weather_extent not in LEGACY_WEATHER_DATA_EXTEND_OPTIONS
+            ):
+                self._record_preflight_path(
+                    report,
+                    "Custom weather study area",
+                    PARENT_DIR
+                    / "Raw_Spatial_Data"
+                    / "custom_study_area"
+                    / weather_extent,
                 )
 
         weather_consumers = {"suitability", "weather_bias_adjust", "energy_profiles"}

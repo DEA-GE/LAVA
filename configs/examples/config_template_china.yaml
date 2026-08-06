@@ -149,16 +149,15 @@ input_area: resource_grades # 'resource_grades' or 'available_land' or 'study_re
 # Year of weather data to be used for profile creation
 weather_year: 2015
 
-# Download weather data within study region boundaries, or geographical bounds defined below
-weather_data_extend: study_region # 'study_region' or 'geo_bounds' or "country_code"
-
-# If 'geo_bounds' is selected, define the bounding box here (geographical coordinates)
-weather_data_geo_bounds: { 
-    'west': 73,
-    'south': 15,
-    'east': 135,
-    'north': 54
-}
+# Weather data download settings
+weather_data_folder: Raw_Spatial_Data/weather_data
+weather_data_extend: downloaded_region # gadm_country/wb_country/bbox/downloaded_region/custom filename
+bbox: [73, 15, 135, 54] # only used when weather_data_extend is bbox
+weather_years:
+  years: [2015]
+  start: 01-01
+  end: 12-31
+ERA5_variables: [wind, influx, temperature]
 
 # Apply bias correction to ERA5 wind data based on Global Wind Atlas and Global Solar Atlas data
 weather_bias_correction: { 
