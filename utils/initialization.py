@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Initialize config files from default templates or a country example.
 
 Usage:
@@ -7,6 +5,8 @@ Usage:
     python utils/initialization.py --source default
     python utils/initialization.py --source example --country China
 """
+
+from __future__ import annotations
 
 import argparse
 import shutil
@@ -53,9 +53,7 @@ def available_example_countries(configs_dir: Path) -> List[str]:
 def _prompt_source() -> str:
     """Prompt user to choose default templates or country examples."""
     print("Initializing script, which setting to be used?")
-    prompt = (
-        "Select setting: [1] Odense, DK (default), [2] country example: "
-    )
+    prompt = "Select setting: [1] Odense, DK (default), [2] country example: "
     valid = {
         "": "default",
         "1": "default",
@@ -195,7 +193,6 @@ def initialize_config_templates(
     """
     created_or_updated: List[Path] = []
     for template_path, target_path in _template_pairs(configs_dir, country):
-
         if target_path.exists() and not overwrite:
             continue
 
@@ -208,8 +205,7 @@ def initialize_config_templates(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Initialize configs from defaults or country examples in "
-            "configs/examples/."
+            "Initialize configs from defaults or country examples in configs/examples/."
         )
     )
     parser.add_argument(
@@ -246,7 +242,9 @@ def main() -> None:
     if source == "example":
         if not country:
             if not interactive:
-                parser.error("--country is required with --source example in non-interactive runs.")
+                parser.error(
+                    "--country is required with --source example in non-interactive runs."
+                )
             country = _prompt_country(args.configs_dir)
     else:
         country = None

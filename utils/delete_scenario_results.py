@@ -64,7 +64,9 @@ def _discover_provinces(root: Path) -> List[str]:
     return sorted([p.name for p in data_dir.iterdir() if p.is_dir()])
 
 
-def _extract_scenario_from_filename(name: str, province: str, techs: Set[str]) -> str | None:
+def _extract_scenario_from_filename(
+    name: str, province: str, techs: Set[str]
+) -> str | None:
     """Extract scenario from known output filename patterns."""
     stem = Path(name).stem
 
@@ -102,7 +104,9 @@ def _extract_scenario_from_filename(name: str, province: str, techs: Set[str]) -
     return None
 
 
-def _discover_scenarios_from_files(root: Path, provinces: List[str], techs: Set[str]) -> List[str]:
+def _discover_scenarios_from_files(
+    root: Path, provinces: List[str], techs: Set[str]
+) -> List[str]:
     scenarios: Set[str] = set()
     for prov in provinces:
         base = root / "data" / prov
@@ -137,7 +141,9 @@ def _matching_files_in_folder(folder: Path, tech: str, scenario: str) -> List[Pa
     return matches
 
 
-def _collect_files_for_all_provinces(root: Path, provinces: List[str], tech: str, scenario: str) -> List[Path]:
+def _collect_files_for_all_provinces(
+    root: Path, provinces: List[str], tech: str, scenario: str
+) -> List[Path]:
     files: List[Path] = []
     for prov in provinces:
         base = root / "data" / prov
@@ -178,7 +184,9 @@ def main() -> None:
         for sset in scenarios_by_tech.values():
             scenarios_set.update(sset)
         scenarios = sorted(scenarios_set)
-        print("No scenarios parsed from existing files. Falling back to scenario_runs.log.")
+        print(
+            "No scenarios parsed from existing files. Falling back to scenario_runs.log."
+        )
 
     if not scenarios:
         print("No scenarios found in current files or scenario_runs.log.")
@@ -212,7 +220,9 @@ def main() -> None:
                 print(f" - {rel}")
             print(f"Total files: {len(files)}")
 
-            confirm = input("Proceed with deletion? Type 'yes' to confirm: ").strip().lower()
+            confirm = (
+                input("Proceed with deletion? Type 'yes' to confirm: ").strip().lower()
+            )
             if confirm != "yes":
                 print("Deletion aborted.")
             else:

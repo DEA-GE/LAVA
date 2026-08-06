@@ -1,5 +1,6 @@
 from typing import Any, Mapping, Optional
 
+
 def _pick_value(entry: Any, area: Optional[str]) -> Optional[str]:
     """
     Resolve a single config entry.
@@ -21,6 +22,7 @@ def _pick_value(entry: Any, area: Optional[str]) -> Optional[str]:
             return v
 
     return None
+
 
 # Select based on region, region set, area, with defaults in order of precedence
 def resolve_selection(
