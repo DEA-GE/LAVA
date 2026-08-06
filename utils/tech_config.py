@@ -78,14 +78,21 @@ def get_tech_scenarios(technology: str, config_dir: str = "configs") -> list[str
 
 
 def validate_selected_scenarios(
-    technologies: list[str], scenarios: list[str], config_dir: str = "configs"
+    technologies: list[str],
+    scenarios: list[str] | None,
+    config_dir: str = "configs",
+    technology_scenarios: dict[str, list[str]] | None = None,
 ) -> None:
     invalid: dict[str, list[str]] = {}
+    technology_scenarios = technology_scenarios or {}
 
     for technology in technologies:
+        selected_scenarios = technology_scenarios.get(technology, scenarios or [])
         available_scenarios = set(get_tech_scenarios(technology, config_dir=config_dir))
         missing = [
-            scenario for scenario in scenarios if scenario not in available_scenarios
+            scenario
+            for scenario in selected_scenarios
+            if scenario not in available_scenarios
         ]
         if missing:
             invalid[technology] = missing

@@ -539,17 +539,6 @@ print("\nperforming exclusions...")
 masked, transform = shape_availability(region.geometry, excluder)
 # masked, transform = shape_availability_reprojected(region.geometry, excluder, dst_transform=transform_lc, dst_crs=local_crs_obj, dst_shape=shape)
 
-available_area = masked.sum() * excluder.res**2
-eligible_share = available_area / region.geometry.item().area
-available_area_km2 = available_area * 1e-6
-
-# print results
-print(f"\nThe eligibility share is: {eligible_share:.2%}")
-print(f"The available area is: {available_area_km2:.2f} km²")
-if tech_config["deployment_density"]:
-    power_potential = available_area_km2 * tech_config["deployment_density"]
-    print(f"Power potential: {power_potential:.2} MW")
-
 print("\nfollowing data was considered during exclusion:")
 for item in info_list_exclusion:
     print("- ", item)
@@ -563,6 +552,17 @@ masked_area_filtered = area_filter(masked, min_size=min_pixels_connected)
 
 # array to be used
 array = masked_area_filtered
+
+available_area = masked_area_filtered.sum() * excluder.res**2
+eligible_share = available_area / region.geometry.item().area
+available_area_km2 = available_area * 1e-6
+
+# print results
+print(f"\nThe eligibility share is: {eligible_share:.2%}")
+print(f"The available area is: {available_area_km2:.2f} km²")
+if tech_config["deployment_density"]:
+    power_potential = available_area_km2 * tech_config["deployment_density"]
+    print(f"Power potential: {power_potential:.2} MW")
 
 # Define output directory
 output_dir = os.path.join(data_path, "available_land")
@@ -620,7 +620,8 @@ if value_raster_path is not None and os.path.isfile(value_raster_path):
         count=1,
         crs=local_crs_obj,
         transform=transform,
-        compress="LZW",
+        compress="deflate",
+        predictor=3,
     ) as dst:
         dst.write(values_array, 1)
 
