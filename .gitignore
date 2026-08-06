@@ -31,6 +31,10 @@
 !utils/gadm_levels_to_geojson.py
 !utils/delete_scenario_results.py
 !utils/results_analysis.py
+!utils/initialization.py
+!utils/results_handling.py
+!utils/spatial_mapping.py
+!utils/tech_config.py
 # --- Raw input data ---
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover

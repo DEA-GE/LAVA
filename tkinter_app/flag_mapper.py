@@ -23,7 +23,6 @@ NUMERIC_FLAG_KEYS = {
     # Atlases / rasters toggles
     "wind_atlas",
     "solar_atlas",
-    "forest_density",
     # Computation step toggles
     "compute_substation_proximity",
     "compute_road_proximity",
@@ -56,3 +55,4 @@ def yaml_numeric_to_ui_bool(param_path: str, yaml_value: Any) -> Any:
     if not is_numeric_flag(param_path):
         return yaml_value
     return yaml_value in (1, "1", True, "true", "True")
+
