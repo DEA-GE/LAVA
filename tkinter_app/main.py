@@ -67,6 +67,7 @@ from data_loader import (  # type: ignore  # noqa: E402
     load_sample_results,
     save_mapping_round_trip,
     save_sections_round_trip,
+    resolve_technology_scenarios,
     stringify_list_value,
     validate_configuration_documents,
 )
@@ -1887,7 +1888,7 @@ class ConfigurationTab(ttk.Frame):
                 path.name for path in (CONFIGS_DIR / "technologies").glob("*.yaml")
             )
         elif key == "technologies":
-            excluded = {"config", "snakemake", "suitability"}
+            excluded = {"config", "snakemake", "config_snakemake", "suitability"}
             choices = sorted(
                 path.stem
                 for path in CONFIGS_DIR.glob("*.yaml")
@@ -2930,11 +2931,28 @@ class ConfigurationTab(ttk.Frame):
             for item in self._coerce_sequence_value(flat.get("study_region_name", []))
             if str(item).strip()
         ]
-        scenario = _stringify(flat.get("scenario", ""))
         technologies = [
             str(item)
             for item in self._coerce_sequence_value(flat.get("technologies", []))
+            if str(item).strip()
         ]
+        scenarios = [
+            str(item).strip()
+            for item in self._coerce_sequence_value(flat.get("scenarios", []))
+            if str(item).strip()
+        ]
+        raw_technology_scenarios = flat.get("technology_scenarios", {})
+        technology_scenarios: Dict[str, List[str]] = {}
+        if isinstance(raw_technology_scenarios, MappingABC):
+            for technology, selected in raw_technology_scenarios.items():
+                technology_name = str(technology).strip()
+                scenario_names = [
+                    str(item).strip()
+                    for item in self._coerce_sequence_value(selected)
+                    if str(item).strip()
+                ]
+                if technology_name:
+                    technology_scenarios[technology_name] = scenario_names
         weather_years_raw = self._coerce_sequence_value(flat.get("weather_years", []))
         weather_years: List[Any] = []
         for item in weather_years_raw:
@@ -2957,8 +2975,9 @@ class ConfigurationTab(ttk.Frame):
         }
         data: Dict[str, Any] = {
             "study_region_name": study_regions,
-            "scenario": scenario,
             "technologies": technologies,
+            "technology_scenarios": technology_scenarios,
+            "scenarios": scenarios,
             "cores": cores_value,
             "snakefile": snakefile_value,
             "weather_years": weather_years,
@@ -2973,8 +2992,9 @@ class ConfigurationTab(ttk.Frame):
                 pass
         return (
             f"study_region_name: {data['study_region_name']}\n"
-            f"scenario: {data['scenario']}\n"
             f"technologies: {technologies}\n"
+            f"technology_scenarios: {data['technology_scenarios']}\n"
+            f"scenarios: {data['scenarios']}\n"
             f"cores: {data['cores']}\n"
             f"snakefile: {data['snakefile']}\n"
             f"weather_years: {data['weather_years']}\n"
@@ -2998,8 +3018,9 @@ class ConfigurationTab(ttk.Frame):
             "study_region_name": self._coerce_sequence_value(
                 data.get("study_region_name", [])
             ),
-            "scenario": data.get("scenario", ""),
             "technologies": self._coerce_sequence_value(data.get("technologies", [])),
+            "scenarios": self._coerce_sequence_value(data.get("scenarios", [])),
+            "technology_scenarios": data.get("technology_scenarios", {}),
             "weather_years": self._coerce_sequence_value(data.get("weather_years", [])),
         }
         stages = data.get("stages") or {}
@@ -3023,6 +3044,13 @@ class ConfigurationTab(ttk.Frame):
                     )
                 elif param_type == "boolean":
                     param["value"] = self._coerce_boolean_value(value)
+                elif param_type == "mapping":
+                    parsed_mapping = cast_value("mapping", value)
+                    param["value"] = (
+                        parsed_mapping
+                        if isinstance(parsed_mapping, MappingABC)
+                        else {}
+                    )
                 elif param_type == "array":
                     param["value"] = self._coerce_sequence_value(value)
                 elif key == "weather_years":
@@ -3374,7 +3402,10 @@ class ConfigurationTab(ttk.Frame):
                             "Expected a mapping at the root of config_snakemake.yaml"
                         )
                     final_content = save_mapping_round_trip(
-                        save_path, structured_content
+                        save_path,
+                        structured_content,
+                        remove_keys=("scenario",),
+                        replace_keys=("technology_scenarios",),
                     )
                 else:
                     final_content = save_sections_round_trip(save_path, sections_list)
@@ -5421,20 +5452,30 @@ class RunTab(ttk.Frame):
         region_count = max(1, len(context.get("regions", [])))
         technology_count = max(1, len(context.get("technologies", [])))
         year_count = max(1, len(context.get("weather_years", [])))
+        scenario_mapping = context.get("technology_scenarios", {})
+        scenario_counts = (
+            [len(values) for values in scenario_mapping.values()]
+            if isinstance(scenario_mapping, Mapping)
+            else []
+        )
+        technology_scenario_count = sum(scenario_counts) or technology_count
+        shared_scenario_count = max(scenario_counts, default=1)
         stages = set(context.get("stages", []))
         total = 1  # Snakemake's final `all` job.
         if "spatial_data_prep" in stages:
             total += region_count
         if "exclusion" in stages:
-            total += region_count * technology_count
+            total += region_count * technology_scenario_count
         if "suitability" in stages:
-            total += region_count
+            total += region_count * shared_scenario_count
+        if "timeseries" in stages:
+            total += region_count * technology_scenario_count * year_count
         if "weather_data_prep" in stages:
             total += region_count * year_count
         if "weather_bias_adjust" in stages:
             total += region_count
         if "energy_profiles" in stages:
-            total += region_count * technology_count * year_count
+            total += region_count * technology_scenario_count * year_count
         return max(1, total)
 
     def _initialize_run_feedback(self, report: Mapping[str, Any]) -> None:
@@ -6039,7 +6080,11 @@ class RunTab(ttk.Frame):
         if mode == "snakemake":
             regions = self._preflight_values(snakemake.get("study_region_name"))
             technologies = self._preflight_values(snakemake.get("technologies"))
-            scenario = str(snakemake.get("scenario") or "").strip()
+            technology_scenario_map = resolve_technology_scenarios(snakemake)
+            scenario_summary = "; ".join(
+                f"{technology}: {', '.join(names)}"
+                for technology, names in technology_scenario_map.items()
+            )
             weather_years = self._preflight_values(snakemake.get("weather_years"))
             stages_mapping = snakemake.get("stages", {})
             stages = [
@@ -6056,6 +6101,8 @@ class RunTab(ttk.Frame):
         else:
             regions = self._preflight_values(config.get("study_region_name"))
             scenario = str(config.get("scenario") or "").strip()
+            technology_scenario_map = {}
+            scenario_summary = scenario
             weather_years = self._preflight_values(config.get("weather_year"))
             script_id = self.selected_script.get()
             stages = [script_id]
@@ -6217,7 +6264,9 @@ class RunTab(ttk.Frame):
             "Technologies": ", ".join(technologies)
             if technologies
             else "Not applicable",
-            "Scenario": scenario or "Not configured",
+            "Scenarios by technology"
+            if mode == "snakemake"
+            else "Scenario": scenario_summary or "Not configured",
             "Weather years": ", ".join(weather_years)
             if weather_years
             else "Not applicable",
@@ -6231,7 +6280,8 @@ class RunTab(ttk.Frame):
             "technologies": technologies,
             "weather_years": weather_years,
             "stages": stages,
-            "scenario": scenario,
+            "scenario": scenario if mode != "snakemake" else "",
+            "technology_scenarios": technology_scenario_map,
         }
         severity_order = {"error": 0, "warning": 1}
         report["issues"].sort(

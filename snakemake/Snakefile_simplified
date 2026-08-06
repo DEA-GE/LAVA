@@ -1,6 +1,13 @@
 from pathlib import Path
 import json
+import sys
 import yaml
+
+PROJECT_ROOT = Path.cwd()
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from utils.tech_config import resolve_selected_scenarios, validate_selected_scenarios
 
 
 
@@ -11,7 +18,23 @@ with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
 #define parameters , keep them in list as it iterates, multiple input can be included. 
 regions = config_snakemake["study_region_name"]
 technologies = config_snakemake["technologies"]
-scenario= config_snakemake["scenario"]
+scenarios = config_snakemake.get("scenarios", [])
+technology_scenarios = config_snakemake.get("technology_scenarios", {})
+
+
+def get_scenarios_for_technology(technology):
+    return resolve_selected_scenarios(
+        technology,
+        scenarios,
+        technology_scenarios,
+    )
+
+
+validate_selected_scenarios(
+    technologies,
+    scenarios,
+    technology_scenarios=technology_scenarios,
+)
 
 
 def logpath(region, filename):
@@ -29,10 +52,19 @@ to use a specific Snakefile, use the --snakefile option
     use this line ----> snakemake --snakefile snakemake/Snakefile_short_short --cores 4 --resources openeo_req=1
 """
 
+ALL_TARGETS = expand(logpath("{region}", "spatial_data_prep.done"), region=regions)
+for technology in technologies:
+    ALL_TARGETS += expand(
+        logpath("{region}", "exclusion_{technology}_{scenario}.done"),
+        region=regions,
+        technology=[technology],
+        scenario=get_scenarios_for_technology(technology),
+    )
+
+
 rule all:
     input:
-        expand(logpath("{region}", "spatial_data_prep.done"), region=regions),
-        expand(logpath("{region}", "exclusion_{technology}_{scenario}.done"), region=regions, technology=technologies, scenario=scenario),
+        ALL_TARGETS
 
 rule spatial_data_prep:
     output:
@@ -50,10 +82,9 @@ rule exclusion:
     output:
         touch(logpath("{region}", "exclusion_{technology}_{scenario}.done"))
     params:
-        method="snakemake",
-        scenario=scenario 
+        method="snakemake"
     shell:
         (
             "python Exclusion.py --region {wildcards.region} "
-            "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
+            "--technology {wildcards.technology} --method {params.method} --scenario {wildcards.scenario}"
         )

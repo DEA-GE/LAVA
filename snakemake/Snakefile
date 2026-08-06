@@ -7,7 +7,11 @@ PROJECT_ROOT = Path.cwd()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from utils.tech_config import validate_selected_scenarios
+from utils.tech_config import (
+    resolve_selected_scenarios,
+    validate_selected_scenarios,
+    validate_shared_scenarios,
+)
 
 
 
@@ -24,7 +28,11 @@ weather_years = config_snakemake["weather_years"]
 
 
 def get_scenarios_for_technology(technology):
-    return technology_scenarios.get(technology, scenarios)
+    return resolve_selected_scenarios(
+        technology,
+        scenarios,
+        technology_scenarios,
+    )
 
 
 validate_selected_scenarios(
@@ -49,6 +57,13 @@ to use a specific Snakefile, use the --snakefile option
 """
 # ---- Stage configuration ----
 stages = config_snakemake.get("stages", {})
+
+if stages.get("suitability"):
+    validate_shared_scenarios(
+        technologies,
+        scenarios,
+        technology_scenarios=technology_scenarios,
+    )
 
 # ---- Create the global functions ----
 globals().update({

@@ -1005,14 +1005,22 @@ CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "description": "Region names for the run.",
             },
             {
-                "key": "scenario",
-                "type": "string",
-                "description": "Scenario name for the run.",
-            },
-            {
                 "key": "technologies",
                 "type": "array",
                 "description": "Technologies to process.",
+            },
+            {
+                "key": "technology_scenarios",
+                "type": "mapping",
+                "description": "Scenario names to run for each selected technology.",
+            },
+            {
+                "key": "scenarios",
+                "type": "array",
+                "description": (
+                    "Optional scenario list used when a technology has no "
+                    "technology-specific selection."
+                ),
             },
         ],
     },
@@ -1418,8 +1426,12 @@ def load_snakemake_sections() -> List[Dict[str, Any]]:
             "snakefile": "snakefile_dummy",
             "cores": "4",
             "study_region_name": "dummy_region",
-            "scenario": "dummy",
             "technologies": ["dummy1", "dumm2"],
+            "scenarios": [],
+            "technology_scenarios": {
+                "dummy1": ["dummy"],
+                "dumm2": ["dummy"],
+            },
             "weather_years": "2015",
             **{stage["key"]: True for stage in CONFIG_SNAKEMAKE_STAGE_FLAGS},
         },
@@ -1436,6 +1448,8 @@ def load_snakemake_sections() -> List[Dict[str, Any]]:
         stages = flattened.pop("stages", {})
         if isinstance(stages, Mapping):
             flattened.update(stages)
+        flattened.setdefault("scenarios", [])
+        flattened.setdefault("technology_scenarios", {})
         return _build_sections_from_data(
             flattened, CONFIG_SNAKEMAKE_SECTION_DEFINITIONS
         )
@@ -1453,6 +1467,31 @@ def load_sample_results() -> Dict[str, Any]:
         except Exception:
             pass
     return deepcopy(DEFAULT_RESULTS_DATA)
+
+
+def _scenario_values(value: Any) -> List[str]:
+    """Normalize a scenario scalar or sequence into non-empty names."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        values = [value]
+    elif isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
+        values = list(value)
+    else:
+        values = [value]
+    return [str(item).strip() for item in values if str(item).strip()]
+
+
+def resolve_technology_scenarios(document: Mapping[str, Any]) -> Dict[str, List[str]]:
+    """Resolve per-technology scenarios with ``scenarios`` as the fallback."""
+    technologies = _scenario_values(document.get("technologies"))
+    fallback = _scenario_values(document.get("scenarios"))
+    raw_mapping = document.get("technology_scenarios")
+    mapping = raw_mapping if isinstance(raw_mapping, Mapping) else {}
+    return {
+        technology: _scenario_values(mapping.get(technology, fallback))
+        for technology in technologies
+    }
 
 
 def validate_configuration_documents(
@@ -1612,13 +1651,6 @@ def validate_configuration_documents(
                 "study_region_name",
                 "Select at least one study region.",
             )
-        if not nonempty(snakemake.get("scenario")):
-            add(
-                "error",
-                "config_snakemake.yaml",
-                "scenario",
-                "Scenario name is required.",
-            )
         if not nonempty(snakemake.get("snakefile")):
             add(
                 "error",
@@ -1643,6 +1675,40 @@ def validate_configuration_documents(
                 "technologies",
                 "Select at least one technology.",
             )
+        raw_technology_scenarios = snakemake.get("technology_scenarios", {})
+        if raw_technology_scenarios is not None and not isinstance(
+            raw_technology_scenarios, Mapping
+        ):
+            add(
+                "error",
+                "config_snakemake.yaml",
+                "technology_scenarios",
+                "Technology scenarios must be a mapping of technology names to scenario lists.",
+            )
+            raw_technology_scenarios = {}
+        scenario_selections = resolve_technology_scenarios(snakemake)
+        unknown_technologies = sorted(
+            str(name)
+            for name in raw_technology_scenarios
+            if str(name) not in technologies
+        )
+        if unknown_technologies:
+            add(
+                "warning",
+                "config_snakemake.yaml",
+                "technology_scenarios",
+                "Scenario selections exist for unselected technologies: "
+                + ", ".join(unknown_technologies)
+                + ".",
+            )
+        if nonempty(snakemake.get("scenario")):
+            add(
+                "warning",
+                "config_snakemake.yaml",
+                "scenario",
+                "The singular 'scenario' setting is ignored; use technology_scenarios "
+                "or the global scenarios fallback.",
+            )
         for technology in technologies:
             file_name = f"{technology}.yaml"
             if (
@@ -1655,6 +1721,41 @@ def validate_configuration_documents(
                     "technologies",
                     f"Technology '{technology}' has no matching {file_name} configuration.",
                 )
+                continue
+            selected_scenarios = scenario_selections.get(technology, [])
+            if not selected_scenarios:
+                add(
+                    "error",
+                    "config_snakemake.yaml",
+                    "technology_scenarios",
+                    f"Select at least one scenario for technology '{technology}' or "
+                    "provide a global scenarios fallback.",
+                )
+                continue
+            if file_name in documents:
+                technology_config = as_mapping(file_name)
+                reference_scenario = str(
+                    technology_config.get("reference_scenario") or "ref"
+                ).strip()
+                additional = technology_config.get("additional_scenarios") or {}
+                additional_names = (
+                    [str(name) for name in additional]
+                    if isinstance(additional, Mapping)
+                    else []
+                )
+                available_scenarios = {reference_scenario, *additional_names}
+                invalid_scenarios = [
+                    name for name in selected_scenarios if name not in available_scenarios
+                ]
+                if invalid_scenarios:
+                    add(
+                        "error",
+                        "config_snakemake.yaml",
+                        "technology_scenarios",
+                        f"Technology '{technology}' does not define scenario(s): "
+                        + ", ".join(invalid_scenarios)
+                        + ".",
+                    )
 
         try:
             cores = int(snakemake.get("cores", 0))
@@ -1677,6 +1778,27 @@ def validate_configuration_documents(
                 "Stages must be a YAML mapping.",
             )
             stages = {}
+        if enabled(stages.get("suitability")):
+            populated_selections = {
+                technology: set(scenario_selections.get(technology, []))
+                for technology in technologies
+                if scenario_selections.get(technology)
+            }
+            distinct_scenario_sets = {
+                frozenset(names) for names in populated_selections.values()
+            }
+            if len(distinct_scenario_sets) > 1:
+                details = "; ".join(
+                    f"{technology}: {', '.join(sorted(names))}"
+                    for technology, names in populated_selections.items()
+                )
+                add(
+                    "error",
+                    "config_snakemake.yaml",
+                    "technology_scenarios",
+                    "Suitability requires the same scenario set for every selected "
+                    f"technology ({details}).",
+                )
         dependencies = {
             "exclusion": ("spatial_data_prep",),
             "suitability": ("exclusion",),
@@ -1892,10 +2014,25 @@ def save_sections_round_trip(path: Path, sections: List[Dict[str, Any]]) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
-def save_mapping_round_trip(path: Path, updates: Mapping[str, Any]) -> str:
-    """Merge an already structured mapping into a YAML document and save it."""
+def save_mapping_round_trip(
+    path: Path,
+    updates: Mapping[str, Any],
+    *,
+    remove_keys: Sequence[str] = (),
+    replace_keys: Sequence[str] = (),
+) -> str:
+    """Merge a mapping into YAML, optionally removing or replacing top-level keys."""
     store = RoundTripConfigStore(Path(path))
-    deep_update(store.document, updates)
+    for key in remove_keys:
+        store.document.pop(key, None)
+    merge_updates = CommentedMap()
+    replacement_names = set(replace_keys)
+    for key, value in updates.items():
+        if key in replacement_names:
+            store.document[key] = deepcopy(value)
+        else:
+            merge_updates[key] = value
+    deep_update(store.document, merge_updates)
     store.save()
     return Path(path).read_text(encoding="utf-8")
 
