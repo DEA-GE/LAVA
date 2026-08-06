@@ -130,6 +130,8 @@ PARAMETER_PICKERS: Dict[str, str] = {
     "weather_external_data_path": "directory",
     "additional_exclusion_polygons_folder_name": "folder_name",
     "additional_exclusion_rasters_folder_name": "folder_name",
+    "additional_inclusion_polygons_folder_name": "folder_name",
+    "additional_inclusion_rasters_folder_name": "folder_name",
     "OSM_folder_name": "folder_name",
     "snakefile": "project_file",
 }
@@ -5914,6 +5916,16 @@ class RunTab(ttk.Frame):
                     "additional_exclusion_rasters_folder_name",
                     "additional_exclusion_rasters",
                     "Additional exclusion rasters",
+                ),
+                (
+                    "additional_inclusion_polygons_folder_name",
+                    "additional_inclusion_polygons",
+                    "Additional inclusion polygons",
+                ),
+                (
+                    "additional_inclusion_rasters_folder_name",
+                    "additional_inclusion_rasters",
+                    "Additional inclusion rasters",
                 ),
             ):
                 folder = str(config.get(key) or "").strip()
