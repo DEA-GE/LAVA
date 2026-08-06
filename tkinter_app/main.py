@@ -86,8 +86,10 @@ REQUIRED_ACTIVE_CONFIGS = (
     "config.yaml",
     "onshorewind.yaml",
     "solar.yaml",
+)
+OPTIONAL_ACTIVE_CONFIGS = (
     "suitability.yaml",
-    "snakemake.yaml",
+    "config_snakemake.yaml",
 )
 
 CONFIGURATION_CATEGORIES = (
@@ -105,7 +107,7 @@ DOCUMENT_CATEGORIES = {
     "solar.yaml": "Technology exclusions",
     "offshorewind.yaml": "Technology exclusions",
     "suitability.yaml": "Suitability",
-    "snakemake.yaml": "Workflow",
+    "config_snakemake.yaml": "Workflow",
     "advanced_data_prep_settings.yaml": "Advanced settings",
     "Snakefile": "Snakefile",
 }
@@ -169,6 +171,15 @@ def missing_active_configs(configs_dir: Path = CONFIGS_DIR) -> List[Path]:
     return [
         configs_dir / name
         for name in REQUIRED_ACTIVE_CONFIGS
+        if not (configs_dir / name).exists()
+    ]
+
+
+def missing_optional_configs(configs_dir: Path = CONFIGS_DIR) -> List[Path]:
+    """Return optional configuration files that may be needed by later stages."""
+    return [
+        configs_dir / name
+        for name in OPTIONAL_ACTIVE_CONFIGS
         if not (configs_dir / name).exists()
     ]
 
@@ -2088,8 +2099,8 @@ class ConfigurationTab(ttk.Frame):
             # Keep it as raw YAML so the UI preserves that structure and its comments.
             ("suitability.yaml", CONFIGS_DIR / "suitability.yaml", None, "generic"),
             (
-                "snakemake.yaml",
-                CONFIGS_DIR / "snakemake.yaml",
+                "config_snakemake.yaml",
+                CONFIGS_DIR / "config_snakemake.yaml",
                 load_snakemake_sections,
                 "config_snakemake",
             ),
@@ -3360,7 +3371,7 @@ class ConfigurationTab(ttk.Frame):
                     structured_content = yaml.safe_load(serialized_content) or {}
                     if not isinstance(structured_content, MappingABC):
                         raise ValueError(
-                            "Expected a mapping at the root of snakemake.yaml"
+                            "Expected a mapping at the root of config_snakemake.yaml"
                         )
                     final_content = save_mapping_round_trip(
                         save_path, structured_content
@@ -5560,7 +5571,7 @@ class RunTab(ttk.Frame):
     def _load_snakemake_settings(self) -> Tuple[str, int]:
         default_snakefile = "Snakefile"
         default_cores = 4
-        path = CONFIGS_DIR / "snakemake.yaml"
+        path = CONFIGS_DIR / "config_snakemake.yaml"
         if yaml is None or not path.exists():
             return default_snakefile, default_cores
         try:
@@ -5994,7 +6005,9 @@ class RunTab(ttk.Frame):
         snakemake: Dict[str, Any] = {}
         if mode == "snakemake":
             snakemake = self._load_preflight_yaml(
-                CONFIGS_DIR / "snakemake.yaml", "Workflow configuration", report
+                CONFIGS_DIR / "config_snakemake.yaml",
+                "Workflow configuration",
+                report,
             )
 
         try:
@@ -6005,7 +6018,10 @@ class RunTab(ttk.Frame):
                 report, "error", f"Configuration validation could not run: {exc}"
             )
         for issue in validation_issues:
-            if mode != "snakemake" and issue.get("file") == "snakemake.yaml":
+            if (
+                mode != "snakemake"
+                and issue.get("file") == "config_snakemake.yaml"
+            ):
                 continue
             self._add_preflight_issue(
                 report,
@@ -7627,6 +7643,7 @@ class PythonScriptManagerApp(tk.Tk):
         self.sample_results = load_sample_results()
         self._setup_dialog: Optional[ConfigurationSetupDialog] = None
         self._setup_prompted = False
+        self._optional_config_warning_shown = False
         outer = ttk.Frame(self)
         outer.pack(fill="both", expand=True)
         outer.columnconfigure(0, weight=1)
@@ -7674,6 +7691,24 @@ class PythonScriptManagerApp(tk.Tk):
         self.notebook.add(self.run_tab, text="Run")
         self.notebook.add(self.results_tab, text="Results")
         self.notebook_tabs.extend([self.run_tab, self.results_tab])
+        self.after(150, self._warn_about_missing_optional_configs)
+
+    def _warn_about_missing_optional_configs(self) -> None:
+        if self._optional_config_warning_shown:
+            return
+        missing = missing_optional_configs()
+        if not missing:
+            return
+        self._optional_config_warning_shown = True
+        missing_names = ", ".join(path.name for path in missing)
+        messagebox.showwarning(
+            "Optional Configuration Not Created",
+            "The following optional configuration file(s) have not been created: "
+            f"{missing_names}. They are not required for initial setup, but may be "
+            "required later for suitability analysis, energy profiles, or Snakemake "
+            "workflows.",
+            parent=self,
+        )
 
     def _has_unsaved_configuration_changes(self) -> bool:
         tab = getattr(self, "config_tab", None)

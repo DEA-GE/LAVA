@@ -26,7 +26,7 @@ ONSHORE_PATH = CONFIGS_PATH / "onshorewind.yaml"
 SOLAR_PATH = CONFIGS_PATH / "solar.yaml"
 OFFSHORE_PATH = CONFIGS_PATH / "offshorewind.yaml"
 SUITABILITY_PATH = CONFIGS_PATH / "suitability.yaml"
-SNAKEMAKE_PATH = CONFIGS_PATH / "snakemake.yaml"
+SNAKEMAKE_PATH = CONFIGS_PATH / "config_snakemake.yaml"
 SAMPLE_RESULTS_PATH = ROOT_DIR / "src" / "sample-results.json"
 
 YAML_RT: Optional[YAML] = None  # type: ignore[assignment]
@@ -1603,19 +1603,29 @@ def validate_configuration_documents(
                     "A Solar Atlas measure is required when Solar Atlas is enabled.",
                 )
 
-    snakemake = as_mapping("snakemake.yaml")
-    if "snakemake.yaml" in documents:
+    snakemake = as_mapping("config_snakemake.yaml")
+    if "config_snakemake.yaml" in documents:
         if not nonempty(snakemake.get("study_region_name")):
             add(
                 "error",
-                "snakemake.yaml",
+                "config_snakemake.yaml",
                 "study_region_name",
                 "Select at least one study region.",
             )
         if not nonempty(snakemake.get("scenario")):
-            add("error", "snakemake.yaml", "scenario", "Scenario name is required.")
+            add(
+                "error",
+                "config_snakemake.yaml",
+                "scenario",
+                "Scenario name is required.",
+            )
         if not nonempty(snakemake.get("snakefile")):
-            add("error", "snakemake.yaml", "snakefile", "Snakefile path is required.")
+            add(
+                "error",
+                "config_snakemake.yaml",
+                "snakefile",
+                "Snakefile path is required.",
+            )
         technologies = snakemake.get("technologies", [])
         if isinstance(technologies, str):
             technologies = [technologies]
@@ -1629,7 +1639,7 @@ def validate_configuration_documents(
         if not technologies:
             add(
                 "error",
-                "snakemake.yaml",
+                "config_snakemake.yaml",
                 "technologies",
                 "Select at least one technology.",
             )
@@ -1641,7 +1651,7 @@ def validate_configuration_documents(
             ):
                 add(
                     "error",
-                    "snakemake.yaml",
+                    "config_snakemake.yaml",
                     "technologies",
                     f"Technology '{technology}' has no matching {file_name} configuration.",
                 )
@@ -1651,11 +1661,21 @@ def validate_configuration_documents(
         except (TypeError, ValueError):
             cores = 0
         if cores < 1:
-            add("error", "snakemake.yaml", "cores", "Core count must be at least 1.")
+            add(
+                "error",
+                "config_snakemake.yaml",
+                "cores",
+                "Core count must be at least 1.",
+            )
 
         stages = snakemake.get("stages", {})
         if not isinstance(stages, Mapping):
-            add("error", "snakemake.yaml", "stages", "Stages must be a YAML mapping.")
+            add(
+                "error",
+                "config_snakemake.yaml",
+                "stages",
+                "Stages must be a YAML mapping.",
+            )
             stages = {}
         dependencies = {
             "exclusion": ("spatial_data_prep",),
@@ -1673,7 +1693,7 @@ def validate_configuration_documents(
             if missing:
                 add(
                     "warning",
-                    "snakemake.yaml",
+                    "config_snakemake.yaml",
                     stage,
                     f"Stage '{stage}' requires: {', '.join(missing)}.",
                 )
@@ -1685,7 +1705,7 @@ def validate_configuration_documents(
         if weather_stages and weather_years in (None, "", []):
             add(
                 "error",
-                "snakemake.yaml",
+                "config_snakemake.yaml",
                 "weather_years",
                 "Select at least one weather year for the enabled weather stages.",
             )
