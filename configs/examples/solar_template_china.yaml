@@ -61,6 +61,7 @@ max_solar_production: null #kWh/kW/year
 
 # inclusion filter
 # EITHER use substations OR transmission OR roads (meters)
+additional_inclusion_rasters_buffer: {} # mapping of processed raster filenames to buffer distances in meters
 substations_inclusion_buffer: 100000
 transmission_inclusion_buffer: 100000
 roads_inclusion_buffer: 10000

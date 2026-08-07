@@ -491,6 +491,33 @@ else:
 
 # INCLUSION
 
+# --- Additional Inclusion Rasters ---
+additional_inclusion_rasters_folderPath = os.path.join(
+    data_path, "additional_inclusion_rasters"
+)
+buffer_config = tech_config.get("additional_inclusion_rasters_buffer")
+if os.path.exists(additional_inclusion_rasters_folderPath) and buffer_config:
+    for filename in os.listdir(additional_inclusion_rasters_folderPath):
+        if filename in buffer_config:
+            buffer_value = buffer_config[filename]
+            filepath = os.path.join(additional_inclusion_rasters_folderPath, filename)
+            excluder.add_raster(
+                filepath,
+                codes=1,
+                buffer=buffer_value,
+                crs=global_crs_obj,
+                invert=True,
+                nodata=0,
+            )
+            info_list_exclusion.append(
+                f"additional inclusion raster file: {filename}: {buffer_value}"
+            )
+elif os.path.exists(additional_inclusion_rasters_folderPath) and not buffer_config:
+    info_list_not_selected.append("additional_inclusion_rasters_buffer")
+else:
+    info_list_not_available.append("additional_inclusion_rasters_buffer")
+
+
 # --- Substations (Inclusion Buffer) ---
 substationsPath = os.path.join(data_path_OSM, "substations.gpkg")
 param = tech_config["substations_inclusion_buffer"]
