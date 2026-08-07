@@ -648,14 +648,22 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
             {
-                "key": "additional_inclusion_polygons_buffer",
+                "key": "additional_inclusion_polygons",
                 "type": "mapping",
-                "description": "Buffer distances keyed by processed polygon filename.",
+                "description": (
+                    "Automatically apply every polygon from the selected folder; "
+                    "configure all/any combination, defaults, and source-filename "
+                    "overrides."
+                ),
             },
             {
-                "key": "additional_inclusion_rasters_buffer",
+                "key": "additional_inclusion_rasters",
                 "type": "mapping",
-                "description": "Buffer distances keyed by processed raster filename.",
+                "description": (
+                    "Automatically apply every raster from the selected folder; "
+                    "configure all/any combination, defaults, eligible codes, "
+                    "NoData, and source-filename overrides."
+                ),
             },
             {
                 "key": "substations_inclusion_buffer",
@@ -896,14 +904,22 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
             {
-                "key": "additional_inclusion_polygons_buffer",
+                "key": "additional_inclusion_polygons",
                 "type": "mapping",
-                "description": "Buffer distances keyed by processed polygon filename.",
+                "description": (
+                    "Automatically apply every polygon from the selected folder; "
+                    "configure all/any combination, defaults, and source-filename "
+                    "overrides."
+                ),
             },
             {
-                "key": "additional_inclusion_rasters_buffer",
+                "key": "additional_inclusion_rasters",
                 "type": "mapping",
-                "description": "Buffer distances keyed by processed raster filename.",
+                "description": (
+                    "Automatically apply every raster from the selected folder; "
+                    "configure all/any combination, defaults, eligible codes, "
+                    "NoData, and source-filename overrides."
+                ),
             },
             {
                 "key": "substations_inclusion_buffer",

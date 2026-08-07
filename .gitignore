@@ -35,6 +35,7 @@
 !utils/results_handling.py
 !utils/spatial_mapping.py
 !utils/tech_config.py
+!utils/inclusion_layers.py
 # --- Raw input data ---
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover

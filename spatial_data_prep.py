@@ -40,6 +40,10 @@ from utils.data_preprocessing import (
     retrieve_wdpa_url,
     save_richdem_file,
 )
+from utils.inclusion_layers import (
+    prepare_inclusion_polygon_folder,
+    prepare_inclusion_raster_folder,
+)
 from utils.local_OSM_shp_files import process_all_local_osm_layer
 from utils.fetch_OSM import osm_to_gpkg
 from utils.simplify import generate_overpass_polygon
@@ -530,50 +534,31 @@ if consider_additional_exclusion_rasters:
 # clip and reproject additional inclusion polygons
 if consider_additional_inclusion_polygons:
     print("\nprocessing additional inclusion polygons")
-    add_incl_polygons_dir = os.path.join(output_dir, "additional_inclusion_polygons")
-    os.makedirs(add_incl_polygons_dir, exist_ok=True)
-    source_dir = os.path.join(
-        data_path,
-        "additional_inclusion_polygons",
-        config["additional_inclusion_polygons_folder_name"],
+    inclusion_polygon_folder_name = config[
+        "additional_inclusion_polygons_folder_name"
+    ]
+    prepare_inclusion_polygon_folder(
+        os.path.join(data_path, "additional_inclusion_polygons"),
+        os.path.join(output_dir, "additional_inclusion_polygons"),
+        inclusion_polygon_folder_name,
+        region,
+        region_name_clean,
+        global_crs_obj,
+        global_crs_tag,
     )
-    counter = 1
-    for filename in os.listdir(source_dir):
-        filepath = os.path.join(source_dir, filename)
-        if filename.endswith(".geojson") or filename.endswith(".gpkg"):
-            gdf = gpd.read_file(filepath)
-            gdf_clipped_reprojected = geopandas_clip_reproject(
-                gdf, region, global_crs_obj
-            )
-            filename_base = os.path.splitext(filename)[0]
-            if not gdf_clipped_reprojected.empty:
-                gdf_clipped_reprojected.to_file(
-                    os.path.join(
-                        add_incl_polygons_dir,
-                        f"{counter}_{filename_base}_{region_name_clean}_{global_crs_tag}.gpkg",
-                    ),
-                    driver="GPKG",
-                )
-                counter = counter + 1
 
 
 # clip additional inclusion rasters
 if consider_additional_inclusion_rasters:
     print("\nprocessing additional inclusion rasters")
-    add_incl_rasters_dir = os.path.join(output_dir, "additional_inclusion_rasters")
-    os.makedirs(add_incl_rasters_dir, exist_ok=True)
-    source_dir = os.path.join(
-        data_path,
-        "additional_inclusion_rasters",
-        config["additional_inclusion_rasters_folder_name"],
+    inclusion_raster_folder_name = config["additional_inclusion_rasters_folder_name"]
+    prepare_inclusion_raster_folder(
+        os.path.join(data_path, "additional_inclusion_rasters"),
+        os.path.join(output_dir, "additional_inclusion_rasters"),
+        inclusion_raster_folder_name,
+        region,
+        region_name_clean,
     )
-    for filename in os.listdir(source_dir):
-        filepath = os.path.join(source_dir, filename)
-        if filename.endswith(".tif"):
-            data_name = os.path.splitext(filename)[0]
-            clip_raster(
-                filepath, region_name_clean, region, add_incl_rasters_dir, data_name
-            )
 
 
 # population data

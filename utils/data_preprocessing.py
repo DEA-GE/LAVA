@@ -314,7 +314,7 @@ def clip_raster(
     - dtype (str, optional): Output raster dtype key (e.g. 'int8', 'int16', 'float32'). If None, keep source dtype.
 
     Returns:
-    - None. Saves the clipped raster as a new GeoTIFF in the output directory.
+    - str: Path to the clipped GeoTIFF written to the output directory.
     """
 
     # get the filename from file path and remove its extension
@@ -363,25 +363,15 @@ def clip_raster(
         ori_raster_crs = str(src.crs)
         ori_raster_crs = ori_raster_crs.replace(":", "")
         # print(f'original raster CRS: {src.crs}')
-        # Save the clipped raster as a new GeoTIFF file
-        if data_name is None:
-            with rasterio.open(
-                os.path.join(
-                    output_dir, f"{filename}_{region_name_clean}_{ori_raster_crs}.tif"
-                ),
-                "w",
-                **out_meta,
-            ) as dest:
-                dest.write(out_image)
-        else:
-            with rasterio.open(
-                os.path.join(
-                    output_dir, f"{data_name}_{region_name_clean}_{ori_raster_crs}.tif"
-                ),
-                "w",
-                **out_meta,
-            ) as dest:
-                dest.write(out_image)
+        # Save the clipped raster as a new GeoTIFF file.
+        output_prefix = filename if data_name is None else data_name
+        output_path = os.path.join(
+            output_dir, f"{output_prefix}_{region_name_clean}_{ori_raster_crs}.tif"
+        )
+        with rasterio.open(output_path, "w", **out_meta) as dest:
+            dest.write(out_image)
+
+    return output_path
 
 
 def clip_reproject_raster(
