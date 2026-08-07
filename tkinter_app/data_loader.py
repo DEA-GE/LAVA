@@ -453,7 +453,7 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     {
         "name": "additional_data",
         "displayName": "Additional Data",
-        "description": "Custom exclusion dataset locations.",
+        "description": "Custom exclusion and inclusion dataset locations.",
         "parameters": [
             {
                 "key": "additional_exclusion_polygons_folder_name",
@@ -464,6 +464,16 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "key": "additional_exclusion_rasters_folder_name",
                 "type": "string",
                 "description": "Folder for extra exclusion rasters.",
+            },
+            {
+                "key": "additional_inclusion_polygons_folder_name",
+                "type": "string",
+                "description": "Folder for extra inclusion polygons.",
+            },
+            {
+                "key": "additional_inclusion_rasters_folder_name",
+                "type": "string",
+                "description": "Folder for extra inclusion rasters.",
             },
         ],
     },
@@ -601,12 +611,17 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     {
         "name": "additional_exclusions",
         "displayName": "Additional Exclusions",
-        "description": "Custom exclusion polygon buffers.",
+        "description": "Custom exclusion polygon and raster buffers.",
         "parameters": [
             {
                 "key": "additional_exclusion_polygons_buffer",
                 "type": "array",
                 "description": "Buffers per additional exclusion polygon.",
+            },
+            {
+                "key": "additional_exclusion_rasters_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed raster filename.",
             },
         ],
     },
@@ -632,6 +647,16 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Inclusion Filters",
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
+            {
+                "key": "additional_inclusion_polygons_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed polygon filename.",
+            },
+            {
+                "key": "additional_inclusion_rasters_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed raster filename.",
+            },
             {
                 "key": "substations_inclusion_buffer",
                 "type": "number",
@@ -834,12 +859,17 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     {
         "name": "additional_exclusions",
         "displayName": "Additional Exclusions",
-        "description": "Custom exclusion polygon buffers.",
+        "description": "Custom exclusion polygon and raster buffers.",
         "parameters": [
             {
                 "key": "additional_exclusion_polygons_buffer",
                 "type": "array",
                 "description": "Buffers per additional exclusion polygon.",
+            },
+            {
+                "key": "additional_exclusion_rasters_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed raster filename.",
             },
         ],
     },
@@ -865,6 +895,16 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Inclusion Filters",
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
+            {
+                "key": "additional_inclusion_polygons_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed polygon filename.",
+            },
+            {
+                "key": "additional_inclusion_rasters_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed raster filename.",
+            },
             {
                 "key": "substations_inclusion_buffer",
                 "type": "number",

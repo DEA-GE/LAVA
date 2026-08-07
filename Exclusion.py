@@ -478,7 +478,10 @@ if os.path.exists(additional_exclusion_rasters_folderPath) and buffer_config:
             buffer_value = buffer_config[filename]
             filepath = os.path.join(additional_exclusion_rasters_folderPath, filename)
             excluder.add_raster(
-                filepath, codes=range(0, 1e6), buffer=buffer_value, crs=global_crs_obj
+                filepath,
+                codes=range(0, 1_000_000),
+                buffer=buffer_value,
+                crs=global_crs_obj,
             )
             info_list_exclusion.append(
                 f"additional exclusion raster file: {filename}: {buffer_value}"
@@ -490,6 +493,26 @@ else:
 
 
 # INCLUSION
+
+# --- Additional Inclusion Polygons ---
+additional_inclusion_polygons_folderPath = os.path.join(
+    data_path, "additional_inclusion_polygons"
+)
+buffer_config = tech_config.get("additional_inclusion_polygons_buffer")
+if os.path.exists(additional_inclusion_polygons_folderPath) and buffer_config:
+    for filename in os.listdir(additional_inclusion_polygons_folderPath):
+        if filename in buffer_config:
+            buffer_value = buffer_config[filename]
+            filepath = os.path.join(additional_inclusion_polygons_folderPath, filename)
+            excluder.add_geometry(filepath, buffer=buffer_value, invert=True)
+            info_list_exclusion.append(
+                f"additional inclusion polygon file: {filename}: {buffer_value}"
+            )
+elif os.path.exists(additional_inclusion_polygons_folderPath) and not buffer_config:
+    info_list_not_selected.append("additional_inclusion_polygons_buffer")
+else:
+    info_list_not_available.append("additional_inclusion_polygons_buffer")
+
 
 # --- Additional Inclusion Rasters ---
 additional_inclusion_rasters_folderPath = os.path.join(

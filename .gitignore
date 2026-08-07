@@ -53,6 +53,12 @@
 !Raw_Spatial_Data/custom_study_area/.gitkeep
 !Raw_Spatial_Data/additional_exclusion_polygons
 !Raw_Spatial_Data/additional_exclusion_polygons/.gitkeep
+!Raw_Spatial_Data/additional_exclusion_rasters
+!Raw_Spatial_Data/additional_exclusion_rasters/.gitkeep
+!Raw_Spatial_Data/additional_inclusion_polygons
+!Raw_Spatial_Data/additional_inclusion_polygons/.gitkeep
+!Raw_Spatial_Data/additional_inclusion_rasters
+!Raw_Spatial_Data/additional_inclusion_rasters/.gitkeep
 !Raw_Spatial_Data/global_solar_wind_atlas
 !Raw_Spatial_Data/global_solar_wind_atlas/.gitkeep
 !weather_data

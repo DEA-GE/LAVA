@@ -57,6 +57,7 @@ plants_buffer: Null
 
 # additional exclusion rasters
 max_forest_density: null # (0–10 % = non‑forest/scrub, 10–40 % = sparse woodland, 40–70 % = moderately dense forest, >70 % = dense forest).
+additional_exclusion_rasters_buffer: {} # mapping of processed raster filenames to buffer distances in meters
 
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
@@ -66,6 +67,7 @@ min_solar_production: 1000 #kWh/kW/year
 max_solar_production: null #kWh/kW/year
 
 # inclusion filters (connected with AND logic) (meters)
+additional_inclusion_polygons_buffer: {} # mapping of processed polygon filenames to buffer distances in meters
 additional_inclusion_rasters_buffer: {} # mapping of processed raster filenames to buffer distances in meters
 substations_inclusion_buffer: null
 transmission_inclusion_buffer: 10000
