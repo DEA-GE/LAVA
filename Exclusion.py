@@ -526,10 +526,11 @@ if os.path.exists(additional_inclusion_rasters_folderPath) and buffer_config:
             filepath = os.path.join(additional_inclusion_rasters_folderPath, filename)
             excluder.add_raster(
                 filepath,
-                codes=range(0, 1_000_000),
+                codes=1,
                 buffer=buffer_value,
                 crs=global_crs_obj,
                 invert=True,
+                nodata=0,
             )
             info_list_exclusion.append(
                 f"additional inclusion raster file: {filename}: {buffer_value}"
