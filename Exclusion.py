@@ -13,6 +13,12 @@ import yaml
 from utils.data_preprocessing import clean_region_name, log_scenario_run
 from rasterstats import zonal_stats
 from utils.raster_analysis import area_filter, overlay_value_raster
+from utils.inclusion_layers import (
+    apply_inclusion_layer_overrides,
+    compute_combined_inclusion_mask,
+    discover_processed_inclusion_layers,
+    parse_inclusion_layer_settings,
+)
 from utils.tech_config import load_tech_config
 
 # Record the starting time
@@ -494,50 +500,78 @@ else:
 
 # INCLUSION
 
-# --- Additional Inclusion Polygons ---
-additional_inclusion_polygons_folderPath = os.path.join(
-    data_path, "additional_inclusion_polygons"
-)
-buffer_config = tech_config.get("additional_inclusion_polygons_buffer")
-if os.path.exists(additional_inclusion_polygons_folderPath) and buffer_config:
-    for filename in os.listdir(additional_inclusion_polygons_folderPath):
-        if filename in buffer_config:
-            buffer_value = buffer_config[filename]
-            filepath = os.path.join(additional_inclusion_polygons_folderPath, filename)
-            excluder.add_geometry(filepath, buffer=buffer_value, invert=True)
-            info_list_exclusion.append(
-                f"additional inclusion polygon file: {filename}: {buffer_value}"
-            )
-elif os.path.exists(additional_inclusion_polygons_folderPath) and not buffer_config:
-    info_list_not_selected.append("additional_inclusion_polygons_buffer")
-else:
-    info_list_not_available.append("additional_inclusion_polygons_buffer")
+inclusion_layer_groups = []
 
 
-# --- Additional Inclusion Rasters ---
-additional_inclusion_rasters_folderPath = os.path.join(
-    data_path, "additional_inclusion_rasters"
+def register_inclusion_polygon(layer_excluder, layer):
+    settings = layer["settings"]
+    layer_excluder.add_geometry(
+        layer["path"], buffer=settings["buffer"], invert=True
+    )
+
+
+def register_inclusion_raster(layer_excluder, layer):
+    settings = layer["settings"]
+    layer_excluder.add_raster(
+        layer["path"],
+        codes=settings["codes"],
+        buffer=settings["buffer"],
+        crs=global_crs_obj,
+        invert=True,
+        nodata=settings["nodata"],
+    )
+
+
+def configure_inclusion_layer_group(
+    config_key, folder_config_key, layer_type, register_layer
+):
+    settings = parse_inclusion_layer_settings(tech_config, config_key, layer_type)
+    if settings is None or not settings["enabled"]:
+        info_list_not_selected.append(config_key)
+        return
+
+    source_folder_name = config.get(folder_config_key)
+    if not source_folder_name:
+        info_list_not_available.append(
+            f"{config_key} (no source folder selected in config.yaml)"
+        )
+        return
+
+    processed_folder = os.path.join(data_path, config_key, source_folder_name)
+    layers = discover_processed_inclusion_layers(processed_folder, layer_type)
+    if not layers:
+        info_list_not_available.append(config_key)
+        return
+
+    configured_layers = apply_inclusion_layer_overrides(layers, settings, config_key)
+    inclusion_layer_groups.append(
+        {
+            "config_key": config_key,
+            "combine": settings["combine"],
+            "layers": configured_layers,
+            "register_layer": register_layer,
+        }
+    )
+    for layer in configured_layers:
+        info_list_exclusion.append(
+            f"{config_key}: {layer['source']} -> {layer['processed']}: "
+            f"buffer={layer['settings']['buffer']} "
+            f"(combine={settings['combine']})"
+        )
+
+
+configure_inclusion_layer_group(
+    "additional_inclusion_polygons",
+    "additional_inclusion_polygons_folder_name",
+    "polygon",
+    register_inclusion_polygon,
 )
-buffer_config = tech_config.get("additional_inclusion_rasters_buffer")
-if os.path.exists(additional_inclusion_rasters_folderPath) and buffer_config:
-    for filename in os.listdir(additional_inclusion_rasters_folderPath):
-        if filename in buffer_config:
-            buffer_value = buffer_config[filename]
-            filepath = os.path.join(additional_inclusion_rasters_folderPath, filename)
-            excluder.add_raster(
-                filepath,
-                codes=range(0, 1_000_000),
-                buffer=buffer_value,
-                crs=global_crs_obj,
-                invert=True,
-            )
-            info_list_exclusion.append(
-                f"additional inclusion raster file: {filename}: {buffer_value}"
-            )
-elif os.path.exists(additional_inclusion_rasters_folderPath) and not buffer_config:
-    info_list_not_selected.append("additional_inclusion_rasters_buffer")
-else:
-    info_list_not_available.append("additional_inclusion_rasters_buffer")
+configure_inclusion_layer_group(
+    "additional_inclusion_rasters",
+    "additional_inclusion_rasters_folder_name",
+    "raster",
+    register_inclusion_raster,
+)
 
 
 # --- Substations (Inclusion Buffer) ---
@@ -586,6 +620,24 @@ for item in info_list_not_selected:
 # calculate available areas
 print("\nperforming exclusions...")
 masked, transform = shape_availability(region.geometry, excluder)
+
+# Apply the same mask-combination workflow to polygon and raster groups. Each
+# layer still uses Atlite's native geometry or raster buffering implementation.
+for inclusion_group in inclusion_layer_groups:
+    inclusion_mask, inclusion_transform = compute_combined_inclusion_mask(
+        inclusion_group["layers"],
+        inclusion_group["combine"],
+        inclusion_group["register_layer"],
+        region.geometry,
+        local_crs_obj,
+        res,
+    )
+    if inclusion_transform != transform or inclusion_mask.shape != masked.shape:
+        raise RuntimeError(
+            f"{inclusion_group['config_key']} could not be aligned with the "
+            "exclusion grid"
+        )
+    masked &= inclusion_mask
 # masked, transform = shape_availability_reprojected(region.geometry, excluder, dst_transform=transform_lc, dst_crs=local_crs_obj, dst_shape=shape)
 
 print("\nfollowing data was considered during exclusion:")

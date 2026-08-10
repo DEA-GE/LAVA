@@ -80,7 +80,22 @@ Most input data is downloaded automatically in the workflow except the DEM from 
 - **ESAworldcover**: In order to automatically download landcover data you need to create an account [here](https://documentation.dataspace.copernicus.eu/Registration.html). The very first time you run the LAVA tool you need to click on a link in the terminal and login to Copernicus. Afterwards, your login will be remembered.
 - **ERA5 Copernicus**: If you want to download ERA5 data via Copernicus to be used for generating timeseries data, you need to install the Copernicus Climate Data Store `cdsapi` package (`pip install cdsapi`) and register and setup your CDS API key as described [on their website here](https://cds.climate.copernicus.eu/how-to-api).
 - **Additional exclusion rasters** (optional): Create a subfolder in **Raw_Spatial_Data/additional_exclusion_rasters**, place GeoTIFF (`.tif`) files in it, and set `additional_exclusion_rasters_folder_name` to the subfolder name in `config.yaml`. After preprocessing, map the generated raster filenames to buffer distances (in meters) with `additional_exclusion_rasters_buffer` in the technology configuration.
-- **Additional inclusion polygons and rasters** (optional): Create a subfolder in **Raw_Spatial_Data/additional_inclusion_polygons** or **Raw_Spatial_Data/additional_inclusion_rasters** and select it with the matching folder-name setting in `config.yaml`. After preprocessing, map generated filenames to buffer distances with `additional_inclusion_polygons_buffer` or `additional_inclusion_rasters_buffer` in the technology configuration. These layers are applied as inclusion filters and are combined with the other inclusion filters using AND logic.
+- **Additional inclusion polygons and rasters** (optional): Create a subfolder in **Raw_Spatial_Data/additional_inclusion_polygons** or **Raw_Spatial_Data/additional_inclusion_rasters**, place all intended layers in it, and select it with the matching folder-name setting in `config.yaml`. Enable `additional_inclusion_polygons` and/or `additional_inclusion_rasters` in the technology configuration; processed filenames are discovered automatically. Each section has `defaults` applied to every layer and optional `overrides` keyed by the original source filename, so individual layers can use different buffers without referring to generated filenames. Set `combine: all` to require eligible pixels in every layer of that section or `combine: any` to accept pixels from at least one layer. Polygon and raster sections are then combined with each other and with other inclusion filters using AND logic.
+
+For example, this applies a 100 m default raster buffer and a 500 m buffer only to the original `grid_priority.tif` source file:
+
+```yaml
+additional_inclusion_rasters:
+  enabled: true
+  combine: all
+  defaults:
+    buffer: 100
+    codes: [1]
+    nodata: 0
+  overrides:
+    grid_priority.tif:
+      buffer: 500
+```
 
 The tool is now ready to be used. The first step is to fill out the `config.yaml` file.
 
