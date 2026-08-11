@@ -9,8 +9,13 @@ from typing import Any
 import atlite
 import geopandas as gpd
 import numpy as np
+import rasterio
 from atlite.gis import shape_availability
-from utils.data_preprocessing import clip_raster, geopandas_clip_reproject
+from rasterio.enums import Resampling
+from rasterio.mask import mask
+from rasterio.vrt import WarpedVRT
+from shapely.geometry import mapping
+from utils.data_preprocessing import geopandas_clip_reproject
 
 
 MANIFEST_FILENAME = "manifest.json"
@@ -226,6 +231,95 @@ def prepare_inclusion_polygon_folder(
     )
 
 
+def clip_reproject_inclusion_raster(
+    input_raster_path: str,
+    region: Any,
+    output_folder: str,
+    region_name: str,
+    data_name: str | None = None,
+) -> str:
+    """Clip an inclusion raster and reproject it to the study-area CRS.
+
+    Nearest-neighbour resampling is used because inclusion rasters contain
+    discrete eligibility codes rather than continuous measurements.
+    """
+    if getattr(region, "crs", None) is None:
+        raise ValueError(
+            "The study-area CRS is required to reproject inclusion rasters."
+        )
+
+    target_crs = rasterio.crs.CRS.from_user_input(region.crs)
+    clip_geometries = region.geometry[
+        region.geometry.notna() & ~region.geometry.is_empty
+    ]
+    if clip_geometries.empty:
+        raise ValueError(
+            "The study area has no non-empty geometries for raster clipping."
+        )
+    clip_shapes = clip_geometries.apply(mapping)
+
+    with rasterio.open(input_raster_path) as src:
+        if src.crs is None:
+            raise ValueError(
+                f"Cannot reproject inclusion raster with no CRS: {input_raster_path}"
+            )
+
+        if src.crs == target_crs:
+            out_image, out_transform = mask(
+                src, clip_shapes, crop=True, all_touched=True
+            )
+        else:
+            with WarpedVRT(
+                src,
+                crs=target_crs,
+                resampling=Resampling.nearest,
+            ) as reprojected:
+                out_image, out_transform = mask(
+                    reprojected, clip_shapes, crop=True, all_touched=True
+                )
+
+        out_meta = src.meta.copy()
+        out_meta.update(
+            {
+                "driver": "GTiff",
+                "crs": target_crs,
+                "height": out_image.shape[1],
+                "width": out_image.shape[2],
+                "transform": out_transform,
+                "compress": "DEFLATE",
+            }
+        )
+
+        source_colormap = None
+        if src.count == 1:
+            try:
+                source_colormap = src.colormap(1)
+            except (ValueError, KeyError):
+                pass
+
+    authority = target_crs.to_authority()
+    crs_tag = (
+        "".join(authority)
+        if authority
+        else target_crs.to_string().replace(":", "_").replace(" ", "_")
+    )
+    output_prefix = (
+        os.path.splitext(os.path.basename(input_raster_path))[0]
+        if data_name is None
+        else data_name
+    )
+    output_path = os.path.join(
+        output_folder, f"{output_prefix}_{region_name}_{crs_tag}.tif"
+    )
+    os.makedirs(output_folder, exist_ok=True)
+    with rasterio.open(output_path, "w", **out_meta) as dest:
+        dest.write(out_image)
+        if source_colormap:
+            dest.write_colormap(1, source_colormap)
+
+    return output_path
+
+
 def prepare_inclusion_raster_folder(
     source_root: str,
     output_root: str,
@@ -233,19 +327,19 @@ def prepare_inclusion_raster_folder(
     region: Any,
     region_name: str,
 ) -> str:
-    """Clip a selected raster folder and create its preprocessing manifest."""
+    """Clip and reproject a raster folder to the study-area CRS."""
 
     def process_raster(
         source_path: str, output_folder: str, filename: str, counter: int
     ) -> str:
         del counter
         data_name = os.path.splitext(filename)[0]
-        return clip_raster(
+        return clip_reproject_inclusion_raster(
             source_path,
-            region_name,
             region,
             output_folder,
-            data_name,
+            region_name,
+            data_name=data_name,
         )
 
     return _prepare_inclusion_folder(

@@ -548,7 +548,7 @@ if consider_additional_inclusion_polygons:
     )
 
 
-# clip additional inclusion rasters
+# clip and reproject additional inclusion rasters to the study-area CRS
 if consider_additional_inclusion_rasters:
     print("\nprocessing additional inclusion rasters")
     inclusion_raster_folder_name = config["additional_inclusion_rasters_folder_name"]
