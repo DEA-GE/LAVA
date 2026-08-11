@@ -284,19 +284,26 @@ def save_richdem_file(richdem_file, base_dem_FilePath, outFilePath):
 
 def geopandas_clip_reproject(geopandas_file, gdf, target_crs_obj):
     """
-    Clips vector file to the extent of a GeoPandas DataFrame and reprojects it to a given CRS.
+    Clip vector data to a GeoDataFrame and reproject it to a target CRS.
 
+    The input vector data is first reprojected to the clipping GeoDataFrame's
+    CRS so the geometries are compared in the same coordinate system.
 
+    :param geopandas_file: Vector data to clip.
     :param gdf: The GeoPandas DataFrame to use for clipping the shapefile.
-    :target_crs: The target CRS to reproject the shapefile to (e.g., 'EPSG:3035').
+    :param target_crs_obj: Target CRS for the returned data (e.g., 'EPSG:3035').
     """
+    if geopandas_file.crs is None:
+        raise ValueError("Cannot clip vector data because its CRS is missing.")
+    if gdf.crs is None:
+        raise ValueError("Cannot clip vector data because the clipping CRS is missing.")
 
-    # clip files
-    geopandas_clipped = gpd.clip(geopandas_file, gdf)
-    # reproject and save files
-    geopandas_clipped.to_crs(target_crs_obj, inplace=True)
+    vector_in_clip_crs = geopandas_file
+    if geopandas_file.crs != gdf.crs:
+        vector_in_clip_crs = geopandas_file.to_crs(gdf.crs)
 
-    return geopandas_clipped
+    geopandas_clipped = gpd.clip(vector_in_clip_crs, gdf)
+    return geopandas_clipped.to_crs(target_crs_obj)
 
 
 def clip_raster(
