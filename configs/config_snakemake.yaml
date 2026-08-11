@@ -1,22 +1,23 @@
 # General
 #region parameters.
 
-study_region_name: [Odense]
-technologies: [solar, onshorewind]
+study_region_name: [Hovedstaden, Midtjylland, Nordjylland, Sjælland, Syddanmark]
+technologies: [onshorewind, solar]
 technology_scenarios:
-  solar: [ref]
-  onshorewind: [ref]
-
-#snakemake specific parameters
+  solar:
+    - Snaketest
+  onshorewind:
+    - Snaketest
 cores: 4
 snakefile: snakemake/Snakefile
 weather_years: [2019]
 
 stages:
-  spatial_data_prep: false
+  spatial_data_prep: true
   exclusion: true
   suitability: false
   timeseries: false
   weather_data_prep: false
   weather_bias_adjust: false
   energy_profiles: false
+scenarios: []

@@ -12,6 +12,7 @@ from utils.tech_config import (
     validate_selected_scenarios,
     validate_shared_scenarios,
 )
+from utils.data_preprocessing import clean_region_name
 
 
 
@@ -20,7 +21,16 @@ with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
 
 
 #define parameters , keep them in list as it iterates, multiple input can be included. 
-regions = config_snakemake["study_region_name"]
+configured_regions = config_snakemake["study_region_name"]
+if isinstance(configured_regions, str):
+    configured_regions = [configured_regions]
+region_names = {
+    clean_region_name(region): region
+    for region in configured_regions
+}
+if len(region_names) != len(configured_regions):
+    raise ValueError("Study region names must remain unique after filename cleaning.")
+regions = list(region_names)
 technologies = config_snakemake["technologies"]
 scenarios = config_snakemake.get("scenarios", [])
 technology_scenarios = config_snakemake.get("technology_scenarios", {})
@@ -33,6 +43,10 @@ def get_scenarios_for_technology(technology):
         scenarios,
         technology_scenarios,
     )
+
+
+def configured_region_name(cleaned_region):
+    return region_names[cleaned_region]
 
 
 validate_selected_scenarios(
@@ -73,8 +87,14 @@ globals().update({
 
 
 # ---- Compact includes ----
-for stage_name, enabled in stages.items():
-    if enabled:
+# Exclusion uses spatial_data_prep as a checkpoint. Including the checkpoint
+# does not run it when its CRS output is present and up to date.
+included_stages = {name for name, enabled in stages.items() if enabled}
+if stages.get("exclusion"):
+    included_stages.add("spatial_data_prep")
+
+for stage_name in stages:
+    if stage_name in included_stages:
         include: f"rules/{stage_name}.smk"
 
 
@@ -83,7 +103,7 @@ ALL_TARGETS = []
 
 if DO_SPATIAL_DATA_PREP:
     ALL_TARGETS += expand(
-        logpath("{region}", "spatial_data_prep.done"),
+        Path("data") / "{region}" / "{region}_local_CRS.pkl",
         region=regions,
     )
 

@@ -253,10 +253,6 @@ print(local_crs_obj)
 # Extract tag for filename, e.g., 'EPSG3035' or 'ESRI102003'
 auth = local_crs_obj.to_authority()
 local_crs_tag = "".join(auth) if auth else local_crs_obj.to_string().replace(":", "_")
-# Save the CRS object as a pickle file
-with open(os.path.join(output_dir, f"{region_name_clean}_local_CRS.pkl"), "wb") as file:
-    pickle.dump(local_crs_obj, file)
-
 # reproject country to defined projected CRS
 region.to_crs(local_crs_obj, inplace=True)
 region.to_file(
@@ -1077,6 +1073,11 @@ if buildings_filename:
             )
     except Exception as e:
         logging.error(f"buildings data failed: {e}")
+
+# Write the checkpoint output only after spatial preparation has finished. This
+# prevents an interrupted run from looking complete to Snakemake.
+with open(os.path.join(output_dir, f"{region_name_clean}_local_CRS.pkl"), "wb") as file:
+    pickle.dump(local_crs_obj, file)
 
 
 print("\nDone!")

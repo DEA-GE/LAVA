@@ -4796,7 +4796,9 @@ class PreflightDialog(tk.Toplevel):
         super().__init__(master)
         self.report = report
         self.confirmed = False
-        self.title("Run preflight")
+        is_dry_run = bool(report.get("dry_run"))
+        action_name = "dry run" if is_dry_run else "run"
+        self.title("Dry-run preflight" if is_dry_run else "Run preflight")
         self.geometry("900x700")
         self.minsize(720, 560)
         self.transient(master.winfo_toplevel())
@@ -4815,13 +4817,17 @@ class PreflightDialog(tk.Toplevel):
         if errors:
             heading = f"Preflight found {len(errors)} blocking problem(s)"
             color = "#B42318"
-            detail = "Resolve the errors below before starting this run."
+            detail = f"Resolve the errors below before starting this {action_name}."
         elif warnings:
-            heading = f"Ready to start with {len(warnings)} warning(s)"
+            heading = (
+                f"Ready to start the dry run with {len(warnings)} warning(s)"
+                if is_dry_run
+                else f"Ready to start with {len(warnings)} warning(s)"
+            )
             color = "#8A5A00"
             detail = "Review the warnings, then start when ready."
         else:
-            heading = "Ready to start"
+            heading = "Ready to start dry run" if is_dry_run else "Ready to start"
             color = "#1A7F37"
             detail = "All available preflight checks passed."
 
@@ -4834,7 +4840,11 @@ class PreflightDialog(tk.Toplevel):
             anchor="w", pady=(3, 0)
         )
 
-        summary_frame = ttk.LabelFrame(self, text="Run summary", padding=8)
+        summary_frame = ttk.LabelFrame(
+            self,
+            text="Dry-run summary" if is_dry_run else "Run summary",
+            padding=8,
+        )
         summary_frame.grid(row=1, column=0, sticky="ew", padx=14, pady=(8, 6))
         summary_frame.columnconfigure(1, weight=1)
         for row, (label, value) in enumerate(report.get("summary", {}).items()):
@@ -4931,7 +4941,11 @@ class PreflightDialog(tk.Toplevel):
         ttk.Button(footer, text="Cancel", command=self.destroy).grid(
             row=0, column=1, padx=(6, 0)
         )
-        self.start_button = ttk.Button(footer, text="Start run", command=self._confirm)
+        self.start_button = ttk.Button(
+            footer,
+            text="Start dry run" if is_dry_run else "Start run",
+            command=self._confirm,
+        )
         self.start_button.grid(row=0, column=2, padx=(6, 0))
         if errors:
             self.start_button.configure(state="disabled")
@@ -4994,6 +5008,7 @@ class RunTab(ttk.Frame):
         self.runner = ProcessRunner()
         self.stop_requested = False
         self.reset_requested = False
+        self.current_run_is_dry_run = False
         self.temp_snakefile_path: Optional[Path] = None
         self.snakemake_file_var = tk.StringVar()
         self.snakemake_cores_var = tk.IntVar()
@@ -5160,15 +5175,20 @@ class RunTab(ttk.Frame):
         )
         controls = ttk.Frame(body)
         controls.grid(row=3, column=0, sticky="ew", pady=10)
-        controls.columnconfigure((0, 1, 2, 3, 4), weight=1)
-        ttk.Button(controls, text="Run", command=self.handle_run).grid(
-            row=0, column=0, sticky="ew", padx=4
+        controls.columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.run_button = ttk.Button(controls, text="Run", command=self.handle_run)
+        self.run_button.grid(row=0, column=0, sticky="ew", padx=4)
+        self.dry_run_button = ttk.Button(
+            controls,
+            text="Dry run",
+            command=self.handle_dry_run,
         )
+        self.dry_run_button.grid(row=0, column=1, sticky="ew", padx=4)
         ttk.Button(controls, text="Stop", command=self.handle_stop).grid(
-            row=0, column=1, sticky="ew", padx=4
+            row=0, column=2, sticky="ew", padx=4
         )
         ttk.Button(controls, text="Reset", command=self.handle_reset).grid(
-            row=0, column=2, sticky="ew", padx=4
+            row=0, column=3, sticky="ew", padx=4
         )
         self.copy_command_button = ttk.Button(
             controls,
@@ -5176,11 +5196,11 @@ class RunTab(ttk.Frame):
             command=self._copy_last_command,
             state="disabled",
         )
-        self.copy_command_button.grid(row=0, column=3, sticky="ew", padx=4)
+        self.copy_command_button.grid(row=0, column=4, sticky="ew", padx=4)
         self.open_log_button = ttk.Button(
             controls, text="Open log folder", command=self._open_log_folder
         )
-        self.open_log_button.grid(row=0, column=4, sticky="ew", padx=4)
+        self.open_log_button.grid(row=0, column=5, sticky="ew", padx=4)
         if not self.last_log_folder:
             self.open_log_button.configure(state="disabled")
         progress_frame = ttk.Frame(body)
@@ -5327,7 +5347,17 @@ class RunTab(ttk.Frame):
             self.snakemake_options_frame.grid(row=1, column=0, sticky="ew", pady=10)
             self.info_label.grid(row=2, column=0, sticky="ew", pady=(0, 10))
             self._refresh_snakemake_settings_display()
+        self._update_run_button_states()
         self._update_status_labels()
+
+    def _update_run_button_states(self) -> None:
+        """Keep execution buttons consistent with the selected mode and runner."""
+        is_running = self.status == "running" or self.runner.is_running()
+        self.run_button.configure(state="disabled" if is_running else "normal")
+        dry_run_enabled = not is_running and self.execution_mode.get() == "snakemake"
+        self.dry_run_button.configure(
+            state="normal" if dry_run_enabled else "disabled"
+        )
 
     def _on_script_change(self, _event: tk.Event) -> None:
         index = self.script_combo.current()
@@ -5540,7 +5570,9 @@ class RunTab(ttk.Frame):
         now = datetime.now()
         run_id = now.strftime("%Y%m%d_%H%M%S_%f")
         script_id = str(report.get("script_id") or "run")
-        safe_script = re.sub(r"[^A-Za-z0-9_.-]+", "_", script_id)
+        is_dry_run = bool(report.get("dry_run"))
+        log_script_id = f"{script_id}_dry_run" if is_dry_run else script_id
+        safe_script = re.sub(r"[^A-Za-z0-9_.-]+", "_", log_script_id)
         log_path = RUN_LOG_DIR / f"{run_id}_{safe_script}.log"
         self.current_run_log_path = log_path
         self.last_log_folder = RUN_LOG_DIR
@@ -5559,7 +5591,10 @@ class RunTab(ttk.Frame):
             "id": run_id,
             "started_at": now.isoformat(timespec="seconds"),
             "finished_at": None,
-            "mode": self.execution_mode.get(),
+            "mode": (
+                "dry run" if is_dry_run else self.execution_mode.get()
+            ),
+            "dry_run": is_dry_run,
             "script_id": script_id,
             "stages": stages,
             "regions": regions,
@@ -6045,7 +6080,7 @@ class RunTab(ttk.Frame):
         )
         script_name = script["name"] if script else f"{script_id}.py"
         script_path = self._resolve_script_path(script_name)
-        command = [sys.executable, str(script_path)]
+        command = [sys.executable, "-u", str(script_path)]
 
         values = {
             "region": self.run_region_var.get().strip(),
@@ -6086,7 +6121,9 @@ class RunTab(ttk.Frame):
             command.extend([flag, value])
         return command, script_path.parent
 
-    def _build_snakemake_command(self) -> Tuple[List[str], Path, Optional[Path]]:
+    def _build_snakemake_command(
+        self, *, dry_run: bool = False
+    ) -> Tuple[List[str], Path, Optional[Path]]:
         snakefile_setting, cores_value = self._load_snakemake_settings()
         self.snakemake_file_var.set(snakefile_setting)
         self.snakemake_cores_var.set(cores_value)
@@ -6099,12 +6136,20 @@ class RunTab(ttk.Frame):
             raise RuntimeError(f"Snakemake file not found: {snakefile_setting}")
         snakemake_exec = shutil.which("snakemake")
         command = self._assemble_snakemake_command(
-            str(snakefile_path), cores_value, snakemake_exec
+            str(snakefile_path),
+            cores_value,
+            snakemake_exec,
+            dry_run=dry_run,
         )
         return command, PARENT_DIR, None
 
     def _assemble_snakemake_command(
-        self, snakefile_path: str, cores: int, snakemake_exec: Optional[str]
+        self,
+        snakefile_path: str,
+        cores: int,
+        snakemake_exec: Optional[str],
+        *,
+        dry_run: bool = False,
     ) -> List[str]:
         base_args = [
             "--snakefile",
@@ -6114,6 +6159,8 @@ class RunTab(ttk.Frame):
             "--resources",
             "openeo_req=1",
         ]
+        if dry_run:
+            base_args.extend(["--dry-run", "--printshellcmds"])
         if snakemake_exec:
             return [snakemake_exec, *base_args]
         return [sys.executable, "-m", "snakemake", *base_args]
@@ -6461,7 +6508,7 @@ class RunTab(ttk.Frame):
                 if record not in report["files"]:
                     report["files"].append(record)
 
-    def build_preflight_report(self) -> Dict[str, Any]:
+    def build_preflight_report(self, *, dry_run: bool = False) -> Dict[str, Any]:
         """Build a non-mutating report for the currently selected execution."""
         report: Dict[str, Any] = {
             "summary": {},
@@ -6471,6 +6518,7 @@ class RunTab(ttk.Frame):
             "cwd": None,
             "temp_path": None,
             "script_id": None,
+            "dry_run": dry_run,
         }
         mode = self.execution_mode.get()
         config_path = self.config_tab.get_config_path() or (CONFIGS_DIR / "config.yaml")
@@ -6681,7 +6729,9 @@ class RunTab(ttk.Frame):
 
         try:
             if mode == "snakemake":
-                command, cwd, temp_path = self._build_snakemake_command()
+                command, cwd, temp_path = self._build_snakemake_command(
+                    dry_run=dry_run
+                )
             else:
                 command, cwd = self._build_single_command()
                 temp_path = None
@@ -6699,10 +6749,13 @@ class RunTab(ttk.Frame):
         self._check_referenced_inputs(report, config, regions, stages)
         self._check_preflight_dependencies(report, stages, mode)
 
+        execution_summary = "Single script"
+        if mode == "snakemake":
+            execution_summary = (
+                "Snakemake dry run" if dry_run else "Snakemake workflow"
+            )
         report["summary"] = {
-            "Execution": "Snakemake workflow"
-            if mode == "snakemake"
-            else "Single script",
+            "Execution": execution_summary,
             "Regions": ", ".join(regions) if regions else "Not configured",
             "Technologies": ", ".join(technologies)
             if technologies
@@ -6745,46 +6798,72 @@ class RunTab(ttk.Frame):
         self.add_log(self._classify_process_message(level, message), message)
 
     def _handle_process_exit(self, return_code: int) -> None:
+        is_dry_run = self.current_run_is_dry_run
         self.runner.cancel()
         self._stop_spinner()
         self._cancel_duration_timer()
         self.end_time = time.time()
         self._cleanup_temp_snakefile()
         if self.reset_requested:
+            process_name = "Dry run" if is_dry_run else "Process"
             self.add_log(
-                "error", f"Process reset after exiting with code {return_code}."
+                "error", f"{process_name} reset after exiting with code {return_code}."
             )
-            self._finish_run_record(return_code, "Reset")
+            history_status = "Dry run reset" if is_dry_run else "Reset"
+            self._finish_run_record(return_code, history_status)
             self.current_run_log_path = None
             self._finalize_reset()
             return
         if return_code == 0 and not self.stop_requested:
             self.status = "completed"
-            self.completed_jobs = self.total_jobs
             self.progress.set(100)
-            self._refresh_progress_feedback()
-            self.add_log("success", "Process completed successfully.")
-            self._update_results_tab_with_json()
+            if is_dry_run:
+                self.completed_jobs = 0
+                self.total_jobs = 0
+                self._refresh_progress_feedback()
+                self.jobs_var.set("Dry run complete — no jobs executed")
+                self.add_log(
+                    "success", "Dry run completed successfully; no jobs were executed."
+                )
+            else:
+                self.completed_jobs = self.total_jobs
+                self._refresh_progress_feedback()
+                self.add_log("success", "Process completed successfully.")
+                self._update_results_tab_with_json()
             self._update_status_labels()
-            self._finish_run_record(return_code, "Completed")
-            messagebox.showinfo("Execution Complete", "Process finished successfully.")
+            if is_dry_run:
+                self._finish_run_record(return_code, "Dry run completed")
+                messagebox.showinfo(
+                    "Dry Run Complete",
+                    "Dry run finished successfully. No jobs were executed.",
+                )
+            else:
+                self._finish_run_record(return_code, "Completed")
+                messagebox.showinfo(
+                    "Execution Complete", "Process finished successfully."
+                )
         else:
             self.status = "error"
             if self.stop_requested:
+                process_name = "Dry run" if is_dry_run else "Process"
                 self.add_log(
                     "error",
-                    f"Process exited with code {return_code} after stop request.",
+                    f"{process_name} exited with code {return_code} after stop request.",
                 )
-                self._finish_run_record(return_code, "Stopped")
+                history_status = "Dry run stopped" if is_dry_run else "Stopped"
+                self._finish_run_record(return_code, history_status)
                 messagebox.showerror(
-                    "Execution Stopped",
-                    f"Process exited with code {return_code} after stop request.",
+                    "Dry Run Stopped" if is_dry_run else "Execution Stopped",
+                    f"{process_name} exited with code {return_code} after stop request.",
                 )
             else:
-                self.add_log("error", f"Process exited with code {return_code}.")
-                self._finish_run_record(return_code, "Failed")
+                process_name = "Dry run" if is_dry_run else "Process"
+                self.add_log("error", f"{process_name} exited with code {return_code}.")
+                history_status = "Dry run failed" if is_dry_run else "Failed"
+                self._finish_run_record(return_code, history_status)
                 messagebox.showerror(
-                    "Execution Failed", f"Process exited with code {return_code}."
+                    "Dry Run Failed" if is_dry_run else "Execution Failed",
+                    f"{process_name} exited with code {return_code}.",
                 )
             self._update_status_labels()
         self.current_run_log_path = None
@@ -6792,6 +6871,8 @@ class RunTab(ttk.Frame):
         self.reset_requested = False
         self.last_run_script_id = None
         self.expected_output_dir = None
+        self.current_run_is_dry_run = False
+        self._update_run_button_states()
 
     def _finalize_reset(self) -> None:
         self.runner.cancel()
@@ -6812,13 +6893,28 @@ class RunTab(ttk.Frame):
         self._update_status_labels()
         self.stop_requested = False
         self.reset_requested = False
+        self.current_run_is_dry_run = False
+        self._update_run_button_states()
 
     def handle_run(self) -> None:
+        self._handle_execution(dry_run=False)
+
+    def handle_dry_run(self) -> None:
+        if self.execution_mode.get() != "snakemake":
+            messagebox.showinfo(
+                "Dry Run",
+                "Dry run is available only in Snakemake Workflow mode.",
+            )
+            return
+        self._handle_execution(dry_run=True)
+
+    def _handle_execution(self, *, dry_run: bool) -> None:
         if self.runner.is_running():
             return
         self.expected_output_dir = None
         self.last_run_script_id = None
-        report = self.build_preflight_report()
+        self.current_run_is_dry_run = False
+        report = self.build_preflight_report(dry_run=dry_run)
         dialog = PreflightDialog(self, report)
         self.wait_window(dialog)
         if not dialog.confirmed:
@@ -6826,29 +6922,36 @@ class RunTab(ttk.Frame):
                 item for item in report["issues"] if item.get("severity") == "error"
             ]
             if errors:
+                action_name = "Dry run" if dry_run else "Run"
                 self.add_log(
-                    "error", f"Run blocked by {len(errors)} preflight error(s)."
+                    "error",
+                    f"{action_name} blocked by {len(errors)} preflight error(s).",
                 )
             else:
-                self.add_log("info", "Run cancelled after preflight review.")
+                action_name = "Dry run" if dry_run else "Run"
+                self.add_log(
+                    "info", f"{action_name} cancelled after preflight review."
+                )
             return
         cmd = report.get("command")
         cwd = report.get("cwd")
         temp_path = report.get("temp_path")
         script_id = report.get("script_id")
         if not cmd or not cwd:
+            action_name = "dry run" if dry_run else "run"
             self.add_log(
                 "error",
-                "Run blocked because the preflight did not produce a valid command.",
+                f"The {action_name} was blocked because preflight did not produce a valid command.",
             )
             return
         self.expected_output_dir = cwd
         self.last_run_script_id = script_id
-        if script_id == "results_analysis":
+        if not dry_run and script_id == "results_analysis":
             self.results_tab.clear_aggregated_results()
         self.temp_snakefile_path = temp_path
         self.stop_requested = False
         self.reset_requested = False
+        self.current_run_is_dry_run = dry_run
         self.status = "running"
         self.progress.set(0)
         self._clear_logs()
@@ -6860,7 +6963,9 @@ class RunTab(ttk.Frame):
         self._begin_run_record(report, [str(part) for part in cmd], Path(cwd))
         self._start_spinner()
         self._start_duration_timer()
-        self.add_log("info", f"Starting process: {self.last_command_text}")
+        action_name = "dry run" if dry_run else "process"
+        self.add_log("info", f"Starting {action_name}: {self.last_command_text}")
+        self._update_run_button_states()
         self._update_status_labels()
         try:
             self.runner.run(
@@ -6871,22 +6976,29 @@ class RunTab(ttk.Frame):
                 on_exit=self._handle_process_exit,
             )
         except Exception as exc:
+            action_name = "dry run" if dry_run else "process"
             self.runner.cancel()
             self._stop_spinner()
             self._cancel_duration_timer()
             self.status = "error"
-            self.add_log("error", f"Failed to start process: {exc}")
-            self._finish_run_record(None, "Start failed")
+            self.add_log("error", f"Failed to start {action_name}: {exc}")
+            history_status = "Dry run start failed" if dry_run else "Start failed"
+            self._finish_run_record(None, history_status)
             self.current_run_log_path = None
             self.start_time = None
             self.end_time = None
             self._update_status_labels()
-            messagebox.showerror("Execution Error", f"Failed to start process:\n{exc}")
+            messagebox.showerror(
+                "Dry Run Error" if dry_run else "Execution Error",
+                f"Failed to start {action_name}:\n{exc}",
+            )
             self._cleanup_temp_snakefile()
             self.stop_requested = False
             self.reset_requested = False
             self.last_run_script_id = None
             self.expected_output_dir = None
+            self.current_run_is_dry_run = False
+            self._update_run_button_states()
 
     def handle_stop(self) -> None:
         if not self.runner.is_running():
@@ -6897,7 +7009,8 @@ class RunTab(ttk.Frame):
         self._cancel_duration_timer()
         self.status = "error"
         self.end_time = time.time()
-        self.add_log("error", "Execution stopped by user.")
+        action_name = "Dry run" if self.current_run_is_dry_run else "Execution"
+        self.add_log("error", f"{action_name} stopped by user.")
         self._update_status_labels()
 
     def handle_reset(self) -> None:

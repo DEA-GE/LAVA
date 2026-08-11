@@ -1,4 +1,21 @@
+from utils.exclusion_inputs import resolve_exclusion_inputs
+
+
+def exclusion_inputs(wildcards):
+    spatial_checkpoint = checkpoints.spatial_data_prep.get(
+        region=wildcards.region
+    )
+    return resolve_exclusion_inputs(
+        region=wildcards.region,
+        technology=wildcards.technology,
+        scenario=wildcards.scenario,
+        local_crs_path=spatial_checkpoint.output.local_crs,
+    )
+
+
 rule exclusion:
+    input:
+        exclusion_inputs
     output:
         Path("data")
         / "{region}"

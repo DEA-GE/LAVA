@@ -1,9 +1,23 @@
-rule spatial_data_prep:
+ADVANCED_DATA_PREP_CONFIG = Path(
+    "configs/advanced_settings/advanced_data_prep_settings.yaml"
+)
+if not ADVANCED_DATA_PREP_CONFIG.is_file():
+    ADVANCED_DATA_PREP_CONFIG = Path(
+        "configs/advanced_settings/advanced_data_prep_settings_template.yaml"
+    )
+
+
+checkpoint spatial_data_prep:
+    input:
+        config="configs/config.yaml",
+        advanced_config=ADVANCED_DATA_PREP_CONFIG,
+        script="spatial_data_prep.py"
     output:
-        touch(logpath("{region}", "spatial_data_prep.done"))
+        local_crs=Path("data") / "{region}" / "{region}_local_CRS.pkl"
     resources:
         openeo_req=1
     params:
-        method="snakemake"
+        method="snakemake",
+        configured_region=lambda wildcards: configured_region_name(wildcards.region)
     shell:
-        "python spatial_data_prep.py --region {wildcards.region:q} --method {params.method:q}"
+        "python -u spatial_data_prep.py --region {params.configured_region:q} --method {params.method:q}"
