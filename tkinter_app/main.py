@@ -1160,7 +1160,16 @@ class ConfigurationTab(ttk.Frame):
                 scrollregion=self.param_canvas.bbox("all")
             ),
         )
-        self.param_canvas.create_window((0, 0), window=self.param_inner, anchor="nw")
+        param_window = self.param_canvas.create_window(
+            (0, 0), window=self.param_inner, anchor="nw"
+        )
+        self.param_canvas.bind(
+            "<Configure>",
+            lambda event: self.param_canvas.itemconfigure(
+                param_window, width=event.width
+            ),
+        )
+        self._enable_mousewheel(self.param_canvas)
         self.settings_search_var.trace_add("write", self._on_settings_search_changed)
         self.raw_container = ttk.Frame(self.config_tab)
         self.raw_container.columnconfigure(0, weight=1)
@@ -2424,8 +2433,10 @@ class ConfigurationTab(ttk.Frame):
                         mapping_value = CommentedMap()
                     template = deepcopy(mapping_value)
                     param["_template"] = template
-                    mapping_frame = ttk.LabelFrame(section_frame, text=label_text)
-                    mapping_frame.pack(fill="x", padx=6, pady=2)
+                    mapping_frame = ttk.LabelFrame(
+                        section_frame, text=label_text, padding=(8, 6)
+                    )
+                    mapping_frame.pack(fill="x", padx=6, pady=(3, 7))
                     mapping_frame.columnconfigure(0, weight=1)
                     if desc_text:
                         description_label = ttk.Label(
@@ -2471,14 +2482,13 @@ class ConfigurationTab(ttk.Frame):
                     info["param_controls"].append(ctrl_info)
                     continue
 
-                row = ttk.Frame(section_frame)
-                row.pack(fill="x", pady=2, padx=6)
-                row.columnconfigure(1, weight=1)
-                row.columnconfigure(2, weight=1)
-                key_label = ttk.Label(row, text=label_text)
-                key_label.grid(row=0, column=0, sticky="w", padx=(0, 6))
+                row = ttk.LabelFrame(
+                    section_frame, text=label_text, padding=(8, 6)
+                )
+                row.pack(fill="x", pady=(3, 7), padx=6)
+                row.columnconfigure(0, weight=1)
                 if desc_text:
-                    self._attach_tooltip(key_label, desc_text)
+                    self._attach_tooltip(row, desc_text)
                 if param_type == "boolean":
                     var = tk.BooleanVar(value=bool(param.get("value")))
                     ctrl_info["var"] = var
@@ -2487,7 +2497,7 @@ class ConfigurationTab(ttk.Frame):
                         variable=var,
                         command=lambda name=label: self._on_extra_param_changed(name),
                     )
-                    widget.grid(row=0, column=1, sticky="ew", padx=(0, 6))
+                    widget.grid(row=0, column=0, sticky="w")
                     ctrl_info["widget"] = widget
                 elif param_type == "array" and self._is_simple_sequence(
                     param.get("value")
@@ -2505,7 +2515,7 @@ class ConfigurationTab(ttk.Frame):
                         ),
                         choices=choices,
                     )
-                    editor.grid(row=0, column=1, sticky="ew", padx=(0, 6))
+                    editor.grid(row=0, column=0, sticky="ew")
                     widget = listbox
                     ctrl_info["widget"] = listbox
                     ctrl_info["listbox"] = listbox
@@ -2518,7 +2528,7 @@ class ConfigurationTab(ttk.Frame):
                     else:
                         display = "" if value is None else str(value)
                     widget.insert("1.0", display)
-                    widget.grid(row=0, column=1, sticky="w", padx=(0, 6))
+                    widget.grid(row=0, column=0, sticky="w")
                     widget.bind(
                         "<KeyRelease>",
                         lambda _event, name=label: self._on_extra_param_changed(name),
@@ -2533,7 +2543,7 @@ class ConfigurationTab(ttk.Frame):
                     var = tk.StringVar(value=display_value)
                     ctrl_info["var"] = var
                     input_frame = ttk.Frame(row)
-                    input_frame.grid(row=0, column=1, sticky="ew", padx=(0, 6))
+                    input_frame.grid(row=0, column=0, sticky="ew")
                     input_frame.columnconfigure(0, weight=1)
                     choices = self._choices_for_parameter(param["key"], raw_value)
                     if choices:
@@ -2582,12 +2592,12 @@ class ConfigurationTab(ttk.Frame):
                 inline_issues = self._issues_for(label, param["key"])
                 if desc_text or comment_hint or inline_issues:
                     help_frame = ttk.Frame(row)
-                    help_frame.grid(row=0, column=2, sticky="nw", padx=(6, 0))
+                    help_frame.grid(row=1, column=0, sticky="ew", pady=(6, 0))
                     if desc_text:
                         help_label = ttk.Label(
                             help_frame,
                             text=self._short_help_text(desc_text),
-                            wraplength=300,
+                            wraplength=700,
                             justify="left",
                         )
                         help_label.pack(anchor="w")
@@ -2597,7 +2607,7 @@ class ConfigurationTab(ttk.Frame):
                             help_frame,
                             text=format_yaml_comment_hint(comment_hint),
                             foreground="#5B4A00",
-                            wraplength=320,
+                            wraplength=700,
                             justify="left",
                         ).pack(anchor="w", pady=(2, 0))
                     for issue in inline_issues:
@@ -2605,7 +2615,7 @@ class ConfigurationTab(ttk.Frame):
                             help_frame,
                             text=f"{issue['severity'].title()}: {issue['message']}",
                             foreground=self._issue_colour(issue["severity"]),
-                            wraplength=360,
+                            wraplength=700,
                             justify="left",
                         ).pack(anchor="w")
                 info["param_controls"].append(ctrl_info)
@@ -3744,7 +3754,7 @@ class ConfigurationTab(ttk.Frame):
         ttk.Label(self.param_inner, text=header, font=("Segoe UI", 12, "bold")).grid(
             row=0, column=0, sticky="w", pady=(0, 6)
         )
-        self.param_inner.columnconfigure(1, weight=1)
+        self.param_inner.columnconfigure(0, weight=1)
         row_pointer = 1
         for idx, param in enumerate(section.get("parameters", [])):
             if idx not in matching_parameters:
@@ -3764,14 +3774,16 @@ class ConfigurationTab(ttk.Frame):
                 param["_template"] = template
                 param_path = make_path(section["name"], key)
                 param["_base_path"] = param_path
-                frame = ttk.LabelFrame(self.param_inner, text=key)
+                frame = ttk.LabelFrame(
+                    self.param_inner, text=key, padding=(8, 6)
+                )
                 frame.grid(
                     row=row_pointer,
                     column=0,
                     columnspan=2,
                     sticky="ew",
                     padx=(0, 10),
-                    pady=2,
+                    pady=(3, 7),
                 )
                 frame.columnconfigure(0, weight=1)
                 if description:
@@ -3816,18 +3828,28 @@ class ConfigurationTab(ttk.Frame):
                     ).pack(anchor="w", padx=6, pady=(2, 3))
                 row_pointer += 1
                 continue
-            key_label = ttk.Label(self.param_inner, text=key)
-            key_label.grid(row=row_pointer, column=0, sticky="w", padx=(0, 10), pady=2)
+            setting_frame = ttk.LabelFrame(
+                self.param_inner, text=key, padding=(8, 6)
+            )
+            setting_frame.grid(
+                row=row_pointer,
+                column=0,
+                columnspan=3,
+                sticky="ew",
+                padx=(0, 10),
+                pady=(3, 7),
+            )
+            setting_frame.columnconfigure(0, weight=1)
             if description:
-                self._attach_tooltip(key_label, description)
+                self._attach_tooltip(setting_frame, description)
             if value_type == "boolean":
                 var = tk.BooleanVar(value=bool(param.get("value")))
                 widget = ttk.Checkbutton(
-                    self.param_inner,
+                    setting_frame,
                     variable=var,
                     command=lambda idx=idx: self._on_param_toggle(section_index, idx),
                 )
-                widget.grid(row=row_pointer, column=1, sticky="w")
+                widget.grid(row=0, column=0, sticky="w")
                 self.param_vars[(section_index, idx)] = var
             elif value_type == "array" and self._is_simple_sequence(param.get("value")):
                 choices = (
@@ -3836,18 +3858,18 @@ class ConfigurationTab(ttk.Frame):
                     else None
                 )
                 editor, listbox = self._create_list_editor(
-                    self.param_inner,
+                    setting_frame,
                     param.get("value"),
                     lambda values, s_index=section_index, p_index=idx: (
                         self._on_list_param_change(s_index, p_index, values)
                     ),
                     choices=choices,
                 )
-                editor.grid(row=row_pointer, column=1, sticky="ew")
+                editor.grid(row=0, column=0, sticky="ew")
                 widget = listbox
                 self.param_vars[(section_index, idx)] = listbox
             elif value_type == "array":
-                widget = tk.Text(self.param_inner, height=4, width=40, wrap="word")
+                widget = tk.Text(setting_frame, height=4, width=40, wrap="word")
                 current_value = param.get("value")
                 if isinstance(current_value, (list, dict)):
                     display_text = json.dumps(
@@ -3856,7 +3878,7 @@ class ConfigurationTab(ttk.Frame):
                 else:
                     display_text = "" if current_value is None else str(current_value)
                 widget.insert("1.0", display_text)
-                widget.grid(row=row_pointer, column=1, sticky="ew")
+                widget.grid(row=0, column=0, sticky="ew")
                 widget.bind(
                     "<KeyRelease>",
                     lambda _event, s_index=section_index, p_index=idx, v_type=value_type, control=widget: (
@@ -3874,8 +3896,8 @@ class ConfigurationTab(ttk.Frame):
                     raw_initial = param.get("value", "")
                     initial = "" if raw_initial is None else str(raw_initial)
                 var = tk.StringVar(value=initial)
-                control_frame = ttk.Frame(self.param_inner)
-                control_frame.grid(row=row_pointer, column=1, sticky="ew")
+                control_frame = ttk.Frame(setting_frame)
+                control_frame.grid(row=0, column=0, sticky="ew")
                 control_frame.columnconfigure(0, weight=1)
                 choices = self._choices_for_parameter(key, param.get("value"))
                 if choices:
@@ -3924,16 +3946,16 @@ class ConfigurationTab(ttk.Frame):
             if description:
                 self._attach_tooltip(widget, description)
             if description or comment_hint or inline_issues:
-                help_frame = ttk.Frame(self.param_inner)
+                help_frame = ttk.Frame(setting_frame)
                 help_frame.grid(
-                    row=row_pointer, column=2, sticky="nw", padx=(8, 0), pady=2
+                    row=1, column=0, sticky="ew", pady=(6, 0)
                 )
                 if description:
                     help_label = ttk.Label(
                         help_frame,
                         text=self._short_help_text(description),
                         foreground="#555555",
-                        wraplength=320,
+                        wraplength=700,
                         justify="left",
                     )
                     help_label.pack(anchor="w")
@@ -3943,7 +3965,7 @@ class ConfigurationTab(ttk.Frame):
                         help_frame,
                         text=format_yaml_comment_hint(comment_hint),
                         foreground="#5B4A00",
-                        wraplength=340,
+                        wraplength=700,
                         justify="left",
                     ).pack(anchor="w", pady=(2, 0))
                 for issue in inline_issues:
@@ -3951,7 +3973,7 @@ class ConfigurationTab(ttk.Frame):
                         help_frame,
                         text=f"{issue['severity'].title()}: {issue['message']}",
                         foreground=self._issue_colour(issue["severity"]),
-                        wraplength=360,
+                        wraplength=700,
                         justify="left",
                     ).pack(anchor="w")
             row_pointer += 1
