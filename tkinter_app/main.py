@@ -84,6 +84,10 @@ from utils.initialization import (  # noqa: E402
     initialize_config_templates,
     preview_config_templates,
 )
+from utils.gadm_levels_to_geojson import (  # noqa: E402
+    GADMExtractionResult,
+    extract_gadm_levels,
+)
 
 try:
     import yaml  # type: ignore
@@ -7687,20 +7691,30 @@ class ConfigurationSetupDialog(tk.Toplevel):
     def __init__(self, master: tk.Widget, on_complete: Callable[[], None]) -> None:
         super().__init__(master)
         self.title("Configuration Setup")
-        self.geometry("760x540")
-        self.minsize(680, 460)
+        self.geometry("820x700")
+        self.minsize(720, 620)
         self.transient(master)
         self.on_complete = on_complete
         self.source_var = tk.StringVar(value="default")
         self.country_var = tk.StringVar()
         self.overwrite_var = tk.BooleanVar(value=False)
+        self.prepare_study_areas_var = tk.BooleanVar(value=False)
+        self.gadm_input_var = tk.StringVar()
+        self.gadm_level_var = tk.IntVar(value=1)
+        self.gadm_output_var = tk.StringVar(
+            value=str(PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area")
+        )
+        self.gadm_overwrite_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar()
+        self._setup_running = False
+        self._study_area_queue: queue.Queue[Tuple[Any, ...]] = queue.Queue()
+        self._study_area_after_id: Optional[str] = None
         self.countries = available_example_countries(CONFIGS_DIR)
         if self.countries:
             self.country_var.set(self.countries[0])
         self._build_ui()
         self._refresh_preview()
-        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.protocol("WM_DELETE_WINDOW", self._close)
         self.grab_set()
 
     def _build_ui(self) -> None:
@@ -7789,14 +7803,88 @@ class ConfigurationSetupDialog(tk.Toplevel):
             options, textvariable=self.status_var, foreground="#8A5A00", wraplength=440
         ).pack(side="left", padx=(14, 0))
 
+        study_area = ttk.LabelFrame(
+            body, text="Optional study-area preparation", padding=10
+        )
+        study_area.grid(row=5, column=0, sticky="ew", pady=(10, 0))
+        study_area.columnconfigure(0, weight=1)
+        ttk.Checkbutton(
+            study_area,
+            text="Split a GADM dataset into individual study-area GeoJSON files",
+            variable=self.prepare_study_areas_var,
+            command=self._toggle_study_area_controls,
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            study_area,
+            text=(
+                "Each named area at the selected administrative level is written to "
+                "Raw_Spatial_Data/custom_study_area and listed in "
+                "processed_areas_list.json."
+            ),
+            foreground="#555555",
+            wraplength=740,
+            justify="left",
+        ).grid(row=1, column=0, sticky="ew", pady=(3, 7))
+        study_controls = ttk.Frame(study_area)
+        study_controls.grid(row=2, column=0, sticky="ew")
+        study_controls.columnconfigure(1, weight=1)
+        ttk.Label(study_controls, text="GADM dataset:").grid(
+            row=0, column=0, sticky="w", pady=2
+        )
+        gadm_input_entry = ttk.Entry(study_controls, textvariable=self.gadm_input_var)
+        gadm_input_entry.grid(row=0, column=1, sticky="ew", padx=(8, 6), pady=2)
+        gadm_input_button = ttk.Button(
+            study_controls, text="Browse...", command=self._browse_gadm_input
+        )
+        gadm_input_button.grid(row=0, column=2, pady=2)
+        ttk.Label(study_controls, text="Administrative level:").grid(
+            row=1, column=0, sticky="w", pady=2
+        )
+        gadm_level_spinbox = ttk.Spinbox(
+            study_controls,
+            textvariable=self.gadm_level_var,
+            from_=0,
+            to=9,
+            increment=1,
+            width=6,
+        )
+        gadm_level_spinbox.grid(row=1, column=1, sticky="w", padx=(8, 6), pady=2)
+        ttk.Label(study_controls, text="Output folder:").grid(
+            row=2, column=0, sticky="w", pady=2
+        )
+        gadm_output_entry = ttk.Entry(study_controls, textvariable=self.gadm_output_var)
+        gadm_output_entry.grid(row=2, column=1, sticky="ew", padx=(8, 6), pady=2)
+        gadm_output_button = ttk.Button(
+            study_controls, text="Browse...", command=self._browse_gadm_output
+        )
+        gadm_output_button.grid(row=2, column=2, pady=2)
+        gadm_overwrite_check = ttk.Checkbutton(
+            study_controls,
+            text="Replace existing area files with matching names",
+            variable=self.gadm_overwrite_var,
+        )
+        gadm_overwrite_check.grid(
+            row=3, column=1, columnspan=2, sticky="w", padx=(8, 0), pady=(3, 0)
+        )
+        self.study_area_widgets = (
+            gadm_input_entry,
+            gadm_input_button,
+            gadm_level_spinbox,
+            gadm_output_entry,
+            gadm_output_button,
+            gadm_overwrite_check,
+        )
+
         buttons = ttk.Frame(body)
-        buttons.grid(row=5, column=0, sticky="e", pady=(14, 0))
-        ttk.Button(buttons, text="Cancel", command=self.destroy).pack(
+        buttons.grid(row=6, column=0, sticky="e", pady=(14, 0))
+        ttk.Button(buttons, text="Cancel", command=self._close).pack(
             side="right", padx=(8, 0)
         )
-        ttk.Button(
+        self.initialize_button = ttk.Button(
             buttons, text="Initialize and Continue", command=self._initialize
-        ).pack(side="right")
+        )
+        self.initialize_button.pack(side="right")
+        self._toggle_study_area_controls()
         self._on_source_changed()
 
     def _selected_country(self) -> Optional[str]:
@@ -7810,6 +7898,75 @@ class ConfigurationSetupDialog(tk.Toplevel):
             state="readonly" if is_example and self.countries else "disabled"
         )
         self._refresh_preview()
+
+    def _close(self) -> None:
+        if self._setup_running:
+            return
+        self.destroy()
+
+    def _toggle_study_area_controls(self) -> None:
+        state = "normal" if self.prepare_study_areas_var.get() else "disabled"
+        for widget in self.study_area_widgets:
+            widget.configure(state=state)
+
+    def _browse_gadm_input(self) -> None:
+        selected = filedialog.askopenfilename(
+            parent=self,
+            title="Select GADM dataset",
+            initialdir=str(PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area"),
+            filetypes=(
+                ("Geospatial files", "*.geojson *.json *.gpkg *.shp"),
+                ("GeoJSON", "*.geojson *.json"),
+                ("GeoPackage", "*.gpkg"),
+                ("Shapefile", "*.shp"),
+                ("All files", "*.*"),
+            ),
+        )
+        if selected:
+            self.gadm_input_var.set(selected)
+
+    def _browse_gadm_output(self) -> None:
+        selected = filedialog.askdirectory(
+            parent=self,
+            title="Select study-area output folder",
+            initialdir=self.gadm_output_var.get() or str(PARENT_DIR),
+        )
+        if selected:
+            self.gadm_output_var.set(selected)
+
+    @staticmethod
+    def _resolve_setup_path(value: str) -> Path:
+        expanded = Path(os.path.expandvars(value.strip())).expanduser()
+        if not expanded.is_absolute():
+            expanded = PARENT_DIR / expanded
+        return expanded.resolve()
+
+    def _study_area_options(self) -> Optional[Dict[str, Any]]:
+        if not self.prepare_study_areas_var.get():
+            return None
+        input_text = self.gadm_input_var.get().strip()
+        output_text = self.gadm_output_var.get().strip()
+        if not input_text:
+            raise ValueError("Select a GADM input dataset.")
+        if not output_text:
+            raise ValueError("Select a study-area output folder.")
+        input_path = self._resolve_setup_path(input_text)
+        if not input_path.is_file():
+            raise FileNotFoundError(f"GADM input file not found: {input_path}")
+        try:
+            level = int(self.gadm_level_var.get())
+        except (tk.TclError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "Administrative level must be a non-negative integer."
+            ) from exc
+        if level < 0:
+            raise ValueError("Administrative level must be a non-negative integer.")
+        return {
+            "input_path": input_path,
+            "gadm_level": level,
+            "output_folder": self._resolve_setup_path(output_text),
+            "overwrite": self.gadm_overwrite_var.get(),
+        }
 
     def _template_pairs(self) -> List[Tuple[Path, Path]]:
         country = self._selected_country()
@@ -7868,6 +8025,11 @@ class ConfigurationSetupDialog(tk.Toplevel):
                 parent=self,
             )
             return
+        try:
+            study_area_options = self._study_area_options()
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Study-area preparation", str(exc), parent=self)
+            return
         confirm_discard = getattr(self.master, "_confirm_discard_unsaved", None)
         if callable(confirm_discard) and not confirm_discard(
             "reinitializing configuration files"
@@ -7883,17 +8045,97 @@ class ConfigurationSetupDialog(tk.Toplevel):
             )
             if not confirmed:
                 return
+        if study_area_options and study_area_options["overwrite"]:
+            confirmed = messagebox.askyesno(
+                "Replace Study-area Files",
+                "Replace existing GeoJSON files when their generated area names match?",
+                parent=self,
+            )
+            if not confirmed:
+                return
+        if study_area_options:
+            self._setup_running = True
+            self.initialize_button.configure(state="disabled")
+            self.status_var.set("Preparing study-area GeoJSON files...")
+            self._study_area_queue = queue.Queue()
+            worker = threading.Thread(
+                target=self._prepare_study_areas_worker,
+                args=(study_area_options, country, overwrite, pairs),
+                daemon=True,
+            )
+            worker.start()
+            self._poll_study_area_worker()
+            return
+        self._complete_initialization(country, overwrite, pairs, None)
+
+    def _prepare_study_areas_worker(
+        self,
+        options: Dict[str, Any],
+        country: Optional[str],
+        overwrite_configs: bool,
+        pairs: List[Tuple[Path, Path]],
+    ) -> None:
+        try:
+            result = extract_gadm_levels(
+                options["input_path"],
+                gadm_level=options["gadm_level"],
+                output_folder=options["output_folder"],
+                overwrite=options["overwrite"],
+            )
+        except Exception as exc:
+            self._study_area_queue.put(("error", str(exc)))
+            return
+        self._study_area_queue.put(
+            ("success", result, country, overwrite_configs, pairs)
+        )
+
+    def _poll_study_area_worker(self) -> None:
+        self._study_area_after_id = None
+        try:
+            item = self._study_area_queue.get_nowait()
+        except queue.Empty:
+            if self._setup_running:
+                self._study_area_after_id = self.after(
+                    100, self._poll_study_area_worker
+                )
+            return
+        if item[0] == "error":
+            self._study_area_failed(str(item[1]))
+            return
+        _, result, country, overwrite_configs, pairs = item
+        self._complete_initialization(
+            country, overwrite_configs, pairs, result
+        )
+
+    def _study_area_failed(self, detail: str) -> None:
+        self._setup_running = False
+        self.initialize_button.configure(state="normal")
+        self.status_var.set("Study-area preparation failed.")
+        messagebox.showerror("Study-area Preparation Failed", detail, parent=self)
+
+    def _complete_initialization(
+        self,
+        country: Optional[str],
+        overwrite: bool,
+        pairs: List[Tuple[Path, Path]],
+        study_area_result: Optional[GADMExtractionResult],
+    ) -> None:
         try:
             changed = initialize_config_templates(
                 CONFIGS_DIR, overwrite=overwrite, country=country
             )
         except Exception as exc:
+            self._setup_running = False
+            self.initialize_button.configure(state="normal")
             messagebox.showerror(
                 "Configuration Setup", f"Initialization failed:\n{exc}", parent=self
             )
             return
         missing = [target for _, target in pairs if not target.exists()]
         if missing:
+            self._setup_running = False
+            self.initialize_button.configure(state="normal")
+            self.status_var.set("Configuration initialization was incomplete.")
             messagebox.showerror(
                 "Configuration Setup",
                 "Initialization did not create:\n"
@@ -7904,7 +8146,14 @@ class ConfigurationSetupDialog(tk.Toplevel):
         created_message = f"Created or replaced {len(changed)} file(s)."
         if not changed:
             created_message = "All selected active files already existed."
+        if study_area_result is not None:
+            created_message += (
+                f"\n\nPrepared {len(study_area_result.area_names)} study area(s): "
+                f"{len(study_area_result.created_files)} written and "
+                f"{len(study_area_result.skipped_files)} kept."
+            )
         messagebox.showinfo("Configuration Setup", created_message, parent=self)
+        self._setup_running = False
         self.grab_release()
         self.destroy()
         self.on_complete()
