@@ -28,6 +28,7 @@ OFFSHORE_PATH = CONFIGS_PATH / "offshorewind.yaml"
 SUITABILITY_PATH = CONFIGS_PATH / "suitability.yaml"
 SNAKEMAKE_PATH = CONFIGS_PATH / "config_snakemake.yaml"
 SAMPLE_RESULTS_PATH = ROOT_DIR / "src" / "sample-results.json"
+CUSTOM_STUDY_AREA_PATH = ROOT_DIR / "Raw_Spatial_Data" / "custom_study_area"
 
 GADM_SOURCE_OPTIONS = ("gadm", "wb")
 LANDCOVER_SOURCE_OPTIONS = ("openeo", "file")
@@ -46,6 +47,36 @@ LEGACY_WEATHER_DATA_EXTEND_OPTIONS = (
     "geo_bounds",
     "country_code",
 )
+
+
+def load_custom_study_area_names(
+    folder: Path = CUSTOM_STUDY_AREA_PATH,
+) -> List[str]:
+    """Return selectable region names from custom study-area GeoJSON files."""
+    target = Path(folder)
+    if not target.is_dir():
+        return []
+
+    names: set[str] = {
+        path.stem.strip()
+        for path in target.iterdir()
+        if path.is_file() and path.suffix.casefold() == ".geojson" and path.stem.strip()
+    }
+    manifest = target / "processed_areas_list.json"
+    if manifest.is_file():
+        try:
+            manifest_values = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            manifest_values = []
+        if isinstance(manifest_values, list):
+            names.update(
+                str(value).strip()
+                for value in manifest_values
+                if str(value).strip()
+                and (target / f"{str(value).strip()}.geojson").is_file()
+            )
+    return sorted(names, key=str.casefold)
+
 
 YAML_RT: Optional[YAML] = None  # type: ignore[assignment]
 if YAML is not None:
@@ -1042,7 +1073,10 @@ CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             {
                 "key": "study_region_name",
                 "type": "array",
-                "description": "Region names for the run.",
+                "description": (
+                    "Regions to run, loaded from GeoJSON files in "
+                    "Raw_Spatial_Data/custom_study_area."
+                ),
             },
             {
                 "key": "technologies",

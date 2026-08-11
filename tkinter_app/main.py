@@ -66,6 +66,7 @@ from data_loader import (  # type: ignore  # noqa: E402
     PROTECTED_AREAS_SOURCE_OPTIONS,
     WEATHER_DATA_EXTEND_OPTIONS,
     cast_value,
+    load_custom_study_area_names,
     round_trip_available,
     load_initial_sections,
     load_offshore_sections,
@@ -1015,22 +1016,32 @@ class ConfigurationTab(ttk.Frame):
             text="Validate all configurations",
             command=self._run_manual_validation,
         ).grid(row=0, column=2, sticky="e")
+        self.expand_validation_button = ttk.Button(
+            validation_frame,
+            text="Open larger...",
+            command=self._show_validation_results_dialog,
+            state="disabled",
+        )
+        self.expand_validation_button.grid(
+            row=0, column=3, sticky="e", padx=(6, 0)
+        )
         ttk.Label(
             validation_frame,
-            text=(
-                "Checks YAML syntax, required settings, relationships between fields, selected "
-                "technology files, and workflow-stage dependencies. It does not inspect downloaded "
-                "datasets, credentials, external services, or scientific suitability."
-            ),
+            text="Errors block saving and running; warnings are advisory.",
             foreground="#555555",
             wraplength=980,
             justify="left",
-        ).grid(row=1, column=0, columnspan=3, sticky="ew", pady=(3, 0))
+        ).grid(row=1, column=0, columnspan=4, sticky="ew", pady=(3, 0))
+        self.validation_results_frame = ttk.Frame(validation_frame)
+        self.validation_results_frame.grid(
+            row=2, column=0, columnspan=4, sticky="ew", pady=(5, 0)
+        )
+        self.validation_results_frame.columnconfigure(0, weight=1)
         self.validation_tree = ttk.Treeview(
-            validation_frame,
+            self.validation_results_frame,
             columns=("severity", "file", "setting", "message"),
             show="headings",
-            height=4,
+            height=2,
         )
         for column, heading, width in (
             ("severity", "Level", 70),
@@ -1040,18 +1051,33 @@ class ConfigurationTab(ttk.Frame):
         ):
             self.validation_tree.heading(column, text=heading)
             self.validation_tree.column(column, width=width, anchor="w")
-        self.validation_tree.grid(
-            row=2, column=0, columnspan=3, sticky="ew", pady=(5, 0)
+        self.validation_tree.grid(row=0, column=0, sticky="ew")
+        validation_scroll_y = ttk.Scrollbar(
+            self.validation_results_frame,
+            orient="vertical",
+            command=self.validation_tree.yview,
+        )
+        validation_scroll_y.grid(row=0, column=1, sticky="ns")
+        validation_scroll_x = ttk.Scrollbar(
+            self.validation_results_frame,
+            orient="horizontal",
+            command=self.validation_tree.xview,
+        )
+        validation_scroll_x.grid(row=1, column=0, sticky="ew")
+        self.validation_tree.configure(
+            yscrollcommand=validation_scroll_y.set,
+            xscrollcommand=validation_scroll_x.set,
         )
         self.validation_tree.bind("<Double-1>", self._on_validation_issue_open)
         self.validation_tree.bind("<Return>", self._on_validation_issue_open)
-        self.validation_tree.grid_remove()
+        self.validation_results_frame.grid_remove()
         self.save_summary_status = ttk.Label(
             validation_frame, text="", foreground="#2E6B3A"
         )
         self.save_summary_status.grid(
-            row=3, column=0, columnspan=3, sticky="e", pady=(3, 0)
+            row=3, column=0, columnspan=4, sticky="e", pady=(3, 0)
         )
+        self.save_summary_status.grid_remove()
 
         search_frame = ttk.LabelFrame(
             self, text="Search across settings", padding=(8, 5)
@@ -1303,6 +1329,9 @@ class ConfigurationTab(ttk.Frame):
             undo=True,
             autoseparators=True,
             maxundo=-1,
+            selectbackground="#315A85",
+            selectforeground="#FFFFFF",
+            inactiveselectbackground="#4A6782",
         )
         self.advanced_text.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         self._bind_text_change_tracking(self.advanced_text, self._mark_advanced_dirty)
@@ -1632,7 +1661,8 @@ class ConfigurationTab(ttk.Frame):
                 text=f"Validated at {validated_at} — no errors or warnings",
                 foreground="#1A7F37",
             )
-            self.validation_tree.grid_remove()
+            self.validation_results_frame.grid_remove()
+            self.expand_validation_button.configure(state="disabled")
             return
         self.validation_status.configure(
             text=(
@@ -1640,6 +1670,9 @@ class ConfigurationTab(ttk.Frame):
                 "double-click an issue to open it"
             ),
             foreground="#B42318" if errors else "#8A5A00",
+        )
+        self.validation_tree.configure(
+            height=max(1, min(2, len(self.validation_issues)))
         )
         self.validation_tree.tag_configure("error", foreground="#B42318")
         self.validation_tree.tag_configure("warning", foreground="#8A5A00")
@@ -1656,7 +1689,8 @@ class ConfigurationTab(ttk.Frame):
                 tags=(issue["severity"],),
             )
             self.validation_issue_items[item] = issue
-        self.validation_tree.grid()
+        self.validation_results_frame.grid()
+        self.expand_validation_button.configure(state="normal")
 
     def _run_manual_validation(self) -> None:
         """Run validation from the button and always provide explicit feedback."""
@@ -1763,6 +1797,99 @@ class ConfigurationTab(ttk.Frame):
             issue = self.validation_issue_items.get(selected[0])
             if issue:
                 self._open_validation_issue(issue)
+
+    def _show_validation_results_dialog(self) -> None:
+        if not self.validation_issues:
+            return
+        dialog = tk.Toplevel(self)
+        dialog.title("Configuration Validation Results")
+        dialog.geometry("1050x520")
+        dialog.minsize(760, 360)
+        dialog.transient(self.winfo_toplevel())
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(1, weight=1)
+
+        errors = sum(
+            issue.get("severity") == "error" for issue in self.validation_issues
+        )
+        warnings = sum(
+            issue.get("severity") == "warning" for issue in self.validation_issues
+        )
+        ttk.Label(
+            dialog,
+            text=f"{errors} error(s), {warnings} warning(s)",
+            font=("Segoe UI", 12, "bold"),
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(12, 6))
+
+        results_frame = ttk.Frame(dialog)
+        results_frame.grid(row=1, column=0, sticky="nsew", padx=12)
+        results_frame.columnconfigure(0, weight=1)
+        results_frame.rowconfigure(0, weight=1)
+        results_tree = ttk.Treeview(
+            results_frame,
+            columns=("severity", "file", "setting", "message"),
+            show="headings",
+        )
+        for column, heading, width, stretch in (
+            ("severity", "Level", 80, False),
+            ("file", "File", 170, False),
+            ("setting", "Setting", 210, False),
+            ("message", "Issue", 560, True),
+        ):
+            results_tree.heading(column, text=heading)
+            results_tree.column(column, width=width, anchor="w", stretch=stretch)
+        results_tree.grid(row=0, column=0, sticky="nsew")
+        results_scroll_y = ttk.Scrollbar(
+            results_frame, orient="vertical", command=results_tree.yview
+        )
+        results_scroll_y.grid(row=0, column=1, sticky="ns")
+        results_scroll_x = ttk.Scrollbar(
+            results_frame, orient="horizontal", command=results_tree.xview
+        )
+        results_scroll_x.grid(row=1, column=0, sticky="ew")
+        results_tree.configure(
+            yscrollcommand=results_scroll_y.set,
+            xscrollcommand=results_scroll_x.set,
+        )
+        results_tree.tag_configure("error", foreground="#B42318")
+        results_tree.tag_configure("warning", foreground="#8A5A00")
+        dialog_items: Dict[str, Dict[str, str]] = {}
+        for issue in self.validation_issues:
+            item = results_tree.insert(
+                "",
+                "end",
+                values=(
+                    issue["severity"].title(),
+                    issue["file"],
+                    issue["key"],
+                    issue["message"],
+                ),
+                tags=(issue["severity"],),
+            )
+            dialog_items[item] = issue
+
+        def _open_selected(_event: Optional[tk.Event] = None) -> None:
+            selected = results_tree.selection()
+            if not selected:
+                return
+            issue = dialog_items.get(selected[0])
+            if issue is None:
+                return
+            dialog.destroy()
+            self._open_validation_issue(issue)
+
+        results_tree.bind("<Double-1>", _open_selected)
+        results_tree.bind("<Return>", _open_selected)
+        footer = ttk.Frame(dialog)
+        footer.grid(row=2, column=0, sticky="ew", padx=12, pady=12)
+        ttk.Label(
+            footer,
+            text="Double-click an issue to open the affected setting.",
+            foreground="#555555",
+        ).pack(side="left")
+        ttk.Button(footer, text="Close", command=dialog.destroy).pack(side="right")
+        dialog.bind("<Escape>", lambda _event: dialog.destroy())
+        results_tree.focus_set()
 
     def _open_validation_issue(self, issue: Mapping[str, str]) -> None:
         file_name = issue.get("file", "")
@@ -1926,6 +2053,14 @@ class ConfigurationTab(ttk.Frame):
                 choices.append(text)
         return choices
 
+    def _study_area_choices(self, current_value: Any = None) -> List[str]:
+        choices = load_custom_study_area_names()
+        for item in self._coerce_sequence_value(current_value):
+            text = str(item).strip()
+            if text and text not in choices:
+                choices.append(text)
+        return choices
+
     @staticmethod
     def _numeric_limits(key: str, param_type: str) -> Tuple[float, float, float]:
         if key == "GADM_level":
@@ -1999,6 +2134,7 @@ class ConfigurationTab(ttk.Frame):
         value: Any,
         on_change: Callable[[List[Any]], None],
         choices: Optional[List[str]] = None,
+        editable_choices: bool = False,
     ) -> Tuple[ttk.Frame, tk.Listbox]:
         frame = ttk.Frame(parent)
         frame.columnconfigure(0, weight=1)
@@ -2008,7 +2144,7 @@ class ConfigurationTab(ttk.Frame):
             text = str(item)
             if text not in available:
                 available.append(text)
-        choice_mode = bool(choices)
+        choice_mode = bool(choices) and not editable_choices
         listbox = tk.Listbox(
             frame,
             height=min(6, max(3, len(available) or len(current) or 3)),
@@ -2023,6 +2159,9 @@ class ConfigurationTab(ttk.Frame):
                 if str(listbox.get(index)) in selected_text:
                     listbox.selection_set(index)
         listbox.grid(row=0, column=0, columnspan=3, sticky="ew")
+        list_scroll = ttk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+        list_scroll.grid(row=0, column=3, sticky="ns")
+        listbox.configure(yscrollcommand=list_scroll.set)
 
         def parse_scalar(text: str) -> Any:
             if yaml is not None:
@@ -2051,12 +2190,23 @@ class ConfigurationTab(ttk.Frame):
             listbox.bind("<<ListboxSelect>>", emit_selection)
         else:
             add_var = tk.StringVar()
-            add_entry = ttk.Entry(frame, textvariable=add_var)
+            if editable_choices:
+                add_entry = ttk.Combobox(
+                    frame,
+                    textvariable=add_var,
+                    values=available,
+                    state="normal",
+                )
+            else:
+                add_entry = ttk.Entry(frame, textvariable=add_var)
             add_entry.grid(row=1, column=0, sticky="ew", pady=(4, 0))
 
             def add_item() -> None:
                 text = add_var.get().strip()
-                if text:
+                existing = {
+                    str(listbox.get(index)) for index in range(listbox.size())
+                }
+                if text and text not in existing:
                     listbox.insert("end", text)
                     add_var.set("")
                     emit_selection()
@@ -2066,12 +2216,27 @@ class ConfigurationTab(ttk.Frame):
                     listbox.delete(index)
                 emit_selection()
 
+            def add_all_items() -> None:
+                existing = {
+                    str(listbox.get(index)) for index in range(listbox.size())
+                }
+                for item in available:
+                    text = str(item).strip()
+                    if text and text not in existing:
+                        listbox.insert("end", text)
+                        existing.add(text)
+                emit_selection()
+
             ttk.Button(frame, text="Add", command=add_item).grid(
                 row=1, column=1, padx=(4, 0), pady=(4, 0)
             )
             ttk.Button(frame, text="Remove", command=remove_selected).grid(
                 row=1, column=2, padx=(4, 0), pady=(4, 0)
             )
+            if editable_choices:
+                ttk.Button(frame, text="Add all", command=add_all_items).grid(
+                    row=1, column=3, padx=(4, 0), pady=(4, 0)
+                )
             add_entry.bind("<Return>", lambda _event: add_item())
         return frame, listbox
 
@@ -2506,11 +2671,19 @@ class ConfigurationTab(ttk.Frame):
                 elif param_type == "array" and self._is_simple_sequence(
                     param.get("value")
                 ):
-                    choices = (
-                        self._choices_for_parameter(param["key"], param.get("value"))
-                        if param["key"] == "technologies"
-                        else None
-                    )
+                    editable_choices = False
+                    if param["key"] == "technologies":
+                        choices = self._choices_for_parameter(
+                            param["key"], param.get("value")
+                        )
+                    elif (
+                        label == "config_snakemake.yaml"
+                        and param["key"] == "study_region_name"
+                    ):
+                        choices = self._study_area_choices(param.get("value"))
+                        editable_choices = True
+                    else:
+                        choices = None
                     editor, listbox = self._create_list_editor(
                         row,
                         param.get("value"),
@@ -2518,12 +2691,15 @@ class ConfigurationTab(ttk.Frame):
                             self._on_extra_list_changed(name, parameter, values)
                         ),
                         choices=choices,
+                        editable_choices=editable_choices,
                     )
                     editor.grid(row=0, column=0, sticky="ew")
                     widget = listbox
                     ctrl_info["widget"] = listbox
                     ctrl_info["listbox"] = listbox
-                    ctrl_info["list_choice_mode"] = bool(choices)
+                    ctrl_info["list_choice_mode"] = (
+                        bool(choices) and not editable_choices
+                    )
                 elif param_type == "array":
                     widget = tk.Text(row, height=3, width=32, wrap="word")
                     value = param.get("value")
@@ -3136,6 +3312,7 @@ class ConfigurationTab(ttk.Frame):
             )
         if dirty_names and hasattr(self, "save_summary_status"):
             self.save_summary_status.configure(text="")
+            self.save_summary_status.grid_remove()
         try:
             self.master.tab(
                 self, text="Configuration *" if dirty_names else "Configuration"
@@ -3159,6 +3336,7 @@ class ConfigurationTab(ttk.Frame):
             self.save_summary_status.configure(
                 text=f"{message} ({datetime.now().strftime('%H:%M:%S')})"
             )
+            self.save_summary_status.grid()
 
     def _visual_sections_for(self, label: str) -> Optional[List[Dict[str, Any]]]:
         if label == "config.yaml":
