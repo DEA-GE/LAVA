@@ -37,9 +37,7 @@ def _validate_layer_options(
 
     unknown_keys = set(options) - allowed_keys
     if unknown_keys:
-        raise ValueError(
-            f"Unsupported settings in {context}: {sorted(unknown_keys)}"
-        )
+        raise ValueError(f"Unsupported settings in {context}: {sorted(unknown_keys)}")
 
     normalized = {**defaults, **options}
     buffer_value = normalized["buffer"]
@@ -57,9 +55,7 @@ def _validate_layer_options(
         elif isinstance(codes, (list, tuple)) and codes:
             codes = list(codes)
         else:
-            raise ValueError(
-                f"{context}.codes must be an integer or a non-empty list"
-            )
+            raise ValueError(f"{context}.codes must be an integer or a non-empty list")
         if not all(
             isinstance(code, int) and not isinstance(code, bool) for code in codes
         ):
@@ -207,9 +203,7 @@ def prepare_inclusion_polygon_folder(
         source_path: str, output_folder: str, filename: str, counter: int
     ) -> str | None:
         polygon_data = gpd.read_file(source_path)
-        processed_data = geopandas_clip_reproject(
-            polygon_data, region, target_crs
-        )
+        processed_data = geopandas_clip_reproject(polygon_data, region, target_crs)
         if processed_data.empty:
             return None
 

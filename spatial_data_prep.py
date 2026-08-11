@@ -534,9 +534,7 @@ if consider_additional_exclusion_rasters:
 # clip and reproject additional inclusion polygons
 if consider_additional_inclusion_polygons:
     print("\nprocessing additional inclusion polygons")
-    inclusion_polygon_folder_name = config[
-        "additional_inclusion_polygons_folder_name"
-    ]
+    inclusion_polygon_folder_name = config["additional_inclusion_polygons_folder_name"]
     prepare_inclusion_polygon_folder(
         os.path.join(data_path, "additional_inclusion_polygons"),
         os.path.join(output_dir, "additional_inclusion_polygons"),

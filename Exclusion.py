@@ -505,9 +505,7 @@ inclusion_layer_groups = []
 
 def register_inclusion_polygon(layer_excluder, layer):
     settings = layer["settings"]
-    layer_excluder.add_geometry(
-        layer["path"], buffer=settings["buffer"], invert=True
-    )
+    layer_excluder.add_geometry(layer["path"], buffer=settings["buffer"], invert=True)
 
 
 def register_inclusion_raster(layer_excluder, layer):
