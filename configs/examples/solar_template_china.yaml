@@ -64,8 +64,20 @@ max_solar_production: null #kWh/kW/year
 
 # inclusion filter
 # EITHER use substations OR transmission OR roads (meters)
-additional_inclusion_polygons_buffer: {} # mapping of processed polygon filenames to buffer distances in meters
-additional_inclusion_rasters_buffer: {} # mapping of processed raster filenames to buffer distances in meters
+additional_inclusion_polygons:
+  enabled: false
+  combine: all # all = intersection; any = union of these polygons
+  defaults:
+    buffer: 0 # meters
+  overrides: {} # optional settings keyed by original source filename
+additional_inclusion_rasters:
+  enabled: false
+  combine: all # all = intersection; any = union of these rasters
+  defaults:
+    buffer: 0 # meters
+    codes: [1] # raster values that indicate eligible land
+    nodata: 0
+  overrides: {} # optional settings keyed by original source filename
 substations_inclusion_buffer: 100000
 transmission_inclusion_buffer: 100000
 roads_inclusion_buffer: 10000

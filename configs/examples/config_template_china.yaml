@@ -66,8 +66,8 @@ CRS_manual:  #set CRS instead of calculating local UTM zone
 # additional exclusion and inclusion polygons and rasters
 additional_exclusion_polygons_folder_name: 
 additional_exclusion_rasters_folder_name: 
-additional_inclusion_polygons_folder_name:
-additional_inclusion_rasters_folder_name:
+additional_inclusion_polygons_folder_name: # subfolder containing all inclusion polygon files; enable and configure them in the technology YAML
+additional_inclusion_rasters_folder_name: # subfolder containing all inclusion GeoTIFFs; enable and configure them in the technology YAML
 
 
 #--exclusions----------------------------------------------------------------------
