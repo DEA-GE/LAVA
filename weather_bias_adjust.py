@@ -1,3 +1,4 @@
+import argparse
 import xarray as xr
 import os
 import rioxarray as rxr
@@ -90,6 +91,18 @@ def ds_bias_correction(ds_ref, ds_target, mean_dims):
 dirname = os.getcwd()
 with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--region", default=config.get("study_region_name"), help="region name"
+)
+parser.add_argument(
+    "--method",
+    default="manual",
+    help="method used to run the script, e.g. snakemake or manual",
+)
+args = parser.parse_args()
+print(f"Running ({args.method}) - region={args.region}")
 
 country_code = config["country_code"]
 country_name_solar_atlas = config["country_name_solar_atlas"]

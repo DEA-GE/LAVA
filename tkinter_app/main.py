@@ -4801,6 +4801,11 @@ class RunTab(ttk.Frame):
         self.progress = tk.DoubleVar(value=0)
         self.execution_mode = tk.StringVar(value="single")
         self.selected_script = tk.StringVar(value="results_analysis")
+        self.run_region_var = tk.StringVar()
+        self.run_technology_var = tk.StringVar()
+        self.run_scenario_var = tk.StringVar()
+        self.run_weather_year_var = tk.StringVar()
+        self.script_description_var = tk.StringVar()
         self.start_time: Optional[float] = None
         self.end_time: Optional[float] = None
         self.after_id: Optional[str] = None
@@ -4817,19 +4822,19 @@ class RunTab(ttk.Frame):
                 "description": "Prepare spatial datasets",
             },
             {
-                "id": "weather_data_prep",
-                "name": "weather_data_prep.py",
-                "description": "Download weather data",
-            },
-            {
                 "id": "exclusion",
-                "name": "exclusion.py",
-                "description": "Run exclusion analysis",
+                "name": "Exclusion.py",
+                "description": "Create a technology- and scenario-specific available-land raster.",
             },
             {
                 "id": "suitability",
                 "name": "suitability.py",
                 "description": "Perform resource grade modeling",
+            },
+            {
+                "id": "weather_data_prep",
+                "name": "weather_data_prep.py",
+                "description": "Download weather data",
             },
             {
                 "id": "weather_bias_adjust",
@@ -4899,6 +4904,46 @@ class RunTab(ttk.Frame):
         self.selected_script.set(self.available_scripts[0]["id"])
         self.script_frame.columnconfigure(1, weight=1)
         self.script_combo.bind("<<ComboboxSelected>>", self._on_script_change)
+        ttk.Label(
+            self.script_frame,
+            textvariable=self.script_description_var,
+            foreground="#555555",
+            wraplength=760,
+            justify="left",
+        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        self.single_inputs_frame = ttk.LabelFrame(
+            self.script_frame,
+            text="Run inputs (from the documented command line)",
+            padding=(8, 6),
+        )
+        self.single_inputs_frame.grid(
+            row=2, column=0, columnspan=2, sticky="ew", pady=(8, 0)
+        )
+        self.single_inputs_frame.columnconfigure(1, weight=1)
+        self.single_input_rows: Dict[str, Tuple[tk.Widget, tk.Widget]] = {}
+        for row_index, (name, label_text, variable) in enumerate(
+            (
+                ("region", "Region:", self.run_region_var),
+                ("technology", "Technology:", self.run_technology_var),
+                ("scenario", "Scenario:", self.run_scenario_var),
+                ("weather_year", "Weather year:", self.run_weather_year_var),
+            )
+        ):
+            input_label = ttk.Label(self.single_inputs_frame, text=label_text)
+            input_label.grid(row=row_index, column=0, sticky="w", pady=2)
+            input_widget = ttk.Combobox(
+                self.single_inputs_frame,
+                textvariable=variable,
+                state="normal",
+            )
+            input_widget.grid(
+                row=row_index, column=1, sticky="ew", padx=(8, 0), pady=2
+            )
+            self.single_input_rows[name] = (input_label, input_widget)
+        technology_widget = self.single_input_rows["technology"][1]
+        technology_widget.bind(
+            "<<ComboboxSelected>>", lambda _event: self._refresh_scenario_choices()
+        )
         self.snakemake_options_frame = ttk.Frame(body)
         self.snakemake_options_frame.grid(row=1, column=0, sticky="ew", pady=10)
         self.snakemake_options_frame.columnconfigure(1, weight=1)
@@ -4927,7 +4972,7 @@ class RunTab(ttk.Frame):
         )
         self.info_label = ttk.Label(
             body,
-            text="Runs all rules defined in the Snakefile",
+            text="Runs the stages enabled in config_snakemake.yaml using the selected Snakefile.",
             wraplength=500,
             foreground="#555555",
         )
@@ -5083,6 +5128,7 @@ class RunTab(ttk.Frame):
             self.issue_text.tag_configure(tag, foreground=color)
         body.rowconfigure(6, weight=1)
         self._refresh_run_history_tree()
+        self._refresh_single_run_inputs()
         self._on_mode_change()
         self._update_status_labels()
         self._refresh_snakemake_settings_display()
@@ -5090,6 +5136,7 @@ class RunTab(ttk.Frame):
     def _on_mode_change(self) -> None:
         is_single = self.execution_mode.get() == "single"
         if is_single:
+            self._refresh_single_run_inputs()
             self.script_frame.grid()
             self.snakemake_options_frame.grid_remove()
             self.info_label.grid_remove()
@@ -5104,6 +5151,144 @@ class RunTab(ttk.Frame):
         index = self.script_combo.current()
         if index >= 0:
             self.selected_script.set(self.available_scripts[index]["id"])
+        self._refresh_scenario_choices()
+        self._update_single_argument_visibility()
+
+    @staticmethod
+    def _load_run_input_mapping(path: Path) -> Dict[str, Any]:
+        """Load a YAML mapping for run-input defaults without changing UI state."""
+        if yaml is None or not path.is_file():
+            return {}
+        try:
+            document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            return {}
+        return document if isinstance(document, dict) else {}
+
+    @staticmethod
+    def _set_run_input_choices(
+        widget: tk.Widget,
+        variable: tk.StringVar,
+        values: List[str],
+        *,
+        preferred: Any = None,
+    ) -> None:
+        unique_values = list(dict.fromkeys(value for value in values if value))
+        widget.configure(values=unique_values)
+        current = variable.get().strip()
+        preferred_text = "" if preferred is None else str(preferred).strip()
+        if not current:
+            variable.set(preferred_text or (unique_values[0] if unique_values else ""))
+
+    def _technology_scenarios(self, technology: str) -> List[str]:
+        if not technology:
+            return []
+        document = self._load_run_input_mapping(CONFIGS_DIR / f"{technology}.yaml")
+        reference = str(document.get("reference_scenario") or "ref").strip()
+        additional = document.get("additional_scenarios") or {}
+        additional_names = (
+            [str(name).strip() for name in additional]
+            if isinstance(additional, MappingABC)
+            else []
+        )
+        return list(dict.fromkeys([reference, *additional_names]))
+
+    def _refresh_scenario_choices(self) -> None:
+        script_id = self.selected_script.get()
+        scenarios: List[str] = []
+        if script_id == "suitability":
+            technologies = self.single_input_rows["technology"][1].cget("values")
+            for technology in technologies:
+                scenarios.extend(self._technology_scenarios(str(technology)))
+        else:
+            scenarios = self._technology_scenarios(self.run_technology_var.get().strip())
+        config = self._load_run_input_mapping(
+            self.config_tab.get_config_path() or (CONFIGS_DIR / "config.yaml")
+        )
+        configured_scenario = str(config.get("scenario") or "").strip()
+        if configured_scenario:
+            scenarios.insert(0, configured_scenario)
+        self._set_run_input_choices(
+            self.single_input_rows["scenario"][1],
+            self.run_scenario_var,
+            scenarios,
+            preferred=configured_scenario or "ref",
+        )
+
+    def _refresh_single_run_inputs(self) -> None:
+        """Populate documented CLI inputs from active general/workflow configs."""
+        config_path = self.config_tab.get_config_path() or (CONFIGS_DIR / "config.yaml")
+        config = self._load_run_input_mapping(Path(config_path))
+        workflow = self._load_run_input_mapping(CONFIGS_DIR / "config_snakemake.yaml")
+
+        regions = self._preflight_values(config.get("study_region_name"))
+        regions.extend(self._preflight_values(workflow.get("study_region_name")))
+        self._set_run_input_choices(
+            self.single_input_rows["region"][1],
+            self.run_region_var,
+            regions,
+            preferred=config.get("study_region_name"),
+        )
+
+        technologies = self._preflight_values(config.get("technology"))
+        technologies.extend(self._preflight_values(workflow.get("technologies")))
+        technologies.extend(
+            technology
+            for technology in PARAMETER_CHOICES["technology"]
+            if (CONFIGS_DIR / f"{technology}.yaml").is_file()
+        )
+        self._set_run_input_choices(
+            self.single_input_rows["technology"][1],
+            self.run_technology_var,
+            technologies,
+            preferred=config.get("technology"),
+        )
+
+        raw_years = config.get("weather_years")
+        if isinstance(raw_years, MappingABC):
+            raw_years = raw_years.get("years")
+        weather_years = self._preflight_values(config.get("weather_year"))
+        weather_years.extend(self._preflight_values(raw_years))
+        weather_years.extend(self._preflight_values(workflow.get("weather_years")))
+        self._set_run_input_choices(
+            self.single_input_rows["weather_year"][1],
+            self.run_weather_year_var,
+            weather_years,
+            preferred=config.get("weather_year"),
+        )
+        self._refresh_scenario_choices()
+        self._update_single_argument_visibility()
+
+    def _update_single_argument_visibility(self) -> None:
+        script_id = self.selected_script.get()
+        required_inputs = {
+            "spatial_data_prep": {"region"},
+            "weather_data_prep": {"region", "weather_year"},
+            "exclusion": {"region", "technology", "scenario"},
+            "suitability": {"region", "scenario"},
+            "weather_bias_adjust": set(),
+            "energy_profiles": {
+                "region",
+                "technology",
+                "scenario",
+                "weather_year",
+            },
+        }.get(script_id, set())
+        for name, (label, widget) in self.single_input_rows.items():
+            if name in required_inputs:
+                label.grid()
+                widget.grid()
+            else:
+                label.grid_remove()
+                widget.grid_remove()
+        if required_inputs:
+            self.single_inputs_frame.grid()
+        else:
+            self.single_inputs_frame.grid_remove()
+        script = next(
+            (item for item in self.available_scripts if item["id"] == script_id), None
+        )
+        self.script_description_var.set(str(script.get("description", "")) if script else "")
 
     def _load_run_history(self) -> List[Dict[str, Any]]:
         if not RUN_HISTORY_PATH.is_file():
@@ -5679,9 +5864,44 @@ class RunTab(ttk.Frame):
         script_name = script["name"] if script else f"{script_id}.py"
         script_path = self._resolve_script_path(script_name)
         command = [sys.executable, str(script_path)]
-        config_path = self.config_tab.get_config_path()
-        if config_path and Path(config_path).exists():
-            command.extend(["--config", str(config_path)])
+
+        values = {
+            "region": self.run_region_var.get().strip(),
+            "technology": self.run_technology_var.get().strip(),
+            "scenario": self.run_scenario_var.get().strip(),
+            "weather_year": self.run_weather_year_var.get().strip(),
+        }
+        arguments_by_script = {
+            "spatial_data_prep": (("region", "--region"),),
+            "weather_data_prep": (
+                ("region", "--region"),
+                ("weather_year", "--weather_years"),
+            ),
+            "exclusion": (
+                ("region", "--region"),
+                ("technology", "--technology"),
+                ("scenario", "--scenario"),
+            ),
+            "suitability": (
+                ("region", "--region"),
+                ("scenario", "--scenario"),
+            ),
+            "weather_bias_adjust": (),
+            "energy_profiles": (
+                ("region", "--region"),
+                ("technology", "--technology"),
+                ("scenario", "--scenario"),
+                ("weather_year", "--weather_year"),
+            ),
+        }
+        for value_name, flag in arguments_by_script.get(script_id, ()):
+            value = values[value_name]
+            if not value:
+                display_name = value_name.replace("_", " ")
+                raise RuntimeError(
+                    f"Select a {display_name} before running {script_name}."
+                )
+            command.extend([flag, value])
         return command, script_path.parent
 
     def _build_snakemake_command(self) -> Tuple[List[str], Path, Optional[Path]]:
@@ -6034,16 +6254,10 @@ class RunTab(ttk.Frame):
                     / weather_extent,
                 )
 
-        weather_consumers = {"suitability", "weather_bias_adjust", "energy_profiles"}
+        weather_consumers = {"weather_bias_adjust", "energy_profiles"}
         weather_path_value = config.get("weather_external_data_path")
         if stage_set & weather_consumers:
             if weather_path_value is None or not str(weather_path_value).strip():
-                if "suitability" in stage_set:
-                    self._add_preflight_issue(
-                        report,
-                        "error",
-                        "suitability.py requires weather_external_data_path to contain a valid directory path.",
-                    )
                 weather_path_value = PARENT_DIR / "Raw_Spatial_Data" / "Weather_data"
             weather_path = self._record_preflight_path(
                 report,
@@ -6053,16 +6267,6 @@ class RunTab(ttk.Frame):
                 required="weather_data_prep" not in stage_set,
                 missing_status="Will create",
             )
-            if (
-                weather_path
-                and weather_path.is_dir()
-                and {"weather_bias_adjust", "energy_profiles"} & stage_set
-            ):
-                metadata = weather_path / "cutout_metadata.json"
-                if "weather_data_prep" not in stage_set:
-                    self._record_preflight_path(
-                        report, "Weather cutout metadata", metadata
-                    )
         elif "weather_data_prep" in stage_set and weather_path_value:
             weather_path = self._resolve_preflight_path(weather_path_value)
             if weather_path is not None:
@@ -6147,14 +6351,23 @@ class RunTab(ttk.Frame):
             _, cores = self._load_snakemake_settings()
             script_id = "snakemake"
         else:
-            regions = self._preflight_values(config.get("study_region_name"))
-            scenario = str(config.get("scenario") or "").strip()
+            self._refresh_single_run_inputs()
+            script_id = self.selected_script.get()
+            regions = self._preflight_values(self.run_region_var.get())
+            scenario = self.run_scenario_var.get().strip()
             technology_scenario_map = {}
             scenario_summary = scenario
-            weather_years = self._preflight_values(config.get("weather_year"))
-            script_id = self.selected_script.get()
             stages = [script_id]
-            technologies = self._preflight_values(config.get("technology"))
+            technologies = (
+                self._preflight_values(self.run_technology_var.get())
+                if script_id in {"exclusion", "energy_profiles"}
+                else []
+            )
+            weather_years = (
+                self._preflight_values(self.run_weather_year_var.get())
+                if script_id in {"weather_data_prep", "energy_profiles"}
+                else []
+            )
             cores = 1
 
         suitability: Dict[str, Any] = {}
