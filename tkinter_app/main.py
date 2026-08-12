@@ -5054,6 +5054,7 @@ class RunTab(ttk.Frame):
         self.total_jobs = 0
         self.issue_count = 0
         self.issue_link_counter = 0
+        self.url_link_counter = 0
         self.traceback_active = False
         self.current_run_log_path: Optional[Path] = None
         self.last_log_folder: Optional[Path] = None
@@ -5753,6 +5754,65 @@ class RunTab(ttk.Frame):
         }
         return stage_targets.get(self.current_stage)
 
+    @staticmethod
+    def _split_text_urls(text: str) -> List[Tuple[str, Optional[str]]]:
+        """Split display text into plain and HTTP(S) URL segments."""
+        segments: List[Tuple[str, Optional[str]]] = []
+        cursor = 0
+        for match in re.finditer(r"https?://[^\s<>\"']+", text):
+            if match.start() > cursor:
+                segments.append((text[cursor : match.start()], None))
+            matched_text = match.group(0)
+            url = matched_text.rstrip(".,;:!)]}")
+            trailing = matched_text[len(url) :]
+            segments.append((url, url))
+            if trailing:
+                segments.append((trailing, None))
+            cursor = match.end()
+        if cursor < len(text):
+            segments.append((text[cursor:], None))
+        return segments or [(text, None)]
+
+    def _open_output_url(self, url: str) -> None:
+        try:
+            webbrowser.open_new_tab(url)
+        except Exception as exc:
+            messagebox.showerror(
+                "Open Link",
+                f"Could not open the link:\n{url}\n\n{exc}",
+                parent=self,
+            )
+
+    def _insert_text_with_urls(
+        self, widget: tk.Text, text: str, base_tag: str
+    ) -> None:
+        """Insert text and make every HTTP(S) URL behave like a hyperlink."""
+        for segment, url in self._split_text_urls(text):
+            if not url:
+                widget.insert("end", segment, base_tag)
+                continue
+            self.url_link_counter += 1
+            link_tag = f"output_url_{self.url_link_counter}"
+            widget.insert("end", segment, (base_tag, link_tag))
+            widget.tag_configure(link_tag, foreground="#0D5D9B", underline=True)
+            widget.tag_bind(
+                link_tag,
+                "<Button-1>",
+                lambda _event, target=url: self._open_output_url(target),
+            )
+            widget.tag_bind(
+                link_tag,
+                "<Enter>",
+                lambda _event, target_widget=widget: target_widget.configure(
+                    cursor="hand2"
+                ),
+            )
+            widget.tag_bind(
+                link_tag,
+                "<Leave>",
+                lambda _event, target_widget=widget: target_widget.configure(cursor=""),
+            )
+
     def add_log(self, level: str, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted = f"[{timestamp}] {message}"
@@ -5771,7 +5831,7 @@ class RunTab(ttk.Frame):
             display += f" {message}"
             target = self._failure_config_target(message) if level == "error" else None
             self.issue_text.configure(state="normal")
-            self.issue_text.insert("end", display, level)
+            self._insert_text_with_urls(self.issue_text, display, level)
             if target:
                 self.issue_link_counter += 1
                 link_tag = f"issue_link_{self.issue_link_counter}"
@@ -5808,7 +5868,8 @@ class RunTab(ttk.Frame):
         else:
             tag = level if level in {"info", "success"} else "info"
             self.log_text.configure(state="normal")
-            self.log_text.insert("end", formatted + "\n", tag)
+            self._insert_text_with_urls(self.log_text, formatted, tag)
+            self.log_text.insert("end", "\n", tag)
             self.log_text.configure(state="disabled")
             self.log_text.see("end")
         self._append_run_log(formatted)
@@ -5835,6 +5896,7 @@ class RunTab(ttk.Frame):
             widget.configure(state="disabled")
         self.issue_count = 0
         self.issue_link_counter = 0
+        self.url_link_counter = 0
         self.traceback_active = False
         self.run_feedback_notebook.tab(self.issues_frame, text="Warnings & Errors (0)")
 

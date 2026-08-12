@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import pickle
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 import yaml
 from pyproj import CRS
@@ -203,3 +204,96 @@ def resolve_exclusion_inputs(
 
     # Preserve order while avoiding duplicate files selected by multiple options.
     return [str(path) for path in dict.fromkeys(inputs)]
+
+
+def inspect_prepared_input_files(paths: Iterable[str | Path]) -> dict[str, str]:
+    """Return unusable prepared inputs and a concise reason for each one.
+
+    Checks are deliberately lightweight so existing cached files remain valid.
+    Structured metadata and CRS pickle files are parsed, raster headers are
+    opened when rasterio is available, and GeoPackages get a SQLite signature
+    check. Other formats must exist as non-empty regular files.
+    """
+
+    issues: dict[str, str] = {}
+    for raw_path in dict.fromkeys(str(path) for path in paths):
+        path = Path(raw_path)
+        if not path.exists():
+            issues[raw_path] = "missing"
+            continue
+        if not path.is_file():
+            issues[raw_path] = "not a regular file"
+            continue
+        try:
+            if path.stat().st_size == 0:
+                issues[raw_path] = "empty"
+                continue
+        except OSError as exc:
+            issues[raw_path] = f"cannot be inspected: {exc}"
+            continue
+
+        suffix = path.suffix.lower()
+        try:
+            if suffix in {".json", ".geojson"}:
+                with path.open("r", encoding="utf-8") as file:
+                    json.load(file)
+            elif suffix == ".pkl":
+                with path.open("rb") as file:
+                    pickle.load(file)
+            elif suffix in {".tif", ".tiff"}:
+                try:
+                    import rasterio
+                except ImportError:
+                    # Existence and size still provide a useful fallback in
+                    # lightweight environments that only inspect the DAG.
+                    continue
+                with rasterio.open(path) as dataset:
+                    if dataset.width <= 0 or dataset.height <= 0:
+                        raise ValueError("raster has no pixels")
+            elif suffix == ".gpkg":
+                with path.open("rb") as file:
+                    if file.read(16) != b"SQLite format 3\x00":
+                        raise ValueError("invalid GeoPackage header")
+        except Exception as exc:
+            issues[raw_path] = f"unreadable {suffix or 'file'}: {exc}"
+    return issues
+
+
+def validate_region_exclusion_inputs(
+    *,
+    region: str,
+    technology_scenarios: Mapping[str, Iterable[str]],
+    local_crs_path: str | Path,
+    project_root: str | Path = ".",
+) -> dict[tuple[str, str], dict[str, str]]:
+    """Validate exact prepared inputs for every selected exclusion job.
+
+    The result is grouped by ``(technology, scenario)``. An empty mapping means
+    that every resolved input exists and passed its lightweight integrity check.
+    """
+
+    required_by_job: dict[tuple[str, str], list[str]] = {}
+    all_required: list[str] = []
+    for technology, selected_scenarios in technology_scenarios.items():
+        for scenario in selected_scenarios:
+            job = (str(technology), str(scenario))
+            required = resolve_exclusion_inputs(
+                region=region,
+                technology=job[0],
+                scenario=job[1],
+                local_crs_path=local_crs_path,
+                project_root=project_root,
+            )
+            required_by_job[job] = required
+            all_required.extend(required)
+
+    issues_by_path = inspect_prepared_input_files(all_required)
+    return {
+        job: {
+            path: issues_by_path[path]
+            for path in required
+            if path in issues_by_path
+        }
+        for job, required in required_by_job.items()
+        if any(path in issues_by_path for path in required)
+    }
