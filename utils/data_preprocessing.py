@@ -6,7 +6,6 @@ import json
 import rasterio
 from rasterio.mask import mask
 from shapely.geometry import mapping
-from unidecode import unidecode
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 import numpy as np
 from space2stats_client import Space2StatsClient
@@ -21,6 +20,8 @@ import rasterstats
 from datetime import datetime, timedelta
 
 import logging
+
+from utils.region_names import canonical_region_name
 
 
 def download_admin_boundary_WB(
@@ -832,14 +833,9 @@ def clean_region_name(region_name: str) -> str:
     Returns:
         str: A sanitized version of the region name
     """
-    region_name_clean = unidecode(region_name)
-    region_name_clean = region_name_clean.replace(" ", "")
-    region_name_clean = region_name_clean.replace(".", "")
-    region_name_clean = region_name_clean.replace("'", "")
-    region_name_clean = region_name_clean.replace("_", "")
-    region_name_clean = region_name_clean.replace("(", "-")
-    region_name_clean = region_name_clean.replace(")", "-")
-    return region_name_clean
+    # Backward-compatible public name. All new naming code uses the same
+    # lightweight canonical implementation in utils.region_names.
+    return canonical_region_name(region_name)
 
 
 def log_scenario_run(

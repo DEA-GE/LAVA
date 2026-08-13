@@ -36,6 +36,11 @@
 !utils/spatial_mapping.py
 !utils/tech_config.py
 !utils/exclusion_inputs.py
+!utils/spatial_prep_plan.py
+!utils/region_names.py
+# --- Tests ---
+!tests
+!tests/test_spatial_prep_plan.py
 # --- Raw input data ---
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover

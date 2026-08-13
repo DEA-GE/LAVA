@@ -19,9 +19,9 @@ import xdem
 import logging
 import argparse
 import numpy as np
+from pathlib import Path
 from pyproj import CRS
 from utils.data_preprocessing import (
-    clean_region_name,
     clip_raster,
     clip_reproject_raster,
     convert_gdb_to_gpkg,
@@ -44,6 +44,13 @@ from utils.local_OSM_shp_files import process_all_local_osm_layer
 from utils.fetch_OSM import osm_to_gpkg
 from utils.simplify import generate_overpass_polygon
 from utils.proximity_calc import generate_distance_raster
+from utils.spatial_prep_plan import (
+    inspect_raster_resolution,
+    resolve_custom_study_area_path,
+    resolution_matches,
+    write_landcover_metadata,
+)
+from utils.region_names import canonical_region_name
 
 # Record the starting time
 start_time = time.time()
@@ -124,7 +131,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Clean region name (uses --region if passed via snakemake, otherwise config default)
-region_name_clean = clean_region_name(args.region)
+region_name_clean = canonical_region_name(args.region)
 print(f"Running ({args.method}) - region={region_name_clean}")
 
 ##################################################
@@ -173,18 +180,23 @@ if adm_region_name and "{region_name}" in adm_region_name:
 
 # get region boundary
 if custom_study_area_filename:
-    # check if dynamic filename is used
-    if "{region_name}" in custom_study_area_filename:
-        custom_study_area_filename = custom_study_area_filename.format(
-            region_name=region_name_clean
+    custom_study_area_filepath, used_legacy_study_area_name = (
+        resolve_custom_study_area_path(
+            configured_region=args.region,
+            filename_template=custom_study_area_filename,
+            project_root=dirname,
         )
-    print(f"\nUsing custom study area filename: {custom_study_area_filename}")
-    custom_study_area_filepath = os.path.join(
-        "Raw_Spatial_Data", "custom_study_area", custom_study_area_filename
     )
-    region = gpd.read_file(
-        custom_study_area_filepath
-    ).dissolve()  # Dissolve to ensure it's a single polygon
+    custom_study_area_filename = custom_study_area_filepath.name
+    print(f"\nUsing custom study area filename: {custom_study_area_filename}")
+    if used_legacy_study_area_name:
+        logging.warning(
+            "Using legacy cleaned custom study-area filename %s. Prefer a file "
+            "named from the original region value %s.",
+            custom_study_area_filename,
+            args.region,
+        )
+    region = gpd.read_file(custom_study_area_filepath).dissolve()
     if region.crs != 4326:
         logging.warning(
             "crs of custom polygon file for study region is not in EPSG 4326"
@@ -580,8 +592,49 @@ if config["landcover_source"] == "openeo":
     openeo_landcover_filePath = os.path.join(
         output_dir, f"landcover_openeo_{region_name_clean}_{global_crs_tag}.tif"
     )
+    landcover_openeo_local_CRS = os.path.join(
+        output_dir, f"landcover_openeo_{region_name_clean}_{local_crs_tag}.tif"
+    )
+    pixel_size_path = os.path.join(
+        output_dir, f"pixel_size_{region_name_clean}_{local_crs_tag}.json"
+    )
+    requested_landcover_resolution = config.get("resolution_landcover")
+    existing_landcover = inspect_raster_resolution(
+        openeo_landcover_filePath,
+        requested_landcover_resolution,
+        expected_crs="EPSG:4326",
+    )
+    download_landcover = not existing_landcover["compatible"]
 
-    if not os.path.exists(openeo_landcover_filePath):
+    if os.path.exists(openeo_landcover_filePath) and download_landcover:
+        source_path = Path(openeo_landcover_filePath)
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        backup_path = source_path.with_name(
+            f"{source_path.stem}.incompatible_{timestamp}{source_path.suffix}"
+        )
+        counter = 1
+        while backup_path.exists():
+            backup_path = source_path.with_name(
+                f"{source_path.stem}.incompatible_{timestamp}_{counter}"
+                f"{source_path.suffix}"
+            )
+            counter += 1
+        source_path.replace(backup_path)
+        print(
+            "Existing openEO land cover is incompatible with the current "
+            f"configuration ({existing_landcover['reason']})."
+        )
+        print(f"Preserved old land cover as {rel_path(backup_path)}")
+        logging.warning(
+            "Archived incompatible openEO land cover %s as %s: %s",
+            source_path,
+            backup_path,
+            existing_landcover["reason"],
+        )
+
+    if download_landcover:
+        partial_landcover_path = Path(f"{openeo_landcover_filePath}.partial")
+        partial_landcover_path.unlink(missing_ok=True)
         try:
             connection = openeo.connect(
                 url="openeo.dataspace.copernicus.eu"
@@ -627,7 +680,18 @@ if config["landcover_source"] == "openeo":
             )
             # Starts the job and waits until it finished to download the result.
             job.start_and_wait()
-            job.get_results().download_file(openeo_landcover_filePath)
+            job.get_results().download_file(str(partial_landcover_path))
+            downloaded_landcover = inspect_raster_resolution(
+                partial_landcover_path,
+                requested_landcover_resolution,
+                expected_crs="EPSG:4326",
+            )
+            if not downloaded_landcover["compatible"]:
+                raise RuntimeError(
+                    "Downloaded openEO land cover failed validation: "
+                    f"{downloaded_landcover['reason']}"
+                )
+            partial_landcover_path.replace(openeo_landcover_filePath)
 
             # color openeo landcover file
             try:
@@ -662,12 +726,39 @@ if config["landcover_source"] == "openeo":
             except Exception as e:
                 print(e)
                 logging.warning("Something went wrong with coloring the landcover data")
+        except Exception as e:
+            partial_landcover_path.unlink(missing_ok=True)
+            logging.error(f"openeo landcover failed: {e}")
 
-            # reproject landcover to local CRS
-            # grayscale (for DEM calculations below)
-            landcover_openeo_local_CRS = os.path.join(
-                output_dir, f"landcover_openeo_{region_name_clean}_{local_crs_tag}.tif"
-            )
+    elif os.path.exists(openeo_landcover_filePath):
+        logging.info(
+            "Landcover not downloaded from openeo. The existing clipped file "
+            "matches the requested resolution."
+        )
+
+    if os.path.exists(openeo_landcover_filePath):
+        local_landcover = inspect_raster_resolution(
+            landcover_openeo_local_CRS,
+            requested_resolution=None,
+            expected_crs=local_crs_obj,
+        )
+        refresh_local_landcover = download_landcover or not local_landcover["compatible"]
+        try:
+            with open(pixel_size_path, "r", encoding="utf-8") as stream:
+                recorded_pixel_size = float(json.load(stream))
+            actual_local_resolution = local_landcover.get("actual_resolution")
+            if actual_local_resolution and not resolution_matches(
+                recorded_pixel_size,
+                float(actual_local_resolution[0]),
+                relative_tolerance=0.01,
+            ):
+                refresh_local_landcover = True
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            refresh_local_landcover = True
+
+        if refresh_local_landcover:
+            # Rebuild every derived land-cover artifact together so the local
+            # pixel-size file cannot describe an older global raster.
             reproject_raster(
                 openeo_landcover_filePath,
                 region_name_clean,
@@ -676,22 +767,26 @@ if config["landcover_source"] == "openeo":
                 "uint8",
                 landcover_openeo_local_CRS,
             )
-            # # colored
-            # landcover_openeo_local_CRS_colored = os.path.join(output_dir, f'landcover_openeo_colored_{region_name_clean}_{local_crs_tag}.tif')
-            # reproject_raster(openeo_landcover_colored_filePath, region_name_clean, local_crs_obj, 'mode', 'uint8', landcover_openeo_local_CRS_colored)
-
-            # save pixel size and unique land cover codes
             landcover_information(
-                landcover_openeo_local_CRS, output_dir, region_name_clean, local_crs_tag
+                landcover_openeo_local_CRS,
+                output_dir,
+                region_name_clean,
+                local_crs_tag,
             )
 
+        try:
+            metadata_path = write_landcover_metadata(
+                region_directory=output_dir,
+                source="openeo",
+                collection="ESA_WORLDCOVER_10M_2021_V2",
+                requested_resolution=requested_landcover_resolution,
+                global_raster=openeo_landcover_filePath,
+                local_raster=landcover_openeo_local_CRS,
+                pixel_size_file=pixel_size_path,
+            )
+            logging.info("Land-cover preparation metadata saved to %s", metadata_path)
         except Exception as e:
-            logging.error(f"openeo landcover failed: {e}")
-
-    elif os.path.exists(openeo_landcover_filePath):
-        logging.info(
-            "Landcover not downloaded from openeo. There is already a clipped landcover file in the output folder."
-        )
+            logging.error(f"land-cover metadata validation failed: {e}")
 
     processed_landcover_filePath = openeo_landcover_filePath
 

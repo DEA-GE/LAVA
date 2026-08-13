@@ -1,6 +1,7 @@
 import subprocess
 
 from utils.exclusion_inputs import validate_region_exclusion_inputs
+from utils.spatial_prep_plan import build_spatial_prep_plan
 
 
 ADVANCED_DATA_PREP_CONFIG = Path(
@@ -17,7 +18,8 @@ checkpoint spatial_data_prep:
         config="configs/config.yaml",
         advanced_config=ADVANCED_DATA_PREP_CONFIG,
         script="spatial_data_prep.py",
-        validator="utils/exclusion_inputs.py"
+        validator="utils/exclusion_inputs.py",
+        planner="utils/spatial_prep_plan.py"
     output:
         local_crs=Path("data") / "{region}" / "{region}_local_CRS.pkl"
     resources:
@@ -74,6 +76,20 @@ checkpoint spatial_data_prep:
                         "Spatial data preparation is incomplete for "
                         f"{wildcards.region}. Required exclusion inputs failed "
                         "validation:\n"
+                        + "\n".join(details)
+                    )
+                preparation_plan = build_spatial_prep_plan(project_root=PROJECT_ROOT)
+                region_plan = preparation_plan.get("regions", {}).get(
+                    str(wildcards.region), {}
+                )
+                if not region_plan.get("ready", False):
+                    details = [
+                        f"  - {item.get('path')} ({item.get('reason')})"
+                        for item in region_plan.get("issues", [])
+                    ]
+                    raise RuntimeError(
+                        "Spatial data preparation remains incompatible for "
+                        f"{wildcards.region} after preparation:\n"
                         + "\n".join(details)
                     )
             checkpoint_valid = True

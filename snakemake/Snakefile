@@ -12,7 +12,7 @@ from utils.tech_config import (
     validate_selected_scenarios,
     validate_shared_scenarios,
 )
-from utils.data_preprocessing import clean_region_name
+from utils.region_names import canonical_region_name
 
 
 
@@ -25,7 +25,7 @@ configured_regions = config_snakemake["study_region_name"]
 if isinstance(configured_regions, str):
     configured_regions = [configured_regions]
 region_names = {
-    clean_region_name(region): region
+    canonical_region_name(region): region
     for region in configured_regions
 }
 if len(region_names) != len(configured_regions):

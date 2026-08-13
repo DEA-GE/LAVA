@@ -28,7 +28,7 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageTk
 import folium
 import rasterio
 from rasterio.enums import Resampling
@@ -89,11 +89,21 @@ from utils.gadm_levels_to_geojson import (  # noqa: E402
     GADMExtractionResult,
     extract_gadm_levels,
 )
+from utils.spatial_prep_plan import (  # noqa: E402
+    build_spatial_prep_plan,
+    format_spatial_prep_plan,
+    resolve_custom_study_area_path,
+)
+from utils.region_names import canonical_region_name  # noqa: E402
 
 try:
     import yaml  # type: ignore
 except ImportError:  # pragma: no cover - optional dependency
     yaml = None
+try:
+    import mistune  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    mistune = None
 SNAKEFILE_TEMPLATE = """"""
 SNAKEMAKE_STAGE_KEYS = [stage["key"] for stage in CONFIG_SNAKEMAKE_STAGE_FLAGS]
 REQUIRED_ACTIVE_CONFIGS = (
@@ -4896,42 +4906,51 @@ class PreflightDialog(tk.Toplevel):
         checks_frame.columnconfigure(0, weight=1)
         checks_frame.rowconfigure(0, weight=1)
         details.add(checks_frame, text=f"Checks ({len(report.get('issues', []))})")
-        checks_tree = ttk.Treeview(
+        treeview_style = ttk.Style(self)
+        checks_text = tk.Text(
             checks_frame,
-            columns=("severity", "message"),
-            show="headings",
-            selectmode="browse",
+            wrap="word",
+            relief="flat",
+            borderwidth=0,
+            highlightthickness=0,
+            padx=8,
+            pady=6,
+            background=treeview_style.lookup("Treeview", "background") or "white",
+            foreground=treeview_style.lookup("Treeview", "foreground") or "black",
+            font=("Segoe UI", 9),
+            cursor="arrow",
         )
-        checks_tree.heading("severity", text="Result")
-        checks_tree.heading("message", text="Details")
-        checks_tree.column("severity", width=90, stretch=False)
-        checks_tree.column("message", width=720, stretch=True)
-        checks_tree.grid(row=0, column=0, sticky="nsew")
+        checks_text.grid(row=0, column=0, sticky="nsew")
         checks_scroll = ttk.Scrollbar(
-            checks_frame, orient="vertical", command=checks_tree.yview
+            checks_frame, orient="vertical", command=checks_text.yview
         )
         checks_scroll.grid(row=0, column=1, sticky="ns")
-        checks_tree.configure(yscrollcommand=checks_scroll.set)
-        checks_tree.tag_configure("error", foreground="#B42318")
-        checks_tree.tag_configure("warning", foreground="#8A5A00")
-        checks_tree.tag_configure("passed", foreground="#1A7F37")
+        checks_text.configure(yscrollcommand=checks_scroll.set)
+        checks_text.tag_configure(
+            "error", foreground="#B42318", font=("Segoe UI", 9, "bold")
+        )
+        checks_text.tag_configure(
+            "warning", foreground="#8A5A00", font=("Segoe UI", 9, "bold")
+        )
+        checks_text.tag_configure(
+            "passed", foreground="#1A7F37", font=("Segoe UI", 9, "bold")
+        )
         issues = report.get("issues", [])
         if issues:
-            for issue in issues:
+            for index, issue in enumerate(issues):
                 severity = str(issue.get("severity", "warning"))
-                checks_tree.insert(
-                    "",
-                    "end",
-                    values=(severity.title(), issue.get("message", "")),
-                    tags=(severity,),
+                if index:
+                    checks_text.insert("end", "\n\n")
+                checks_text.insert(
+                    "end", f"{severity.title()}: ", (severity,)
                 )
+                checks_text.insert("end", str(issue.get("message", "")))
         else:
-            checks_tree.insert(
-                "",
-                "end",
-                values=("Passed", "No problems found by the available checks."),
-                tags=("passed",),
+            checks_text.insert("end", "Passed: ", ("passed",))
+            checks_text.insert(
+                "end", "No problems found by the available checks."
             )
+        checks_text.configure(state="disabled")
         if issues:
             details.select(checks_frame)
 
@@ -4972,6 +4991,111 @@ class PreflightDialog(tk.Toplevel):
             return
         self.confirmed = True
         self.destroy()
+
+
+class RunSummaryDialog(tk.Toplevel):
+    """Concise post-run report with direct access to logs and outputs."""
+
+    def __init__(
+        self,
+        master: tk.Widget,
+        summary: Mapping[str, Any],
+        *,
+        open_log: Callable[[], None],
+        open_output: Callable[[], None],
+    ):
+        super().__init__(master)
+        self.title(str(summary.get("title", "Run summary")))
+        self.geometry("760x570")
+        self.minsize(620, 440)
+        self.transient(master.winfo_toplevel())
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(2, weight=1)
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+
+        header = ttk.Frame(self, padding=(16, 14, 16, 6))
+        header.grid(row=0, column=0, sticky="ew")
+        ttk.Label(
+            header,
+            text=str(summary.get("heading", "Run finished")),
+            foreground=str(summary.get("color", "#333333")),
+            font=("Segoe UI", 14, "bold"),
+        ).pack(anchor="w")
+        subtitle = str(summary.get("subtitle", "")).strip()
+        if subtitle:
+            ttk.Label(
+                header,
+                text=subtitle,
+                foreground="#555555",
+                wraplength=700,
+                justify="left",
+            ).pack(anchor="w", pady=(4, 0))
+
+        facts = ttk.LabelFrame(self, text="Run details", padding=8)
+        facts.grid(row=1, column=0, sticky="ew", padx=16, pady=(6, 8))
+        facts.columnconfigure(1, weight=1)
+        for row, (label, value) in enumerate(summary.get("facts", [])):
+            ttk.Label(facts, text=f"{label}:", font=("Segoe UI", 9, "bold")).grid(
+                row=row, column=0, sticky="nw", padx=(0, 12), pady=2
+            )
+            ttk.Label(
+                facts,
+                text=str(value),
+                wraplength=580,
+                justify="left",
+            ).grid(row=row, column=1, sticky="w", pady=2)
+
+        detail_frame = ttk.Frame(self, padding=(16, 0, 16, 0))
+        detail_frame.grid(row=2, column=0, sticky="nsew")
+        detail_frame.columnconfigure(0, weight=1)
+        detail_frame.rowconfigure(0, weight=1)
+        detail_text = tk.Text(
+            detail_frame,
+            wrap="word",
+            state="normal",
+            padx=10,
+            pady=8,
+            font=("Segoe UI", 9),
+        )
+        detail_text.grid(row=0, column=0, sticky="nsew")
+        detail_scroll = ttk.Scrollbar(
+            detail_frame, orient="vertical", command=detail_text.yview
+        )
+        detail_scroll.grid(row=0, column=1, sticky="ns")
+        detail_text.configure(yscrollcommand=detail_scroll.set)
+        detail_text.tag_configure("section", font=("Segoe UI", 10, "bold"))
+        for index, (section, items) in enumerate(summary.get("sections", [])):
+            if index:
+                detail_text.insert("end", "\n")
+            detail_text.insert("end", f"{section}\n", ("section",))
+            for item in items:
+                detail_text.insert("end", f"• {item}\n")
+        detail_text.configure(state="disabled")
+
+        footer = ttk.Frame(self, padding=(16, 10, 16, 14))
+        footer.grid(row=3, column=0, sticky="ew")
+        footer.columnconfigure(0, weight=1)
+        ttk.Button(footer, text="Close", command=self.destroy).grid(
+            row=0, column=1, padx=(6, 0)
+        )
+        ttk.Button(footer, text="Open full log", command=open_log).grid(
+            row=0, column=2, padx=(6, 0)
+        )
+        ttk.Button(footer, text="Open output folder", command=open_output).grid(
+            row=0, column=3, padx=(6, 0)
+        )
+
+        self.bind("<Escape>", lambda _event: self.destroy())
+        self.update_idletasks()
+        parent = master.winfo_toplevel()
+        x = parent.winfo_rootx() + max(
+            0, (parent.winfo_width() - self.winfo_width()) // 2
+        )
+        y = parent.winfo_rooty() + max(
+            0, (parent.winfo_height() - self.winfo_height()) // 2
+        )
+        self.geometry(f"+{x}+{y}")
+        self.grab_set()
 
 
 class RunTab(ttk.Frame):
@@ -5055,10 +5179,22 @@ class RunTab(ttk.Frame):
         self.issue_count = 0
         self.issue_link_counter = 0
         self.url_link_counter = 0
+        self.output_url_targets: Dict[str, str] = {}
+        self.issue_link_targets: Dict[str, Tuple[str, str]] = {}
+        self.run_feedback_dialog: Optional[tk.Toplevel] = None
+        self.expanded_feedback_notebook: Optional[ttk.Notebook] = None
+        self.expanded_log_text: Optional[tk.Text] = None
+        self.expanded_issue_text: Optional[tk.Text] = None
+        self.expanded_run_history_tree: Optional[ttk.Treeview] = None
         self.traceback_active = False
         self.current_run_log_path: Optional[Path] = None
         self.last_log_folder: Optional[Path] = None
         self.current_run_record_id: Optional[str] = None
+        self.current_run_context: Dict[str, Any] = {}
+        self.current_run_diagnostics: List[Dict[str, str]] = []
+        self.current_run_missing_optional_data: set[str] = set()
+        self.capture_missing_optional_data = False
+        self.current_run_overpass_retries: set[str] = set()
         self.run_history = self._load_run_history()
         self._build_ui()
 
@@ -5176,7 +5312,7 @@ class RunTab(ttk.Frame):
         )
         controls = ttk.Frame(body)
         controls.grid(row=3, column=0, sticky="ew", pady=10)
-        controls.columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        controls.columnconfigure((0, 1, 2, 3, 4, 5, 6, 7), weight=1)
         self.run_button = ttk.Button(controls, text="Run", command=self.handle_run)
         self.run_button.grid(row=0, column=0, sticky="ew", padx=4)
         self.dry_run_button = ttk.Button(
@@ -5199,11 +5335,22 @@ class RunTab(ttk.Frame):
         )
         self.copy_command_button.grid(row=0, column=4, sticky="ew", padx=4)
         self.open_log_button = ttk.Button(
-            controls, text="Open log folder", command=self._open_log_folder
+            controls, text="Open full log", command=self._open_full_log
         )
         self.open_log_button.grid(row=0, column=5, sticky="ew", padx=4)
         if not self.last_log_folder:
             self.open_log_button.configure(state="disabled")
+        self.open_output_button = ttk.Button(
+            controls, text="Open output folder", command=self._open_output_folder
+        )
+        self.open_output_button.grid(row=0, column=6, sticky="ew", padx=4)
+        if not self.run_history and not (PARENT_DIR / "data").is_dir():
+            self.open_output_button.configure(state="disabled")
+        ttk.Button(
+            controls,
+            text="Open larger...",
+            command=self._show_run_feedback_dialog,
+        ).grid(row=0, column=7, sticky="ew", padx=4)
         progress_frame = ttk.Frame(body)
         progress_frame.grid(row=4, column=0, sticky="ew", pady=10)
         progress_frame.columnconfigure((1, 3), weight=1)
@@ -5540,7 +5687,17 @@ class RunTab(ttk.Frame):
     def _refresh_run_history_tree(self) -> None:
         if not hasattr(self, "run_history_tree"):
             return
-        self.run_history_tree.delete(*self.run_history_tree.get_children())
+        trees = [self.run_history_tree]
+        if (
+            self.expanded_run_history_tree is not None
+            and self.expanded_run_history_tree.winfo_exists()
+        ):
+            trees.append(self.expanded_run_history_tree)
+        for tree in trees:
+            self._populate_run_history_tree(tree)
+
+    def _populate_run_history_tree(self, tree: ttk.Treeview) -> None:
+        tree.delete(*tree.get_children())
         for record in self.run_history:
             duration = record.get("duration_seconds")
             duration_text = (
@@ -5548,10 +5705,10 @@ class RunTab(ttk.Frame):
             )
             stages = record.get("stages") or [record.get("script_id", "")]
             regions = record.get("regions") or []
-            self.run_history_tree.insert(
+            tree.insert(
                 "",
                 "end",
-                iid=str(record.get("id", len(self.run_history_tree.get_children()))),
+                iid=str(record.get("id", len(tree.get_children()))),
                 values=(
                     str(record.get("started_at", "")).replace("T", " ")[:19],
                     str(record.get("finished_at") or "").replace("T", " ")[:19] or "--",
@@ -5624,6 +5781,7 @@ class RunTab(ttk.Frame):
         history_error = self._save_run_history()
         self._refresh_run_history_tree()
         self.open_log_button.configure(state="normal")
+        self.open_output_button.configure(state="normal")
         if history_error:
             self.add_log("warning", f"Run history could not be saved: {history_error}")
 
@@ -5665,10 +5823,12 @@ class RunTab(ttk.Frame):
         self.clipboard_append(self.last_command_text)
         self.add_log("success", "Command copied to the clipboard.")
 
-    def _history_record_for_selection(self) -> Optional[Dict[str, Any]]:
-        if not hasattr(self, "run_history_tree"):
+    def _history_record_for_tree(
+        self, tree: Optional[ttk.Treeview]
+    ) -> Optional[Dict[str, Any]]:
+        if tree is None or not tree.winfo_exists():
             return None
-        selection = self.run_history_tree.selection()
+        selection = tree.selection()
         if not selection:
             return None
         return next(
@@ -5680,6 +5840,10 @@ class RunTab(ttk.Frame):
             None,
         )
 
+    def _history_record_for_selection(self) -> Optional[Dict[str, Any]]:
+        tree = self.run_history_tree if hasattr(self, "run_history_tree") else None
+        return self._history_record_for_tree(tree)
+
     def _open_path_in_file_manager(self, path: Path) -> None:
         if os.name == "nt":
             os.startfile(str(path))  # type: ignore[attr-defined]
@@ -5688,33 +5852,367 @@ class RunTab(ttk.Frame):
         else:
             subprocess.Popen(["xdg-open", str(path)])
 
-    def _open_log_folder(self) -> None:
-        record = self._history_record_for_selection()
-        folder = self.last_log_folder
-        if record:
-            selected_log = self._resolve_preflight_path(record.get("log_file"))
-            if selected_log:
-                folder = selected_log.parent
-        if not folder or not folder.is_dir():
+    def _selected_or_latest_run_record(self) -> Optional[Dict[str, Any]]:
+        return self._history_record_for_selection() or (
+            self.run_history[0] if self.run_history else None
+        )
+
+    def _open_full_log(self) -> None:
+        self._open_full_log_for_record(self._selected_or_latest_run_record())
+
+    def _open_full_log_for_record(
+        self, record: Optional[Mapping[str, Any]]
+    ) -> None:
+        log_path = (
+            self._resolve_preflight_path(record.get("log_file")) if record else None
+        )
+        if not log_path or not log_path.is_file():
             messagebox.showwarning(
-                "Log Folder", "No run log folder is available yet.", parent=self
+                "Full Log", "No complete run log is available yet.", parent=self
+            )
+            return
+        try:
+            self._open_path_in_file_manager(log_path)
+        except OSError as exc:
+            messagebox.showerror(
+                "Full Log", f"Could not open the run log:\n{exc}", parent=self
+            )
+
+    def _output_folder_for_record(
+        self, record: Optional[Mapping[str, Any]]
+    ) -> Optional[Path]:
+        cwd = self._resolve_preflight_path(record.get("cwd")) if record else None
+        cwd = cwd or PARENT_DIR
+        stages = {
+            str(stage)
+            for stage in (record.get("stages", []) if record else [])
+            if str(stage)
+        }
+        regions = [
+            str(region).strip()
+            for region in (record.get("regions", []) if record else [])
+            if str(region).strip()
+        ]
+        regional_stages = {
+            "spatial_data_prep",
+            "exclusion",
+            "suitability",
+            "energy_profiles",
+        }
+        data_root = cwd / "data"
+        if stages & regional_stages or not stages:
+            if len(regions) == 1:
+                region_folder = data_root / canonical_region_name(regions[0])
+                if region_folder.is_dir():
+                    return region_folder
+            if data_root.is_dir():
+                return data_root
+
+        if stages & {"weather_data_prep", "weather_bias_adjust"}:
+            config = self._load_run_input_mapping(CONFIGS_DIR / "config.yaml")
+            configured_weather_folder = (
+                config.get("weather_external_data_path")
+                or config.get("weather_data_folder")
+                or PARENT_DIR / "Raw_Spatial_Data" / "Weather_data"
+            )
+            weather_folder = self._resolve_preflight_path(configured_weather_folder)
+            if weather_folder and weather_folder.is_dir():
+                return weather_folder
+        return cwd if cwd.is_dir() else None
+
+    def _open_output_folder(self) -> None:
+        self._open_output_folder_for_record(self._selected_or_latest_run_record())
+
+    def _open_output_folder_for_record(
+        self, record: Optional[Mapping[str, Any]]
+    ) -> None:
+        folder = self._output_folder_for_record(record)
+        if not folder:
+            messagebox.showwarning(
+                "Output Folder", "No output folder is available yet.", parent=self
             )
             return
         try:
             self._open_path_in_file_manager(folder)
         except OSError as exc:
             messagebox.showerror(
-                "Log Folder", f"Could not open the log folder:\n{exc}", parent=self
+                "Output Folder", f"Could not open the output folder:\n{exc}", parent=self
             )
 
     def _open_selected_history_log(self, _event: Optional[tk.Event] = None) -> None:
-        record = self._history_record_for_selection()
+        self._open_history_log_from_tree(self.run_history_tree)
+
+    def _open_history_log_from_tree(self, tree: ttk.Treeview) -> None:
+        record = self._history_record_for_tree(tree)
         if not record:
             return
         log_path = self._resolve_preflight_path(record.get("log_file"))
-        if log_path and log_path.parent.is_dir():
+        if log_path and log_path.is_file():
             self.last_log_folder = log_path.parent
-            self._open_log_folder()
+            self._open_full_log_for_record(record)
+
+    def _show_run_summary(
+        self,
+        record: Mapping[str, Any],
+        *,
+        return_code: int,
+        outcome: str,
+        is_dry_run: bool,
+    ) -> None:
+        summary = self._build_run_summary(
+            record,
+            return_code=return_code,
+            outcome=outcome,
+            is_dry_run=is_dry_run,
+        )
+        RunSummaryDialog(
+            self,
+            summary,
+            open_log=lambda selected=record: self._open_full_log_for_record(selected),
+            open_output=lambda selected=record: self._open_output_folder_for_record(
+                selected
+            ),
+        )
+
+    @staticmethod
+    def _configure_run_text_tags(widget: tk.Text) -> None:
+        for tag, color in {
+            "info": "#333333",
+            "success": "#1a7f37",
+            "warning": "#a66b00",
+            "error": "#b42318",
+        }.items():
+            widget.tag_configure(tag, foreground=color)
+
+    def _bind_output_url_tag(self, widget: tk.Text, tag: str, url: str) -> None:
+        widget.tag_configure(tag, foreground="#0D5D9B", underline=True)
+        widget.tag_bind(
+            tag,
+            "<Button-1>",
+            lambda _event, target=url: self._open_output_url(target),
+        )
+        widget.tag_bind(
+            tag,
+            "<Enter>",
+            lambda _event, target_widget=widget: target_widget.configure(
+                cursor="hand2"
+            ),
+        )
+        widget.tag_bind(
+            tag,
+            "<Leave>",
+            lambda _event, target_widget=widget: target_widget.configure(cursor=""),
+        )
+
+    def _bind_issue_setting_tag(
+        self, widget: tk.Text, tag: str, target: Tuple[str, str]
+    ) -> None:
+        widget.tag_configure(tag, foreground="#0D5D9B", underline=True)
+        widget.tag_bind(
+            tag,
+            "<Button-1>",
+            lambda _event, file_name=target[0], key=target[1]: (
+                self._open_failure_setting(file_name, key)
+            ),
+        )
+        widget.tag_bind(
+            tag,
+            "<Enter>",
+            lambda _event, target_widget=widget: target_widget.configure(
+                cursor="hand2"
+            ),
+        )
+        widget.tag_bind(
+            tag,
+            "<Leave>",
+            lambda _event, target_widget=widget: target_widget.configure(cursor=""),
+        )
+
+    def _copy_run_text_widget(self, source: tk.Text, target: tk.Text) -> None:
+        """Copy run text, colors, and hyperlink behavior into an expanded view."""
+        target.configure(state="normal")
+        target.delete("1.0", "end")
+        content = source.get("1.0", "end-1c")
+        if content:
+            target.insert("1.0", content)
+        self._configure_run_text_tags(target)
+        for tag in source.tag_names():
+            if tag == "sel":
+                continue
+            ranges = source.tag_ranges(tag)
+            for start, end in zip(ranges[0::2], ranges[1::2]):
+                target.tag_add(tag, str(start), str(end))
+            if tag in self.output_url_targets:
+                self._bind_output_url_tag(
+                    target, tag, self.output_url_targets[tag]
+                )
+            elif tag in self.issue_link_targets:
+                self._bind_issue_setting_tag(
+                    target, tag, self.issue_link_targets[tag]
+                )
+        target.configure(state="disabled")
+        target.see("end")
+
+    def _close_run_feedback_dialog(self) -> None:
+        dialog = self.run_feedback_dialog
+        self.run_feedback_dialog = None
+        self.expanded_feedback_notebook = None
+        self.expanded_log_text = None
+        self.expanded_issue_text = None
+        self.expanded_run_history_tree = None
+        if dialog is not None:
+            try:
+                dialog.destroy()
+            except tk.TclError:
+                pass
+
+    def _show_run_feedback_dialog(self) -> None:
+        dialog = self.run_feedback_dialog
+        if dialog is not None:
+            try:
+                if dialog.winfo_exists():
+                    dialog.deiconify()
+                    dialog.lift()
+                    dialog.focus_force()
+                    return
+            except tk.TclError:
+                pass
+
+        dialog = tk.Toplevel(self)
+        self.run_feedback_dialog = dialog
+        dialog.title("Run Output and History")
+        dialog.geometry("1100x700")
+        dialog.minsize(760, 420)
+        dialog.transient(self.winfo_toplevel())
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
+        dialog.protocol("WM_DELETE_WINDOW", self._close_run_feedback_dialog)
+        dialog.bind("<Escape>", lambda _event: self._close_run_feedback_dialog())
+
+        notebook = ttk.Notebook(dialog)
+        notebook.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 4))
+        self.expanded_feedback_notebook = notebook
+
+        output_frame = ttk.Frame(notebook)
+        output_frame.columnconfigure(0, weight=1)
+        output_frame.rowconfigure(0, weight=1)
+        notebook.add(output_frame, text="Output")
+        expanded_log = tk.Text(
+            output_frame,
+            wrap="none",
+            state="disabled",
+            font=("Consolas", 10),
+        )
+        expanded_log.grid(row=0, column=0, sticky="nsew")
+        output_scroll_y = ttk.Scrollbar(
+            output_frame, orient="vertical", command=expanded_log.yview
+        )
+        output_scroll_y.grid(row=0, column=1, sticky="ns")
+        output_scroll_x = ttk.Scrollbar(
+            output_frame, orient="horizontal", command=expanded_log.xview
+        )
+        output_scroll_x.grid(row=1, column=0, sticky="ew")
+        expanded_log.configure(
+            yscrollcommand=output_scroll_y.set,
+            xscrollcommand=output_scroll_x.set,
+        )
+        self.expanded_log_text = expanded_log
+
+        issues_frame = ttk.Frame(notebook)
+        issues_frame.columnconfigure(0, weight=1)
+        issues_frame.rowconfigure(1, weight=1)
+        notebook.add(issues_frame, text=f"Warnings & Errors ({self.issue_count})")
+        ttk.Label(
+            issues_frame,
+            text=(
+                "Warnings and errors are separated from normal output. "
+                "Blue links open a web page or the related setting."
+            ),
+            foreground="#555555",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=6, pady=(6, 3))
+        expanded_issues = tk.Text(
+            issues_frame,
+            wrap="word",
+            state="disabled",
+            font=("Consolas", 10),
+        )
+        expanded_issues.grid(row=1, column=0, sticky="nsew")
+        issues_scroll = ttk.Scrollbar(
+            issues_frame, orient="vertical", command=expanded_issues.yview
+        )
+        issues_scroll.grid(row=1, column=1, sticky="ns")
+        expanded_issues.configure(yscrollcommand=issues_scroll.set)
+        self.expanded_issue_text = expanded_issues
+
+        history_frame = ttk.Frame(notebook)
+        history_frame.columnconfigure(0, weight=1)
+        history_frame.rowconfigure(0, weight=1)
+        notebook.add(history_frame, text="Run history")
+        expanded_history = ttk.Treeview(
+            history_frame,
+            columns=(
+                "started",
+                "finished",
+                "mode",
+                "work",
+                "regions",
+                "status",
+                "duration",
+            ),
+            show="headings",
+            selectmode="browse",
+        )
+        for column, heading, width in (
+            ("started", "Started", 145),
+            ("finished", "Finished", 145),
+            ("mode", "Mode", 90),
+            ("work", "Stage(s)", 240),
+            ("regions", "Region(s)", 190),
+            ("status", "Exit status", 130),
+            ("duration", "Duration", 80),
+        ):
+            expanded_history.heading(column, text=heading)
+            expanded_history.column(
+                column, width=width, stretch=column in {"work", "regions"}
+            )
+        expanded_history.grid(row=0, column=0, sticky="nsew")
+        history_scroll_y = ttk.Scrollbar(
+            history_frame, orient="vertical", command=expanded_history.yview
+        )
+        history_scroll_y.grid(row=0, column=1, sticky="ns")
+        history_scroll_x = ttk.Scrollbar(
+            history_frame, orient="horizontal", command=expanded_history.xview
+        )
+        history_scroll_x.grid(row=1, column=0, sticky="ew")
+        expanded_history.configure(
+            yscrollcommand=history_scroll_y.set,
+            xscrollcommand=history_scroll_x.set,
+        )
+        expanded_history.bind(
+            "<Double-1>",
+            lambda _event: self._open_history_log_from_tree(expanded_history),
+        )
+        self.expanded_run_history_tree = expanded_history
+
+        footer = ttk.Frame(dialog)
+        footer.grid(row=1, column=0, sticky="ew", padx=10, pady=(4, 10))
+        ttk.Label(
+            footer,
+            text="This is a live view. Closing it does not stop the current run.",
+            foreground="#555555",
+        ).pack(side="left")
+        ttk.Button(
+            footer, text="Close", command=self._close_run_feedback_dialog
+        ).pack(side="right")
+
+        self._copy_run_text_widget(self.log_text, expanded_log)
+        self._copy_run_text_widget(self.issue_text, expanded_issues)
+        self._populate_run_history_tree(expanded_history)
+        try:
+            notebook.select(self.run_feedback_notebook.index("current"))
+        except tk.TclError:
+            pass
+        dialog.focus_set()
 
     def _open_failure_setting(self, file_name: str, key: str) -> None:
         try:
@@ -5794,29 +6292,40 @@ class RunTab(ttk.Frame):
             self.url_link_counter += 1
             link_tag = f"output_url_{self.url_link_counter}"
             widget.insert("end", segment, (base_tag, link_tag))
-            widget.tag_configure(link_tag, foreground="#0D5D9B", underline=True)
-            widget.tag_bind(
-                link_tag,
-                "<Button-1>",
-                lambda _event, target=url: self._open_output_url(target),
-            )
-            widget.tag_bind(
-                link_tag,
-                "<Enter>",
-                lambda _event, target_widget=widget: target_widget.configure(
-                    cursor="hand2"
-                ),
-            )
-            widget.tag_bind(
-                link_tag,
-                "<Leave>",
-                lambda _event, target_widget=widget: target_widget.configure(cursor=""),
-            )
+            self.output_url_targets[link_tag] = url
+            self._bind_output_url_tag(widget, link_tag, url)
+
+    def _insert_issue_setting_link(
+        self, widget: tk.Text, target: Tuple[str, str]
+    ) -> None:
+        self.issue_link_counter += 1
+        link_tag = f"issue_link_{self.issue_link_counter}"
+        self.issue_link_targets[link_tag] = target
+        widget.insert("end", "  Open related setting", (link_tag,))
+        self._bind_issue_setting_tag(widget, link_tag, target)
+
+    @staticmethod
+    def _existing_text_widget(widget: Optional[tk.Text]) -> Optional[tk.Text]:
+        if widget is None:
+            return None
+        try:
+            return widget if widget.winfo_exists() else None
+        except tk.TclError:
+            return None
 
     def add_log(self, level: str, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted = f"[{timestamp}] {message}"
         if level in {"warning", "error"}:
+            self.current_run_diagnostics.append(
+                {
+                    "severity": level,
+                    "message": message.strip(),
+                    "stage": self.current_stage,
+                    "region": self.current_region,
+                    "technology": self.current_technology,
+                }
+            )
             context = " / ".join(
                 part
                 for part in (
@@ -5830,48 +6339,48 @@ class RunTab(ttk.Frame):
                 display += f" [{context}]"
             display += f" {message}"
             target = self._failure_config_target(message) if level == "error" else None
-            self.issue_text.configure(state="normal")
-            self._insert_text_with_urls(self.issue_text, display, level)
-            if target:
-                self.issue_link_counter += 1
-                link_tag = f"issue_link_{self.issue_link_counter}"
-                self.issue_text.insert("end", "  Open related setting", (link_tag,))
-                self.issue_text.tag_configure(
-                    link_tag, foreground="#0D5D9B", underline=True
-                )
-                self.issue_text.tag_bind(
-                    link_tag,
-                    "<Button-1>",
-                    lambda _event, file_name=target[0], key=target[1]: (
-                        self._open_failure_setting(file_name, key)
-                    ),
-                )
-                self.issue_text.tag_bind(
-                    link_tag,
-                    "<Enter>",
-                    lambda _event: self.issue_text.configure(cursor="hand2"),
-                )
-                self.issue_text.tag_bind(
-                    link_tag,
-                    "<Leave>",
-                    lambda _event: self.issue_text.configure(cursor=""),
-                )
-            self.issue_text.insert("end", "\n")
-            self.issue_text.configure(state="disabled")
-            self.issue_text.see("end")
+            issue_widgets = [self.issue_text]
+            expanded_issues = self._existing_text_widget(self.expanded_issue_text)
+            if expanded_issues is not None:
+                issue_widgets.append(expanded_issues)
+            for widget in issue_widgets:
+                widget.configure(state="normal")
+                self._insert_text_with_urls(widget, display, level)
+                if target:
+                    self._insert_issue_setting_link(widget, target)
+                widget.insert("end", "\n")
+                widget.configure(state="disabled")
+                widget.see("end")
             self.issue_count += 1
             self.run_feedback_notebook.tab(
                 self.issues_frame, text=f"Warnings & Errors ({self.issue_count})"
             )
+            if self.expanded_feedback_notebook is not None:
+                try:
+                    self.expanded_feedback_notebook.tab(
+                        1, text=f"Warnings & Errors ({self.issue_count})"
+                    )
+                except tk.TclError:
+                    pass
             if level == "error":
                 self.run_feedback_notebook.select(self.issues_frame)
+                if self.expanded_feedback_notebook is not None:
+                    try:
+                        self.expanded_feedback_notebook.select(1)
+                    except tk.TclError:
+                        pass
         else:
             tag = level if level in {"info", "success"} else "info"
-            self.log_text.configure(state="normal")
-            self._insert_text_with_urls(self.log_text, formatted, tag)
-            self.log_text.insert("end", "\n", tag)
-            self.log_text.configure(state="disabled")
-            self.log_text.see("end")
+            output_widgets = [self.log_text]
+            expanded_log = self._existing_text_widget(self.expanded_log_text)
+            if expanded_log is not None:
+                output_widgets.append(expanded_log)
+            for widget in output_widgets:
+                widget.configure(state="normal")
+                self._insert_text_with_urls(widget, formatted, tag)
+                widget.insert("end", "\n", tag)
+                widget.configure(state="disabled")
+                widget.see("end")
         self._append_run_log(formatted)
 
     def _update_status_labels(self) -> None:
@@ -5890,15 +6399,32 @@ class RunTab(ttk.Frame):
         self.state_label.configure(text=f"Status: {self.status.capitalize()}")
 
     def _clear_logs(self) -> None:
-        for widget in (self.log_text, self.issue_text):
+        widgets = [self.log_text, self.issue_text]
+        for expanded in (self.expanded_log_text, self.expanded_issue_text):
+            existing = self._existing_text_widget(expanded)
+            if existing is not None:
+                widgets.append(existing)
+        for widget in widgets:
             widget.configure(state="normal")
             widget.delete("1.0", "end")
             widget.configure(state="disabled")
         self.issue_count = 0
         self.issue_link_counter = 0
         self.url_link_counter = 0
+        self.output_url_targets.clear()
+        self.issue_link_targets.clear()
         self.traceback_active = False
+        self.current_run_context = {}
+        self.current_run_diagnostics = []
+        self.current_run_missing_optional_data = set()
+        self.capture_missing_optional_data = False
+        self.current_run_overpass_retries = set()
         self.run_feedback_notebook.tab(self.issues_frame, text="Warnings & Errors (0)")
+        if self.expanded_feedback_notebook is not None:
+            try:
+                self.expanded_feedback_notebook.tab(1, text="Warnings & Errors (0)")
+            except tk.TclError:
+                pass
 
     def _resolve_results_json_path(self) -> Path:
         base_dir = self.expected_output_dir or PARENT_DIR
@@ -5958,7 +6484,7 @@ class RunTab(ttk.Frame):
         shared_scenario_count = max(scenario_counts, default=1)
         stages = set(context.get("stages", []))
         total = 1  # Snakemake's final `all` job.
-        if "spatial_data_prep" in stages:
+        if "spatial_data_prep" in stages or "exclusion" in stages:
             total += region_count
         if "exclusion" in stages:
             total += region_count * technology_scenario_count
@@ -5977,6 +6503,7 @@ class RunTab(ttk.Frame):
     def _initialize_run_feedback(self, report: Mapping[str, Any]) -> None:
         context = report.get("run_context", {})
         context = context if isinstance(context, Mapping) else {}
+        self.current_run_context = dict(context)
         stages = list(context.get("stages", []))
         regions = list(context.get("regions", []))
         self.current_stage = stages[0] if stages else str(report.get("script_id") or "")
@@ -6015,6 +6542,21 @@ class RunTab(ttk.Frame):
             if re.match(r"^[A-Za-z_][\w.]*?(?:Error|Exception):", message.strip()):
                 self.traceback_active = False
             return "error"
+        # Scenario mappings for technologies outside the current selection are
+        # retained deliberately, so changing selections does not discard their
+        # configuration.  This is advisory even if an upstream formatter adds
+        # an ERROR prefix to the message.
+        if "scenario selections exist for unselected technologies" in lower:
+            return "warning"
+        if (
+            "does not define the scenario" in lower
+            or "selected snakemake scenarios are not defined" in lower
+        ):
+            return "error"
+        if "overpass query failed" in lower and "retrying" in lower:
+            return "warning"
+        if "following data was not found in data folder" in lower:
+            return "warning"
         if re.search(r"\bwarning\b|\bwarn:|userwarning|futurewarning", lower):
             return "warning"
         if re.search(
@@ -6438,9 +6980,21 @@ class RunTab(ttk.Frame):
             if custom_name:
                 for region in regions or [str(config.get("study_region_name") or "")]:
                     try:
-                        resolved_name = custom_name.format(region_name=region)
-                    except (KeyError, ValueError):
-                        resolved_name = custom_name
+                        resolved_path, used_legacy_name = (
+                            resolve_custom_study_area_path(
+                                configured_region=region,
+                                filename_template=custom_name,
+                                project_root=PARENT_DIR,
+                            )
+                        )
+                    except ValueError:
+                        resolved_path = (
+                            PARENT_DIR
+                            / "Raw_Spatial_Data"
+                            / "custom_study_area"
+                            / custom_name
+                        )
+                        used_legacy_name = False
                         self._add_preflight_issue(
                             report,
                             "error",
@@ -6449,11 +7003,16 @@ class RunTab(ttk.Frame):
                     self._record_preflight_path(
                         report,
                         f"Custom study area ({region})",
-                        PARENT_DIR
-                        / "Raw_Spatial_Data"
-                        / "custom_study_area"
-                        / resolved_name,
+                        resolved_path,
                     )
+                    if used_legacy_name:
+                        self._add_preflight_issue(
+                            report,
+                            "warning",
+                            "Using a legacy cleaned custom study-area filename for "
+                            f"{region}: {resolved_path.name}. Rename it using the "
+                            "original region spelling when convenient.",
+                        )
 
             if str(config.get("landcover_source") or "").strip().lower() == "file":
                 name = str(config.get("landcover_filename") or "").strip()
@@ -6811,6 +7370,51 @@ class RunTab(ttk.Frame):
         self._check_referenced_inputs(report, config, regions, stages)
         self._check_preflight_dependencies(report, stages, mode)
 
+        if mode == "snakemake" and "exclusion" in stages:
+            try:
+                spatial_plan = build_spatial_prep_plan(project_root=PARENT_DIR)
+                report["spatial_prep_plan"] = spatial_plan
+                external_issues = spatial_plan.get("external_issues") or []
+                for issue in external_issues:
+                    self._add_preflight_issue(
+                        report,
+                        "error",
+                        "Spatial preparation cannot create the external input "
+                        f"{issue.get('path')}: {issue.get('reason')}.",
+                    )
+                if spatial_plan.get("requires_preparation"):
+                    affected = ", ".join(spatial_plan.get("invalid_regions") or [])
+                    if dry_run:
+                        message = (
+                            "Spatial preparation is required for "
+                            f"{affected}. The dry run will force the checkpoint in "
+                            "planning mode but will not download or modify data."
+                        )
+                    else:
+                        message = (
+                            "Spatial preparation will be forced before exclusion for: "
+                            f"{affected}. Prepared inputs will be validated again "
+                            "before exclusion starts."
+                        )
+                    self._add_preflight_issue(report, "warning", message)
+                    command = report.get("command")
+                    if isinstance(command, list) and "--forcerun" not in command:
+                        force_targets = [
+                            str(
+                                Path("data")
+                                / region
+                                / f"{region}_local_CRS.pkl"
+                            )
+                            for region in spatial_plan.get("invalid_regions") or []
+                        ]
+                        command.extend(["--forcerun", *force_targets])
+            except Exception as exc:
+                self._add_preflight_issue(
+                    report,
+                    "error",
+                    f"Spatial preparation planning could not run: {exc}",
+                )
+
         execution_summary = "Single script"
         if mode == "snakemake":
             execution_summary = (
@@ -6855,12 +7459,269 @@ class RunTab(ttk.Frame):
                 pass
         self.temp_snakefile_path = None
 
+    def _capture_run_diagnostic_context(self, message: str) -> None:
+        """Collect structured details that are too fragmented in raw output."""
+        stripped = message.strip()
+        lower = stripped.lower()
+        if "following data was not found in data folder" in lower:
+            self.capture_missing_optional_data = True
+            return
+        if self.capture_missing_optional_data:
+            if stripped.startswith("-"):
+                item = stripped.lstrip("- ").strip()
+                if item:
+                    self.current_run_missing_optional_data.add(item)
+                return
+            self.capture_missing_optional_data = False
+
+        retry_match = re.search(
+            r"Overpass query failed for ['\"]([^'\"]+)['\"].*retrying",
+            stripped,
+            re.IGNORECASE,
+        )
+        if retry_match:
+            self.current_run_overpass_retries.add(retry_match.group(1))
+
+    @staticmethod
+    def _format_run_duration(seconds: Optional[float]) -> str:
+        if seconds is None:
+            return "--"
+        total_seconds = max(0, int(round(seconds)))
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds_part = divmod(remainder, 60)
+        if hours:
+            return f"{hours}h {minutes}m {seconds_part}s"
+        if minutes:
+            return f"{minutes}m {seconds_part}s"
+        return f"{seconds_part}s"
+
+    @staticmethod
+    def _unique_summary_messages(messages: List[str], limit: int = 6) -> List[str]:
+        unique: List[str] = []
+        seen: set[str] = set()
+        for message in messages:
+            compact = re.sub(r"\s+", " ", message).strip()
+            if not compact:
+                continue
+            key = compact.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(compact)
+        if len(unique) > limit:
+            remaining = len(unique) - limit
+            return [*unique[:limit], f"{remaining} additional message(s); see the full log."]
+        return unique
+
+    def _group_run_diagnostics(self, *, successful: bool) -> Tuple[List[str], List[str]]:
+        warnings: List[str] = []
+        errors: List[str] = []
+        if self.current_run_overpass_retries:
+            datasets = ", ".join(sorted(self.current_run_overpass_retries))
+            recovery = " and the workflow recovered" if successful else ""
+            warnings.append(
+                "The OpenStreetMap service temporarily failed for "
+                f"{datasets}; an automatic retry was attempted{recovery}."
+            )
+        if self.current_run_missing_optional_data:
+            warnings.append(
+                "Optional exclusion data were unavailable and omitted: "
+                + ", ".join(sorted(self.current_run_missing_optional_data))
+                + "."
+            )
+
+        for diagnostic in self.current_run_diagnostics:
+            severity = diagnostic.get("severity", "warning")
+            message = diagnostic.get("message", "").strip()
+            lower = message.lower()
+            if not message:
+                continue
+            if (
+                "following data was not found in data folder" in lower
+                or ("overpass query failed" in lower and "retrying" in lower)
+            ):
+                continue
+            if lower.startswith("spatial preparation check:"):
+                continue
+            if severity == "error":
+                if lower.startswith("traceback (most recent call last)"):
+                    continue
+                if re.match(r'^file\s+["\']', message, re.IGNORECASE):
+                    continue
+                if not re.search(
+                    r"error|exception|failed|failure|missing|lock|exited|cannot|"
+                    r"not found|invalid|terminated|killed|non-zero",
+                    lower,
+                ):
+                    continue
+                errors.append(message)
+            else:
+                warnings.append(message)
+
+        warnings = self._unique_summary_messages(warnings)
+        errors = self._unique_summary_messages(errors)
+        if successful and errors:
+            warnings.extend(
+                f"Recovered/non-fatal: {message}" for message in errors
+            )
+            errors = []
+            warnings = self._unique_summary_messages(warnings)
+        return warnings, errors
+
+    def _build_run_summary(
+        self,
+        record: Mapping[str, Any],
+        *,
+        return_code: int,
+        outcome: str,
+        is_dry_run: bool,
+    ) -> Dict[str, Any]:
+        successful = outcome in {"completed", "dry_run_completed"}
+        warnings, errors = self._group_run_diagnostics(successful=successful)
+        if outcome in {"stopped", "reset"} and errors:
+            warnings = self._unique_summary_messages([*warnings, *errors])
+            errors = []
+        is_workflow = str(record.get("script_id")) == "snakemake"
+        subject = "Workflow" if is_workflow else "Run"
+
+        if outcome == "dry_run_completed" and warnings:
+            heading = "Dry run completed with warnings"
+            subtitle = (
+                "Snakemake planned the workflow without executing jobs; review the "
+                "warnings below."
+            )
+            color = "#8A5A00"
+            status_text = "Dry run completed with warnings"
+        elif outcome == "dry_run_completed":
+            heading = "Dry run completed successfully"
+            subtitle = "Snakemake validated and planned the workflow; no jobs were executed."
+            color = "#1A7F37"
+            status_text = "Dry run completed"
+        elif outcome == "completed" and warnings:
+            heading = f"{subject} completed with warnings"
+            subtitle = "All requested jobs completed, but review the warnings below."
+            color = "#8A5A00"
+            status_text = "Completed with warnings"
+        elif outcome == "completed":
+            heading = f"{subject} completed successfully"
+            subtitle = "All requested work finished without detected warnings or errors."
+            color = "#1A7F37"
+            status_text = "Completed"
+        elif outcome == "stopped":
+            heading = f"{subject} was stopped"
+            subtitle = "The process ended after a stop request. Completed outputs were retained."
+            color = "#8A5A00"
+            status_text = "Stopped"
+        elif outcome == "reset":
+            heading = f"{subject} was reset"
+            subtitle = "The process was terminated and the Run tab was reset."
+            color = "#8A5A00"
+            status_text = "Reset"
+        else:
+            heading = f"{subject} failed"
+            subtitle = "The workflow did not complete. Review the error summary and full log."
+            color = "#B42318"
+            status_text = "Failed"
+
+        regions = [str(value) for value in record.get("regions", []) if str(value)]
+        technologies = [
+            str(value) for value in record.get("technologies", []) if str(value)
+        ]
+        stages = [str(value) for value in record.get("stages", []) if str(value)]
+        scenario_mapping = self.current_run_context.get("technology_scenarios", {})
+        scenario_parts: List[str] = []
+        if isinstance(scenario_mapping, Mapping):
+            for technology, values in scenario_mapping.items():
+                selected = self._preflight_values(values)
+                if selected:
+                    scenario_parts.append(f"{technology}: {', '.join(selected)}")
+        single_scenario = str(self.current_run_context.get("scenario", "")).strip()
+
+        duration = None
+        if self.start_time is not None and self.end_time is not None:
+            duration = self.end_time - self.start_time
+        if is_dry_run:
+            jobs_text = "Planning only; no jobs executed"
+        elif self.total_jobs:
+            jobs_text = f"{self.completed_jobs} of {self.total_jobs} completed"
+        else:
+            jobs_text = f"{self.completed_jobs} completed"
+
+        facts: List[Tuple[str, str]] = [
+            ("Status", status_text),
+            ("Duration", self._format_run_duration(duration)),
+            ("Jobs", jobs_text),
+            (
+                "Stages",
+                ", ".join(self.STAGE_LABELS.get(stage, stage) for stage in stages)
+                or "Not recorded",
+            ),
+            ("Regions", ", ".join(regions) or "Not applicable"),
+            ("Technologies", ", ".join(technologies) or "Not applicable"),
+        ]
+        scenario_text = "; ".join(scenario_parts) or single_scenario
+        if scenario_text:
+            facts.append(("Scenarios", scenario_text))
+        facts.append(("Exit code", str(return_code)))
+
+        sections: List[Tuple[str, List[str]]] = []
+        if successful:
+            completed_items = (
+                ["The workflow graph and required commands were validated."]
+                if is_dry_run
+                else [
+                    f"{self.STAGE_LABELS.get(stage, stage)} completed."
+                    for stage in stages
+                ]
+            )
+            if not completed_items:
+                completed_items = ["The requested process completed."]
+            sections.append(("Completed work", completed_items))
+        elif self.completed_jobs:
+            sections.append(
+                ("Completed work", [f"{self.completed_jobs} job(s) completed before the run ended."])
+            )
+        if warnings:
+            sections.append(("Warnings", warnings))
+        if errors:
+            sections.append(("Errors", errors))
+        elif not successful and outcome == "failed":
+            sections.append(
+                ("Errors", [f"The process exited with code {return_code}; see the full log for details."])
+            )
+        if not sections:
+            sections.append(("Result", ["No additional diagnostics were recorded."]))
+
+        return {
+            "title": "Workflow run summary" if is_workflow else "Run summary",
+            "heading": heading,
+            "subtitle": subtitle,
+            "color": color,
+            "facts": facts,
+            "sections": sections,
+        }
+
     def _handle_process_output(self, level: str, message: str) -> None:
+        self._capture_run_diagnostic_context(message)
         self._update_run_context_from_output(message)
         self.add_log(self._classify_process_message(level, message), message)
 
     def _handle_process_exit(self, return_code: int) -> None:
         is_dry_run = self.current_run_is_dry_run
+        record = next(
+            (
+                item
+                for item in self.run_history
+                if item.get("id") == self.current_run_record_id
+            ),
+            {
+                "script_id": self.last_run_script_id or "run",
+                "stages": self.current_run_context.get("stages", []),
+                "regions": self.current_run_context.get("regions", []),
+                "technologies": self.current_run_context.get("technologies", []),
+                "cwd": str(self.expected_output_dir or PARENT_DIR),
+            },
+        )
         self.runner.cancel()
         self._stop_spinner()
         self._cancel_duration_timer()
@@ -6873,6 +7734,12 @@ class RunTab(ttk.Frame):
             )
             history_status = "Dry run reset" if is_dry_run else "Reset"
             self._finish_run_record(return_code, history_status)
+            self._show_run_summary(
+                record,
+                return_code=return_code,
+                outcome="reset",
+                is_dry_run=is_dry_run,
+            )
             self.current_run_log_path = None
             self._finalize_reset()
             return
@@ -6895,15 +7762,16 @@ class RunTab(ttk.Frame):
             self._update_status_labels()
             if is_dry_run:
                 self._finish_run_record(return_code, "Dry run completed")
-                messagebox.showinfo(
-                    "Dry Run Complete",
-                    "Dry run finished successfully. No jobs were executed.",
-                )
+                outcome = "dry_run_completed"
             else:
                 self._finish_run_record(return_code, "Completed")
-                messagebox.showinfo(
-                    "Execution Complete", "Process finished successfully."
-                )
+                outcome = "completed"
+            self._show_run_summary(
+                record,
+                return_code=return_code,
+                outcome=outcome,
+                is_dry_run=is_dry_run,
+            )
         else:
             self.status = "error"
             if self.stop_requested:
@@ -6913,21 +7781,20 @@ class RunTab(ttk.Frame):
                     f"{process_name} exited with code {return_code} after stop request.",
                 )
                 history_status = "Dry run stopped" if is_dry_run else "Stopped"
-                self._finish_run_record(return_code, history_status)
-                messagebox.showerror(
-                    "Dry Run Stopped" if is_dry_run else "Execution Stopped",
-                    f"{process_name} exited with code {return_code} after stop request.",
-                )
+                outcome = "stopped"
             else:
                 process_name = "Dry run" if is_dry_run else "Process"
                 self.add_log("error", f"{process_name} exited with code {return_code}.")
                 history_status = "Dry run failed" if is_dry_run else "Failed"
-                self._finish_run_record(return_code, history_status)
-                messagebox.showerror(
-                    "Dry Run Failed" if is_dry_run else "Execution Failed",
-                    f"{process_name} exited with code {return_code}.",
-                )
+                outcome = "failed"
+            self._finish_run_record(return_code, history_status)
             self._update_status_labels()
+            self._show_run_summary(
+                record,
+                return_code=return_code,
+                outcome=outcome,
+                is_dry_run=is_dry_run,
+            )
         self.current_run_log_path = None
         self.stop_requested = False
         self.reset_requested = False
@@ -7026,6 +7893,13 @@ class RunTab(ttk.Frame):
         self._start_spinner()
         self._start_duration_timer()
         action_name = "dry run" if dry_run else "process"
+        spatial_plan = report.get("spatial_prep_plan")
+        if isinstance(spatial_plan, Mapping):
+            plan_level = (
+                "warning" if spatial_plan.get("requires_preparation") else "info"
+            )
+            for line in format_spatial_prep_plan(spatial_plan):
+                self.add_log(plan_level, line)
         self.add_log("info", f"Starting {action_name}: {self.last_command_text}")
         self._update_run_button_states()
         self._update_status_labels()
@@ -7364,7 +8238,11 @@ class MapTab(ttk.Frame):
                     widget.destroy()
                 except Exception:
                     pass
-        for child in list(self.map_container.winfo_children()):
+        try:
+            children = list(self.map_container.winfo_children())
+        except tk.TclError:
+            children = []
+        for child in children:
             try:
                 child.destroy()
             except Exception:
@@ -8540,6 +9418,698 @@ class ConfigurationSetupRequiredTab(ttk.Frame):
         ttk.Button(card, text="Start Configuration Setup", command=open_setup).pack()
 
 
+class DocumentationTab(ttk.Frame):
+    """Read-only browser for every page in the MkDocs documentation."""
+
+    DOCS_ROOT = PARENT_DIR / "docs"
+    MKDOCS_CONFIG = PARENT_DIR / "mkdocs.yml"
+    ONLINE_DOCS_ROOT = "https://lava-tool.readthedocs.io/en/latest/"
+
+    def __init__(self, master: tk.Widget) -> None:
+        super().__init__(master)
+        self.document_paths: Dict[str, Path] = {}
+        self.current_document: Optional[Path] = None
+        self.document_title_var = tk.StringVar(value="Documentation")
+        self.document_path_var = tk.StringVar(value="")
+        self.document_link_counter = 0
+        self.document_images: List[Any] = []
+        self.document_table_widgets: List[tk.Widget] = []
+
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(1, weight=1)
+
+        header = ttk.Frame(self, padding=(10, 8, 10, 6))
+        header.grid(row=0, column=0, columnspan=2, sticky="ew")
+        header.columnconfigure(0, weight=1)
+        ttk.Label(
+            header,
+            textvariable=self.document_title_var,
+            font=("Segoe UI", 14, "bold"),
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            header,
+            textvariable=self.document_path_var,
+            foreground="#666666",
+        ).grid(row=1, column=0, sticky="w", pady=(2, 0))
+        ttk.Button(
+            header,
+            text="Open Markdown file",
+            command=self._open_selected_document,
+        ).grid(row=0, column=1, rowspan=2, sticky="e", padx=(8, 0))
+        ttk.Button(
+            header,
+            text="Open online documentation",
+            command=self._open_online_documentation,
+        ).grid(row=0, column=2, rowspan=2, sticky="e", padx=(8, 0))
+
+        navigation = ttk.LabelFrame(self, text="Documents", padding=6)
+        navigation.grid(row=1, column=0, sticky="ns", padx=(10, 4), pady=(0, 10))
+        navigation.rowconfigure(0, weight=1)
+        navigation.columnconfigure(0, weight=1)
+        self.document_tree = ttk.Treeview(
+            navigation,
+            show="tree",
+            selectmode="browse",
+        )
+        self.document_tree.column("#0", width=250, minwidth=180, stretch=True)
+        self.document_tree.grid(row=0, column=0, sticky="nsew")
+        navigation_scroll = ttk.Scrollbar(
+            navigation, orient="vertical", command=self.document_tree.yview
+        )
+        navigation_scroll.grid(row=0, column=1, sticky="ns")
+        self.document_tree.configure(yscrollcommand=navigation_scroll.set)
+        self.document_tree.bind("<<TreeviewSelect>>", self._on_document_selected)
+
+        content = ttk.Frame(self)
+        content.grid(row=1, column=1, sticky="nsew", padx=(4, 10), pady=(0, 10))
+        content.columnconfigure(0, weight=1)
+        content.rowconfigure(0, weight=1)
+        self.document_text = tk.Text(
+            content,
+            wrap="word",
+            state="disabled",
+            font=("Segoe UI", 10),
+            padx=14,
+            pady=12,
+        )
+        self.document_text.grid(row=0, column=0, sticky="nsew")
+        content_scroll = ttk.Scrollbar(
+            content, orient="vertical", command=self.document_text.yview
+        )
+        content_scroll.grid(row=0, column=1, sticky="ns")
+        self.document_text.configure(yscrollcommand=content_scroll.set)
+
+        first_document = self._populate_document_tree()
+        if first_document:
+            self.document_tree.selection_set(first_document)
+            self.document_tree.focus(first_document)
+            self.document_tree.see(first_document)
+            self._display_document(first_document)
+        else:
+            self._set_document_text("No Markdown documentation files were found.")
+
+    @classmethod
+    def _documentation_entries(cls) -> List[Tuple[Tuple[str, ...], str, Path]]:
+        """Return MkDocs navigation entries followed by any unlisted pages."""
+        entries: List[Tuple[Tuple[str, ...], str, Path]] = []
+        listed_paths: set[Path] = set()
+
+        def visit_navigation(items: Any, parents: Tuple[str, ...] = ()) -> None:
+            if not isinstance(items, list):
+                return
+            for item in items:
+                if not isinstance(item, Mapping):
+                    continue
+                for title, destination in item.items():
+                    if isinstance(destination, str) and destination.endswith(".md"):
+                        path = (cls.DOCS_ROOT / destination).resolve()
+                        if path.is_file():
+                            entries.append((parents, str(title), path))
+                            listed_paths.add(path)
+                    elif isinstance(destination, list):
+                        visit_navigation(destination, parents + (str(title),))
+
+        if yaml is not None and cls.MKDOCS_CONFIG.is_file():
+            try:
+                config = yaml.safe_load(
+                    cls.MKDOCS_CONFIG.read_text(encoding="utf-8")
+                ) or {}
+                if isinstance(config, Mapping):
+                    visit_navigation(config.get("nav", []))
+            except (OSError, ValueError, yaml.YAMLError):
+                pass
+
+        for path in sorted(cls.DOCS_ROOT.rglob("*.md")):
+            resolved = path.resolve()
+            if resolved in listed_paths:
+                continue
+            relative = path.relative_to(cls.DOCS_ROOT)
+            parents = tuple(
+                part.replace("_", " ").title() for part in relative.parts[:-1]
+            )
+            title = path.stem.replace("_", " ").title()
+            entries.append((parents or ("Other",), title, resolved))
+        return entries
+
+    def _populate_document_tree(self) -> Optional[str]:
+        parent_nodes: Dict[Tuple[str, ...], str] = {}
+        first_document: Optional[str] = None
+        for parents, title, path in self._documentation_entries():
+            parent_id = ""
+            accumulated: Tuple[str, ...] = ()
+            for category in parents:
+                accumulated += (category,)
+                if accumulated not in parent_nodes:
+                    parent_nodes[accumulated] = self.document_tree.insert(
+                        parent_id,
+                        "end",
+                        text=category,
+                        open=True,
+                    )
+                parent_id = parent_nodes[accumulated]
+            relative = path.relative_to(self.DOCS_ROOT.resolve()).as_posix()
+            item_id = f"document:{relative}"
+            self.document_tree.insert(parent_id, "end", iid=item_id, text=title)
+            self.document_paths[item_id] = path
+            if first_document is None or relative == "index.md":
+                first_document = item_id
+        return first_document
+
+    def _on_document_selected(self, _event: tk.Event) -> None:
+        selection = self.document_tree.selection()
+        if selection and selection[0] in self.document_paths:
+            self._display_document(selection[0])
+
+    def _display_document(self, item_id: str) -> None:
+        path = self.document_paths.get(item_id)
+        if path is None:
+            return
+        self.current_document = path
+        self.document_title_var.set(self.document_tree.item(item_id, "text"))
+        self.document_path_var.set(path.relative_to(PARENT_DIR).as_posix())
+        self._load_document(self.document_text, path)
+
+    def _set_document_text(self, content: str) -> None:
+        self.document_text.configure(state="normal")
+        self.document_text.delete("1.0", "end")
+        self.document_text.insert("end", content)
+        self.document_text.configure(state="disabled")
+
+    @staticmethod
+    def _prepare_markdown(content: str) -> str:
+        """Normalize MkDocs-only syntax before parsing it as Markdown."""
+        if content.startswith("---"):
+            lines = content.splitlines()
+            if lines and lines[0].strip() == "---":
+                try:
+                    closing = next(
+                        index
+                        for index, line in enumerate(lines[1:], start=1)
+                        if line.strip() == "---"
+                    )
+                except StopIteration:
+                    closing = -1
+                if closing >= 0:
+                    content = "\n".join(lines[closing + 1 :])
+
+        # Image sizing attributes are understood by MkDocs but otherwise show
+        # up as literal text in a generic Markdown parser.
+        content = re.sub(
+            r"(!\[[^\]]*\]\([^\n)]+\))\s*\{[^\n}]*\}", r"\1", content
+        )
+
+        # Convert MkDocs admonitions into block quotes while retaining their
+        # title, formatted content, links, and lists.
+        source_lines = content.splitlines()
+        converted: List[str] = []
+        index = 0
+        while index < len(source_lines):
+            line = source_lines[index]
+            match = re.match(
+                r'^!!!\s+([A-Za-z0-9_-]+)(?:\s+["\'](.+?)["\'])?\s*$', line
+            )
+            if not match:
+                converted.append(line)
+                index += 1
+                continue
+            kind = match.group(1).replace("_", " ").title()
+            title = match.group(2) or kind
+            converted.extend((f"> **{title}**", ">"))
+            index += 1
+            while index < len(source_lines):
+                nested = source_lines[index]
+                if nested.startswith("    "):
+                    converted.append("> " + nested[4:])
+                    index += 1
+                    continue
+                if not nested.strip():
+                    converted.append(">")
+                    index += 1
+                    continue
+                break
+        return "\n".join(converted)
+
+    @staticmethod
+    def _plain_markdown_text(nodes: Any) -> str:
+        if isinstance(nodes, list):
+            return "".join(DocumentationTab._plain_markdown_text(node) for node in nodes)
+        if not isinstance(nodes, Mapping):
+            return str(nodes or "")
+        node_type = str(nodes.get("type", ""))
+        if node_type in {"softbreak", "linebreak"}:
+            return " "
+        if node_type == "inline_html":
+            raw = str(nodes.get("raw", ""))
+            return "\n" if re.fullmatch(r"<br\s*/?>", raw, re.IGNORECASE) else ""
+        if "raw" in nodes:
+            return str(nodes.get("raw", ""))
+        return DocumentationTab._plain_markdown_text(nodes.get("children", []))
+
+    @staticmethod
+    def _markdown_link_target(nodes: Any) -> Optional[str]:
+        for node in nodes if isinstance(nodes, list) else [nodes]:
+            if not isinstance(node, Mapping):
+                continue
+            if node.get("type") == "link":
+                target = str(node.get("attrs", {}).get("url", "")).strip()
+                if target:
+                    return target
+            nested = DocumentationTab._markdown_link_target(node.get("children", []))
+            if nested:
+                return nested
+        return None
+
+    def _configure_document_tags(self, widget: tk.Text) -> None:
+        widget.tag_configure(
+            "h1", font=("Segoe UI", 18, "bold"), spacing1=4, spacing3=12
+        )
+        widget.tag_configure(
+            "h2", font=("Segoe UI", 14, "bold"), spacing1=14, spacing3=7
+        )
+        widget.tag_configure(
+            "h3", font=("Segoe UI", 11, "bold"), spacing1=11, spacing3=5
+        )
+        widget.tag_configure(
+            "h4", font=("Segoe UI", 10, "bold"), spacing1=8, spacing3=4
+        )
+        widget.tag_configure("strong", font=("Segoe UI", 10, "bold"))
+        widget.tag_configure("emphasis", font=("Segoe UI", 10, "italic"))
+        widget.tag_configure(
+            "inline_code",
+            font=("Consolas", 9),
+            background="#EEF1F4",
+            foreground="#8B1E3F",
+        )
+        widget.tag_configure(
+            "code_block",
+            font=("Consolas", 9),
+            background="#F1F3F5",
+            lmargin1=16,
+            lmargin2=16,
+            rmargin=12,
+            spacing1=6,
+            spacing3=8,
+        )
+        widget.tag_configure(
+            "quote",
+            background="#EEF5FA",
+            foreground="#34495E",
+            lmargin1=18,
+            lmargin2=18,
+            rmargin=12,
+            spacing1=5,
+            spacing3=7,
+        )
+        widget.tag_configure(
+            "list", lmargin1=20, lmargin2=38, spacing1=2, spacing3=2
+        )
+        widget.tag_configure(
+            "table", font=("Consolas", 9), background="#F7F8FA", spacing1=2
+        )
+        widget.tag_configure(
+            "table_head",
+            font=("Consolas", 9, "bold"),
+            background="#E5EAF0",
+            spacing1=3,
+            spacing3=3,
+        )
+        widget.tag_configure("link", foreground="#0D5D9B", underline=True)
+        widget.tag_configure("caption", foreground="#666666", justify="center")
+
+    def _insert_document_link(
+        self,
+        widget: tk.Text,
+        children: Any,
+        target: str,
+        source_path: Path,
+        inherited_tags: Tuple[str, ...],
+    ) -> None:
+        self.document_link_counter += 1
+        link_tag = f"documentation_link_{self.document_link_counter}"
+        self._render_markdown_inline(
+            widget,
+            children,
+            source_path,
+            inherited_tags + ("link", link_tag),
+        )
+        widget.tag_bind(
+            link_tag,
+            "<Button-1>",
+            lambda _event, destination=target, source=source_path: (
+                self._open_document_link(destination, source)
+            ),
+        )
+        widget.tag_bind(
+            link_tag,
+            "<Enter>",
+            lambda _event, target_widget=widget: target_widget.configure(cursor="hand2"),
+        )
+        widget.tag_bind(
+            link_tag,
+            "<Leave>",
+            lambda _event, target_widget=widget: target_widget.configure(cursor=""),
+        )
+
+    def _insert_document_image(
+        self, widget: tk.Text, node: Mapping[str, Any], source_path: Path
+    ) -> None:
+        target = str(node.get("attrs", {}).get("url", "")).strip()
+        alt_text = self._plain_markdown_text(node.get("children", [])).strip()
+        if target.startswith(("http://", "https://")):
+            self._insert_document_link(
+                widget,
+                [{"type": "text", "raw": alt_text or target}],
+                target,
+                source_path,
+                (),
+            )
+            return
+        image_path = (source_path.parent / target.split("#", 1)[0]).resolve()
+        try:
+            with Image.open(image_path) as source_image:
+                display_image = source_image.copy()
+            display_image.thumbnail((720, 430), Image.Resampling.LANCZOS)
+            photo = ImageTk.PhotoImage(display_image)
+            self.document_images.append(photo)
+            widget.image_create("end", image=photo)
+            widget.insert("end", "\n")
+            if alt_text:
+                widget.insert("end", alt_text + "\n", ("caption",))
+        except (OSError, tk.TclError):
+            widget.insert("end", f"[Image unavailable: {alt_text or target}]", ("emphasis",))
+
+    def _render_markdown_inline(
+        self,
+        widget: tk.Text,
+        nodes: Any,
+        source_path: Path,
+        inherited_tags: Tuple[str, ...] = (),
+    ) -> None:
+        for node in nodes if isinstance(nodes, list) else [nodes]:
+            if not isinstance(node, Mapping):
+                widget.insert("end", str(node), inherited_tags)
+                continue
+            node_type = str(node.get("type", ""))
+            children = node.get("children", [])
+            if node_type == "text":
+                widget.insert("end", str(node.get("raw", "")), inherited_tags)
+            elif node_type == "softbreak":
+                widget.insert("end", " ", inherited_tags)
+            elif node_type == "linebreak":
+                widget.insert("end", "\n", inherited_tags)
+            elif node_type == "codespan":
+                widget.insert(
+                    "end", str(node.get("raw", "")), inherited_tags + ("inline_code",)
+                )
+            elif node_type == "strong":
+                self._render_markdown_inline(
+                    widget, children, source_path, inherited_tags + ("strong",)
+                )
+            elif node_type == "emphasis":
+                self._render_markdown_inline(
+                    widget, children, source_path, inherited_tags + ("emphasis",)
+                )
+            elif node_type == "link":
+                self._insert_document_link(
+                    widget,
+                    children,
+                    str(node.get("attrs", {}).get("url", "")),
+                    source_path,
+                    inherited_tags,
+                )
+            elif node_type == "image":
+                self._insert_document_image(widget, node, source_path)
+            elif node_type == "inline_html":
+                raw = str(node.get("raw", ""))
+                if re.fullmatch(r"<br\s*/?>", raw, re.IGNORECASE):
+                    widget.insert("end", "\n", inherited_tags)
+                else:
+                    plain = re.sub(r"<[^>]+>", "", raw)
+                    if plain:
+                        widget.insert("end", plain, inherited_tags)
+            else:
+                self._render_markdown_inline(widget, children, source_path, inherited_tags)
+
+    def _render_markdown_list(
+        self,
+        widget: tk.Text,
+        node: Mapping[str, Any],
+        source_path: Path,
+        depth: int = 0,
+    ) -> None:
+        ordered = bool(node.get("attrs", {}).get("ordered"))
+        for index, item in enumerate(node.get("children", []), start=1):
+            prefix = f"{index}. " if ordered else "• "
+            widget.insert("end", "    " * depth + prefix, ("list",))
+            children = item.get("children", []) if isinstance(item, Mapping) else []
+            nested_lists: List[Mapping[str, Any]] = []
+            for child in children:
+                if child.get("type") == "list":
+                    nested_lists.append(child)
+                elif child.get("type") in {"block_text", "paragraph"}:
+                    self._render_markdown_inline(
+                        widget, child.get("children", []), source_path, ("list",)
+                    )
+                else:
+                    self._render_markdown_nodes(widget, [child], source_path)
+            widget.insert("end", "\n")
+            for nested in nested_lists:
+                self._render_markdown_list(widget, nested, source_path, depth + 1)
+        if depth == 0:
+            widget.insert("end", "\n")
+
+    def _render_markdown_table(
+        self, widget: tk.Text, node: Mapping[str, Any], source_path: Path
+    ) -> None:
+        rows: List[Tuple[bool, List[Mapping[str, Any]]]] = []
+        for section in node.get("children", []):
+            section_type = section.get("type")
+            if section_type == "table_head":
+                rows.append((True, list(section.get("children", []))))
+            elif section_type == "table_body":
+                for row in section.get("children", []):
+                    rows.append((False, list(row.get("children", []))))
+        if not rows:
+            return
+
+        column_count = max(len(cells) for _, cells in rows)
+        column_scores: List[int] = []
+        for column in range(column_count):
+            longest = max(
+                (
+                    len(
+                        self._plain_markdown_text(cells[column].get("children", []))
+                    )
+                    for _, cells in rows
+                    if column < len(cells)
+                ),
+                default=8,
+            )
+            column_scores.append(max(8, min(42, longest)))
+        available_width = 760
+        score_total = max(1, sum(column_scores))
+        column_widths = [
+            max(90, int(available_width * score / score_total))
+            for score in column_scores
+        ]
+
+        border_color = "#C9D1D9"
+        table_frame = tk.Frame(widget, background=border_color, borderwidth=1)
+        self.document_table_widgets.append(table_frame)
+        for row_index, (is_header, cells) in enumerate(rows):
+            for column in range(column_count):
+                cell = cells[column] if column < len(cells) else {}
+                children = cell.get("children", []) if isinstance(cell, Mapping) else []
+                cell_text = self._plain_markdown_text(children).strip()
+                background = "#E5EAF0" if is_header else (
+                    "#FFFFFF" if row_index % 2 else "#F7F8FA"
+                )
+                target = self._markdown_link_target(children)
+                cell_label = tk.Label(
+                    table_frame,
+                    text=cell_text,
+                    justify="left",
+                    anchor="nw",
+                    wraplength=max(70, column_widths[column] - 16),
+                    width=1,
+                    background=background,
+                    foreground="#0D5D9B" if target else "#24292F",
+                    font=(
+                        "Segoe UI",
+                        9,
+                        "bold" if is_header else ("underline" if target else "normal"),
+                    ),
+                    padx=7,
+                    pady=5,
+                    borderwidth=1,
+                    relief="solid",
+                )
+                cell_label.grid(row=row_index, column=column, sticky="nsew")
+                table_frame.columnconfigure(
+                    column, minsize=column_widths[column], weight=column_scores[column]
+                )
+                if target:
+                    cell_label.configure(cursor="hand2")
+                    cell_label.bind(
+                        "<Button-1>",
+                        lambda _event, destination=target, source=source_path: (
+                            self._open_document_link(destination, source)
+                        ),
+                    )
+        widget.window_create("end", window=table_frame, padx=2, pady=6)
+        widget.insert("end", "\n")
+        widget.insert("end", "\n")
+
+    def _render_markdown_nodes(
+        self,
+        widget: tk.Text,
+        nodes: Any,
+        source_path: Path,
+        block_tags: Tuple[str, ...] = (),
+    ) -> None:
+        for node in nodes if isinstance(nodes, list) else [nodes]:
+            if not isinstance(node, Mapping):
+                continue
+            node_type = str(node.get("type", ""))
+            children = node.get("children", [])
+            if node_type == "heading":
+                level = min(4, max(1, int(node.get("attrs", {}).get("level", 1))))
+                self._render_markdown_inline(
+                    widget, children, source_path, block_tags + (f"h{level}",)
+                )
+                widget.insert("end", "\n", block_tags + (f"h{level}",))
+            elif node_type in {"paragraph", "block_text"}:
+                self._render_markdown_inline(widget, children, source_path, block_tags)
+                widget.insert("end", "\n\n" if node_type == "paragraph" else "", block_tags)
+            elif node_type == "block_code":
+                raw = str(node.get("raw", "")).rstrip()
+                widget.insert("end", raw + "\n", block_tags + ("code_block",))
+                widget.insert("end", "\n")
+            elif node_type == "list":
+                self._render_markdown_list(widget, node, source_path)
+            elif node_type == "block_quote":
+                self._render_markdown_nodes(
+                    widget, children, source_path, block_tags + ("quote",)
+                )
+            elif node_type == "table":
+                self._render_markdown_table(widget, node, source_path)
+            elif node_type == "thematic_break":
+                widget.insert("end", "────────────────────────────────────────\n\n")
+            elif node_type == "image":
+                self._insert_document_image(widget, node, source_path)
+                widget.insert("end", "\n")
+            elif node_type == "blank_line":
+                continue
+            else:
+                self._render_markdown_inline(widget, children, source_path, block_tags)
+
+    def _load_document(self, widget: tk.Text, path: Path) -> None:
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            content = f"Documentation could not be loaded:\n{exc}"
+        widget.configure(state="normal")
+        for table_widget in self.document_table_widgets:
+            try:
+                if table_widget.winfo_exists():
+                    table_widget.destroy()
+            except tk.TclError:
+                pass
+        widget.delete("1.0", "end")
+        self.document_images = []
+        self.document_table_widgets = []
+        self.document_link_counter = 0
+        self._configure_document_tags(widget)
+        prepared = self._prepare_markdown(content)
+        if mistune is None:
+            widget.insert("end", prepared)
+        else:
+            parser = mistune.create_markdown(
+                renderer="ast", plugins=["table", "strikethrough", "url"]
+            )
+            try:
+                nodes = parser(prepared)
+                self._render_markdown_nodes(widget, nodes, path)
+            except Exception as exc:
+                widget.insert(
+                    "end",
+                    f"Markdown formatting could not be rendered ({exc}).\n\n{prepared}",
+                )
+        widget.configure(state="disabled")
+
+    def _open_document_link(self, target: str, source_path: Path) -> None:
+        clean_target = target.strip()
+        if not clean_target:
+            return
+        if clean_target.startswith(("http://", "https://", "mailto:")):
+            webbrowser.open_new_tab(clean_target)
+            return
+        relative_target = clean_target.split("#", 1)[0]
+        if not relative_target:
+            return
+        destination = (source_path.parent / relative_target).resolve()
+        if destination.suffix.lower() == ".md":
+            selected = next(
+                (
+                    item_id
+                    for item_id, path in self.document_paths.items()
+                    if path.resolve() == destination
+                ),
+                None,
+            )
+            if selected:
+                self.document_tree.selection_set(selected)
+                self.document_tree.focus(selected)
+                self.document_tree.see(selected)
+                self._display_document(selected)
+                return
+        if destination.exists():
+            webbrowser.open_new_tab(destination.as_uri())
+            return
+        messagebox.showwarning(
+            "Documentation",
+            f"Linked documentation resource was not found:\n{destination}",
+            parent=self,
+        )
+
+    def _open_selected_document(self) -> None:
+        path = self.current_document
+        if path is None:
+            messagebox.showwarning(
+                "Documentation", "Select a document first.", parent=self
+            )
+            return
+        if not path.is_file():
+            messagebox.showerror(
+                "Documentation",
+                f"Documentation file not found:\n{path}",
+                parent=self,
+            )
+            return
+        webbrowser.open_new_tab(path.resolve().as_uri())
+
+    def _open_online_documentation(self) -> None:
+        path = self.current_document
+        if path is None:
+            url = self.ONLINE_DOCS_ROOT
+        else:
+            relative = path.relative_to(self.DOCS_ROOT.resolve()).with_suffix("")
+            page = relative.as_posix().strip("/")
+            if page == "index":
+                page = ""
+            url = self.ONLINE_DOCS_ROOT.rstrip("/") + "/"
+            if page:
+                url += page + "/"
+        try:
+            webbrowser.open_new_tab(url)
+        except Exception as exc:
+            messagebox.showerror(
+                "Documentation",
+                f"Could not open the online documentation:\n{exc}",
+                parent=self,
+            )
+
+
 class PythonScriptManagerApp(tk.Tk):
     """Main application window."""
 
@@ -8603,7 +10173,11 @@ class PythonScriptManagerApp(tk.Tk):
         self.run_tab = RunTab(self.notebook, self.config_tab, self.results_tab)
         self.notebook.add(self.run_tab, text="Run")
         self.notebook.add(self.results_tab, text="Results")
-        self.notebook_tabs.extend([self.run_tab, self.results_tab])
+        self.documentation_tab = DocumentationTab(self.notebook)
+        self.notebook.add(self.documentation_tab, text="Documentation")
+        self.notebook_tabs.extend(
+            [self.run_tab, self.results_tab, self.documentation_tab]
+        )
         self.after(150, self._warn_about_missing_optional_configs)
 
     def _warn_about_missing_optional_configs(self) -> None:
