@@ -696,6 +696,8 @@ info_data = {
     "min_pixels_connected": int(min_pixels_connected),
     "info_list": info_list_exclusion,
     "eligibility_share": float(eligible_share),
+    "study_area_m2": float(region.geometry.item().area),
+    "available_area_m2": float(available_area),
     "available_area_km2": float(available_area_km2),
     "power_potential_MW": float(power_potential),
 }

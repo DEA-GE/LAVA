@@ -49,6 +49,38 @@ def configured_region_name(cleaned_region):
     return region_names[cleaned_region]
 
 
+def exclusion_result_targets():
+    """Return the exact exclusion rasters required by downstream result stages."""
+    targets = []
+    for technology in technologies:
+        targets += expand(
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_available_land.tif",
+            region=regions,
+            technology=[technology],
+            scenario=get_scenarios_for_technology(technology),
+        )
+    return targets
+
+
+def exclusion_metadata_targets():
+    """Return the exclusion JSON metrics consumed by results analysis."""
+    targets = []
+    for technology in technologies:
+        targets += expand(
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_exclusion_info.json",
+            region=regions,
+            technology=[technology],
+            scenario=get_scenarios_for_technology(technology),
+        )
+    return targets
+
+
 validate_selected_scenarios(
     technologies,
     scenarios,
@@ -90,7 +122,8 @@ globals().update({
 # Exclusion uses spatial_data_prep as a checkpoint. Including the checkpoint
 # does not run it when its CRS output is present and up to date.
 included_stages = {name for name, enabled in stages.items() if enabled}
-if stages.get("exclusion"):
+if stages.get("exclusion") or stages.get("suitability") or stages.get("results_analysis"):
+    included_stages.add("exclusion")
     included_stages.add("spatial_data_prep")
 
 for stage_name in stages:
@@ -101,26 +134,16 @@ for stage_name in stages:
 # ---- Build 'all' targets (explicit form for clarity) ----
 ALL_TARGETS = []
 
-if DO_SPATIAL_DATA_PREP:
+if stages.get("spatial_data_prep"):
     ALL_TARGETS += expand(
         Path("data") / "{region}" / "{region}_local_CRS.pkl",
         region=regions,
     )
 
-if DO_EXCLUSION:
-    for technology in technologies:
-        tech_scenarios = get_scenarios_for_technology(technology)
-        ALL_TARGETS += expand(
-            Path("data")
-            / "{region}"
-            / "available_land"
-            / "{region}_{technology}_{scenario}_available_land.tif",
-            region=regions,
-            technology=[technology],
-            scenario=tech_scenarios,
-        )
+if stages.get("exclusion"):
+    ALL_TARGETS += exclusion_result_targets()
 
-if DO_SUITABILITY:
+if stages.get("suitability"):
     suitability_scenarios = list(
         dict.fromkeys(
             [scenario for technology in technologies for scenario in get_scenarios_for_technology(technology)]
@@ -132,7 +155,7 @@ if DO_SUITABILITY:
         scenario=suitability_scenarios,
     )
 
-if DO_TIMESERIES:
+if stages.get("timeseries"):
     for technology in technologies:
         tech_scenarios = get_scenarios_for_technology(technology)
         ALL_TARGETS += expand(
@@ -144,20 +167,20 @@ if DO_TIMESERIES:
         )
 
 
-if DO_WEATHER_DATA_PREP:
+if stages.get("weather_data_prep"):
     ALL_TARGETS += expand(
         logpath("{region}", "weather_data_prep_{weather_year}.done"),
         region=regions,
         weather_year=weather_years,
     )
 
-if DO_WEATHER_BIAS_ADJUST:
+if stages.get("weather_bias_adjust"):
     ALL_TARGETS += expand(
         logpath("{region}", "weather_bias_adjust.done"),
         region=regions,
     )
 
-if DO_ENERGY_PROFILES:
+if stages.get("energy_profiles"):
     for technology in technologies:
         tech_scenarios = get_scenarios_for_technology(technology)
         ALL_TARGETS += expand(
@@ -167,6 +190,13 @@ if DO_ENERGY_PROFILES:
             technology=[technology],
             weather_year=weather_years,
         )
+
+if stages.get("results_analysis"):
+    ALL_TARGETS += [
+        Path("aggregated_available_land.gpkg"),
+        Path("aggregated_available_land.json"),
+        Path("aggregated_available_land.csv"),
+    ]
 
 rule all:
     input:

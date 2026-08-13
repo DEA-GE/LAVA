@@ -16,6 +16,7 @@ stages:
   spatial_data_prep: true
   exclusion: true
   suitability: false
+  results_analysis: false
   timeseries: false
   weather_data_prep: false
   weather_bias_adjust: false

@@ -30,9 +30,10 @@ from tkinter import filedialog, messagebox, ttk
 import numpy as np
 from PIL import Image, ImageTk
 import folium
+import geopandas as gpd  # Load GEOS before rasterio/GDAL on Windows.
 import rasterio
 from rasterio.enums import Resampling
-from rasterio.warp import transform_bounds
+from rasterio.warp import transform_bounds, transform_geom
 from branca.element import MacroElement, Template
 
 try:  # Optional ttkbootstrap theming
@@ -95,6 +96,11 @@ from utils.spatial_prep_plan import (  # noqa: E402
     resolve_custom_study_area_path,
 )
 from utils.region_names import canonical_region_name  # noqa: E402
+from utils.delete_scenario_results import (  # noqa: E402
+    ResultsDeletionError,
+    collect_scenario_files,
+    discover_scenarios,
+)
 
 try:
     import yaml  # type: ignore
@@ -5105,6 +5111,7 @@ class RunTab(ttk.Frame):
         "spatial_data_prep": "Spatial data preparation",
         "exclusion": "Technology exclusion",
         "suitability": "Suitability",
+        "results_analysis": "Results analysis",
         "weather_data_prep": "Weather data preparation",
         "weather_bias_adjust": "Weather bias adjustment",
         "energy_profiles": "Energy profiles",
@@ -5501,6 +5508,7 @@ class RunTab(ttk.Frame):
     def _update_run_button_states(self) -> None:
         """Keep execution buttons consistent with the selected mode and runner."""
         is_running = self.status == "running" or self.runner.is_running()
+        self.results_tab.set_workflow_active(is_running)
         self.run_button.configure(state="disabled" if is_running else "normal")
         dry_run_enabled = not is_running and self.execution_mode.get() == "snakemake"
         self.dry_run_button.configure(
@@ -6639,6 +6647,7 @@ class RunTab(ttk.Frame):
             PARENT_DIR / script_name,
             CURRENT_DIR / script_name,
             PARENT_DIR / "scripts" / script_name,
+            PARENT_DIR / "utils" / script_name,
         ]
         for candidate in candidates:
             if candidate.exists():
@@ -6685,6 +6694,8 @@ class RunTab(ttk.Frame):
         script_name = script["name"] if script else f"{script_id}.py"
         script_path = self._resolve_script_path(script_name)
         command = [sys.executable, "-u", str(script_path)]
+        if script_id == "results_analysis":
+            command.extend(["--root", str(PARENT_DIR)])
 
         values = {
             "region": self.run_region_var.get().strip(),
@@ -6723,7 +6734,7 @@ class RunTab(ttk.Frame):
                     f"Select a {display_name} before running {script_name}."
                 )
             command.extend([flag, value])
-        return command, script_path.parent
+        return command, PARENT_DIR if script_id == "results_analysis" else script_path.parent
 
     def _build_snakemake_command(
         self, *, dry_run: bool = False
@@ -7840,6 +7851,12 @@ class RunTab(ttk.Frame):
     def _handle_execution(self, *, dry_run: bool) -> None:
         if self.runner.is_running():
             return
+        if self.results_tab.has_active_operation():
+            messagebox.showwarning(
+                "Run Workflow",
+                "Wait for the active aggregation or scenario deletion in the Results tab to finish.",
+            )
+            return
         self.expected_output_dir = None
         self.last_run_script_id = None
         self.current_run_is_dry_run = False
@@ -7961,9 +7978,10 @@ class RunTab(ttk.Frame):
 class MapTab(ttk.Frame):
     MAX_LAYERS = 3
     FILETYPES = [
-        ("Supported files", "*.tif *.tiff *.geojson"),
+        ("Supported files", "*.tif *.tiff *.geojson *.gpkg"),
         ("GeoTIFF", "*.tif *.tiff"),
         ("GeoJSON", "*.geojson"),
+        ("GeoPackage", "*.gpkg"),
     ]
 
     def __init__(self, master: tk.Widget):
@@ -8193,9 +8211,60 @@ class MapTab(ttk.Frame):
                             "index": idx,
                         }
                     )
+                elif suffix == ".gpkg":
+                    import fiona
+
+                    layer_names = fiona.listlayers(path)
+                    if not layer_names:
+                        raise ValueError("The GeoPackage contains no vector layers.")
+                    for layer_name in layer_names:
+                        with fiona.open(path, layer=layer_name) as source:
+                            source_crs = source.crs_wkt or source.crs
+                            if not source_crs:
+                                raise ValueError(
+                                    f"GeoPackage layer '{layer_name}' has no coordinate reference system."
+                                )
+                            features = []
+                            for feature in source:
+                                geometry = feature.get("geometry")
+                                if geometry is None:
+                                    continue
+                                features.append(
+                                    {
+                                        "type": "Feature",
+                                        "properties": dict(feature.get("properties") or {}),
+                                        "geometry": transform_geom(
+                                            source_crs, "EPSG:4326", dict(geometry)
+                                        ),
+                                    }
+                                )
+                        if not features:
+                            continue
+                        geojson_data = {
+                            "type": "FeatureCollection",
+                            "features": features,
+                        }
+                        layers.append(
+                            {
+                                "type": "geojson",
+                                "name": f"{path.name}:{layer_name}",
+                                "display_name": (
+                                    display_name
+                                    if len(layer_names) == 1
+                                    else f"{display_name} - {layer_name}"
+                                ),
+                                "data": geojson_data,
+                                "bounds": _extract_geojson_bounds(geojson_data),
+                                "opacity": opacity_value,
+                                "order": order_value,
+                                "index": idx,
+                            }
+                        )
+                    if not any(layer["index"] == idx for layer in layers):
+                        raise ValueError("The GeoPackage contains no non-empty vector layers.")
                 else:
                     raise ValueError(
-                        "Unsupported file type. Choose .tif, .tiff, or .geojson."
+                        "Unsupported file type. Choose .tif, .tiff, .geojson, or .gpkg."
                     )
             except Exception as exc:
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -8293,12 +8362,14 @@ class ResultsTab(ttk.Frame):
         self.current_aggregated_rows: List[Dict[str, Any]] = []
         self.latest_aggregated_path: Optional[Path] = None
         self.delete_log_text: Optional[tk.Text] = None
-        self.delete_input_var = tk.StringVar()
+        self.delete_scenario_var = tk.StringVar()
+        self.delete_scenario_combo: Optional[ttk.Combobox] = None
+        self.delete_preview_tree: Optional[ttk.Treeview] = None
+        self.delete_preview_files: List[Path] = []
         self.delete_run_button: Optional[ttk.Button] = None
         self.delete_stop_button: Optional[ttk.Button] = None
         self.delete_status_label: Optional[ttk.Label] = None
-        self.delete_input_entry: Optional[ttk.Entry] = None
-        self.delete_send_button: Optional[ttk.Button] = None
+        self.external_workflow_active = False
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.notebook = ttk.Notebook(self)
@@ -8423,37 +8494,71 @@ class ResultsTab(ttk.Frame):
         frame = ttk.LabelFrame(self.delete_tab, text="Delete Scenario Results")
         frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(3, weight=1)
+        frame.rowconfigure(3, weight=2)
+        frame.rowconfigure(4, weight=1)
 
         ttk.Label(
             frame,
-            text="Run delete_scenario_results.py to remove generated files for a scenario.",
+            text="Preview and delete generated files for one scenario.",
             font=("Segoe UI", 12, "bold"),
         ).grid(row=0, column=0, sticky="w")
         ttk.Label(
             frame,
-            text="Respond to prompts below when the script asks for scenario selection or confirmation.",
+            text=(
+                "Select a scenario, review the exact files, then confirm deletion. "
+                "Aggregated outputs are invalidated automatically."
+            ),
             foreground="#555555",
         ).grid(row=1, column=0, sticky="w", pady=(2, 10))
 
         controls = ttk.Frame(frame)
         controls.grid(row=2, column=0, sticky="ew", pady=(0, 8))
-        controls.columnconfigure(2, weight=1)
+        controls.columnconfigure(1, weight=1)
+        ttk.Label(controls, text="Scenario:").grid(row=0, column=0, padx=(0, 6))
+        self.delete_scenario_combo = ttk.Combobox(
+            controls,
+            textvariable=self.delete_scenario_var,
+            state="readonly",
+            width=32,
+        )
+        self.delete_scenario_combo.grid(row=0, column=1, sticky="ew", padx=(0, 6))
+        self.delete_scenario_combo.bind(
+            "<<ComboboxSelected>>", lambda _event: self._preview_selected_scenario()
+        )
+        ttk.Button(
+            controls, text="Refresh", command=self._refresh_delete_scenarios
+        ).grid(row=0, column=2, padx=(0, 6))
         self.delete_run_button = ttk.Button(
             controls,
-            text="Run delete_scenario_results.py",
+            text="Delete Selected Scenario",
             command=self.handle_delete_run,
         )
-        self.delete_run_button.grid(row=0, column=0, padx=(0, 6))
+        self.delete_run_button.grid(row=0, column=3, padx=(0, 6))
         self.delete_stop_button = ttk.Button(
             controls, text="Stop", command=self.handle_delete_stop, state="disabled"
         )
-        self.delete_stop_button.grid(row=0, column=1, padx=(0, 6))
+        self.delete_stop_button.grid(row=0, column=4, padx=(0, 6))
         self.delete_status_label = ttk.Label(controls, text="Status: Idle")
-        self.delete_status_label.grid(row=0, column=2, sticky="w")
+        self.delete_status_label.grid(row=0, column=5, sticky="w")
+
+        preview_frame = ttk.LabelFrame(frame, text="Files to Delete")
+        preview_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 8))
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+        self.delete_preview_tree = ttk.Treeview(
+            preview_frame, columns=("path",), show="headings", height=10
+        )
+        self.delete_preview_tree.heading("path", text="Project-relative path")
+        self.delete_preview_tree.column("path", anchor="w", width=800)
+        self.delete_preview_tree.grid(row=0, column=0, sticky="nsew")
+        preview_scroll = ttk.Scrollbar(
+            preview_frame, orient="vertical", command=self.delete_preview_tree.yview
+        )
+        preview_scroll.grid(row=0, column=1, sticky="ns")
+        self.delete_preview_tree.configure(yscrollcommand=preview_scroll.set)
 
         log_frame = ttk.LabelFrame(frame, text="Script Output")
-        log_frame.grid(row=3, column=0, sticky="nsew")
+        log_frame.grid(row=4, column=0, sticky="nsew")
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         self.delete_log_text = tk.Text(
@@ -8474,21 +8579,7 @@ class ResultsTab(ttk.Frame):
         }.items():
             self.delete_log_text.tag_configure(tag, foreground=color)
 
-        input_row = ttk.Frame(frame)
-        input_row.grid(row=4, column=0, sticky="ew", pady=(10, 0))
-        input_row.columnconfigure(1, weight=1)
-        ttk.Label(input_row, text="Send Input:").grid(
-            row=0, column=0, sticky="w", padx=(0, 6)
-        )
-        self.delete_input_entry = ttk.Entry(
-            input_row, textvariable=self.delete_input_var, state="disabled"
-        )
-        self.delete_input_entry.grid(row=0, column=1, sticky="ew")
-        self.delete_input_entry.bind("<Return>", self._handle_delete_send_event)
-        self.delete_send_button = ttk.Button(
-            input_row, text="Send", command=self.handle_delete_send, state="disabled"
-        )
-        self.delete_send_button.grid(row=0, column=2, padx=(6, 0))
+        self._refresh_delete_scenarios()
         self._set_delete_running_state(False)
 
     def _format_command(self, cmd: List[str]) -> str:
@@ -8497,8 +8588,32 @@ class ResultsTab(ttk.Frame):
         return " ".join(cmd)
 
     def _set_running_state(self, running: bool) -> None:
-        self.run_button.configure(state="disabled" if running else "normal")
+        blocked = running or self.delete_runner.is_running() or self.external_workflow_active
+        self.run_button.configure(state="disabled" if blocked else "normal")
         self.stop_button.configure(state="normal" if running else "disabled")
+        self._set_delete_running_state(self.delete_runner.is_running())
+
+    def set_workflow_active(self, active: bool) -> None:
+        """Block result mutations while the main Run tab owns the workflow."""
+        self.external_workflow_active = active
+        self._set_running_state(self.runner.is_running())
+
+    def _ensure_results_idle(self, action: str) -> bool:
+        if self.external_workflow_active:
+            messagebox.showwarning(
+                action,
+                "Wait for the active workflow in the Run tab to finish before changing results.",
+            )
+            return False
+        if self.runner.is_running() or self.delete_runner.is_running():
+            messagebox.showwarning(
+                action, "Wait for the current Results operation to finish."
+            )
+            return False
+        return True
+
+    def has_active_operation(self) -> bool:
+        return self.runner.is_running() or self.delete_runner.is_running()
 
     def _update_status_labels(self) -> None:
         self.status_label.configure(text=f"Status: {self.status.capitalize()}")
@@ -8553,6 +8668,7 @@ class ResultsTab(ttk.Frame):
             PARENT_DIR / script_name,
             CURRENT_DIR / script_name,
             PARENT_DIR / "scripts" / script_name,
+            PARENT_DIR / "utils" / script_name,
         ]
         for candidate in candidates:
             if candidate.exists():
@@ -8562,15 +8678,14 @@ class ResultsTab(ttk.Frame):
         )
 
     def _resolve_results_json_path(self) -> Path:
-        base_dir = self.expected_output_dir or PARENT_DIR
-        json_path = base_dir / "aggregated_available_land.json"
+        json_path = PARENT_DIR / "aggregated_available_land.json"
         try:
             return json_path.resolve()
         except Exception:
             return json_path
 
     def handle_run(self) -> None:
-        if self.runner.is_running():
+        if not self._ensure_results_idle("Results Analysis"):
             return
         try:
             script_path = self._resolve_script_path("results_analysis.py")
@@ -8579,7 +8694,7 @@ class ResultsTab(ttk.Frame):
             self._append_log("error", message)
             messagebox.showerror("Execution Error", message)
             return
-        self.expected_output_dir = script_path.parent
+        self.expected_output_dir = PARENT_DIR
         self.status = "running"
         self.stop_requested = False
         self.progress.set(0)
@@ -8591,7 +8706,19 @@ class ResultsTab(ttk.Frame):
         self._update_status_labels()
         self._start_spinner()
         self._start_duration_timer()
-        command = [sys.executable, "-u", str(script_path)]
+        command = [
+            sys.executable,
+            "-u",
+            str(script_path),
+            "--root",
+            str(PARENT_DIR),
+            "--output",
+            str(PARENT_DIR / "aggregated_available_land.gpkg"),
+            "--json-output",
+            str(PARENT_DIR / "aggregated_available_land.json"),
+            "--csv-output",
+            str(PARENT_DIR / "aggregated_available_land.csv"),
+        ]
         self._append_log("info", f"Starting process: {self._format_command(command)}")
         try:
             self.runner.run(
@@ -8687,18 +8814,46 @@ class ResultsTab(ttk.Frame):
 
     def _set_delete_running_state(self, running: bool) -> None:
         if self.delete_run_button:
-            self.delete_run_button.configure(state="disabled" if running else "normal")
+            blocked = (
+                running
+                or self.runner.is_running()
+                or self.external_workflow_active
+                or not self.delete_preview_files
+            )
+            self.delete_run_button.configure(state="disabled" if blocked else "normal")
         if self.delete_stop_button:
             self.delete_stop_button.configure(state="normal" if running else "disabled")
-        entry_state = "normal" if running else "disabled"
-        if self.delete_input_entry:
-            self.delete_input_entry.configure(state=entry_state)
-            if running:
-                self.delete_input_entry.focus_set()
-            else:
-                self.delete_input_var.set("")
-        if self.delete_send_button:
-            self.delete_send_button.configure(state=entry_state)
+
+    def _refresh_delete_scenarios(self) -> None:
+        try:
+            scenarios = discover_scenarios(PARENT_DIR)
+        except ResultsDeletionError as exc:
+            scenarios = []
+            self._delete_append_log("error", str(exc))
+        if self.delete_scenario_combo:
+            self.delete_scenario_combo.configure(values=scenarios)
+        current = self.delete_scenario_var.get()
+        if current not in scenarios:
+            self.delete_scenario_var.set(scenarios[0] if scenarios else "")
+        self._preview_selected_scenario()
+
+    def _preview_selected_scenario(self) -> None:
+        scenario = self.delete_scenario_var.get().strip()
+        try:
+            files = collect_scenario_files(PARENT_DIR, scenario) if scenario else []
+        except ResultsDeletionError as exc:
+            files = []
+            self._delete_append_log("error", str(exc))
+        self.delete_preview_files = files
+        if self.delete_preview_tree:
+            self.delete_preview_tree.delete(*self.delete_preview_tree.get_children())
+            for path in files:
+                try:
+                    display = path.relative_to(PARENT_DIR)
+                except ValueError:
+                    display = path
+                self.delete_preview_tree.insert("", "end", values=(str(display),))
+        self._set_delete_running_state(self.delete_runner.is_running())
 
     def _delete_clear_log(self) -> None:
         if not self.delete_log_text:
@@ -8718,7 +8873,22 @@ class ResultsTab(ttk.Frame):
         self.delete_log_text.see("end")
 
     def handle_delete_run(self) -> None:
-        if self.delete_runner.is_running():
+        if not self._ensure_results_idle("Delete Scenario Results"):
+            return
+        scenario = self.delete_scenario_var.get().strip()
+        self._preview_selected_scenario()
+        if not scenario or not self.delete_preview_files:
+            messagebox.showwarning(
+                "Delete Scenario Results", "Select a scenario that has generated files."
+            )
+            return
+        if not messagebox.askyesno(
+            "Confirm Scenario Deletion",
+            f"Permanently delete {len(self.delete_preview_files)} generated file(s) "
+            f"for scenario '{scenario}'?\n\nAggregated result files will also be removed "
+            "because they would otherwise be stale.",
+            icon="warning",
+        ):
             return
         try:
             script_path = self._resolve_script_path("delete_scenario_results.py")
@@ -8727,12 +8897,22 @@ class ResultsTab(ttk.Frame):
             self._delete_append_log("error", message)
             messagebox.showerror("Execution Error", message)
             return
-        self.delete_expected_dir = script_path.parent
+        self.delete_expected_dir = PARENT_DIR
         self.delete_status = "running"
         self._set_delete_running_state(True)
+        self._set_running_state(self.runner.is_running())
         self._update_delete_status()
         self._delete_clear_log()
-        command = [sys.executable, "-u", str(script_path)]
+        command = [
+            sys.executable,
+            "-u",
+            str(script_path),
+            "--root",
+            str(PARENT_DIR),
+            "--scenario",
+            scenario,
+            "--yes",
+        ]
         self._delete_append_log(
             "info", f"Starting process: {self._format_command(command)}"
         )
@@ -8763,25 +8943,6 @@ class ResultsTab(ttk.Frame):
         )
         self.delete_runner.stop()
 
-    def handle_delete_send(self) -> None:
-        if not self.delete_runner.is_running():
-            return
-        text = self.delete_input_var.get()
-        if not text.strip():
-            return
-        try:
-            self.delete_runner.send_input(text)
-            self._delete_append_log("input", f">>> {text}")
-        except RuntimeError as exc:
-            self._delete_append_log("error", str(exc))
-            messagebox.showerror("Send Input Failed", str(exc))
-        finally:
-            self.delete_input_var.set("")
-
-    def _handle_delete_send_event(self, _event: tk.Event) -> str:
-        self.handle_delete_send()
-        return "break"
-
     def _handle_delete_output(self, level: str, message: str) -> None:
         self._delete_append_log(level, message)
 
@@ -8790,6 +8951,8 @@ class ResultsTab(ttk.Frame):
         if return_code == 0 and self.delete_status != "stopping":
             self.delete_status = "completed"
             self._delete_append_log("success", "Process completed successfully.")
+            self.clear_aggregated_results()
+            self._refresh_delete_scenarios()
         else:
             if self.delete_status == "stopping":
                 self._delete_append_log(
@@ -8803,6 +8966,7 @@ class ResultsTab(ttk.Frame):
                 )
                 self.delete_status = "error"
         self._set_delete_running_state(False)
+        self._set_running_state(self.runner.is_running())
         self._update_delete_status()
         self.delete_expected_dir = None
 

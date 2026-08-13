@@ -17,10 +17,14 @@ rule exclusion:
     input:
         exclusion_inputs
     output:
-        Path("data")
+        raster=Path("data")
         / "{region}"
         / "available_land"
-        / "{region}_{technology}_{scenario}_available_land.tif"
+        / "{region}_{technology}_{scenario}_available_land.tif",
+        info=Path("data")
+        / "{region}"
+        / "available_land"
+        / "{region}_{technology}_{scenario}_exclusion_info.json",
     params:
         method="snakemake"
     shell:

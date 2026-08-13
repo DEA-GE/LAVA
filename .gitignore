@@ -93,6 +93,7 @@
 !snakemake/rules/spatial_data_prep.smk
 !snakemake/rules/exclusion.smk
 !snakemake/rules/suitability.smk
+!snakemake/rules/results_analysis.smk
 !snakemake/rules/energy_profiles.smk
 !snakemake/rules/weather_data_prep.smk
 !snakemake/rules/weather_bias_adjust.smk
@@ -120,5 +121,7 @@
 !tkinter_app/flag_mapper.py
 !tkinter_app/main.py
 !tkinter_app/_init__.py
+!tests
+!tests/test_results_workflow.py
 # --- pre-commit config ---
 !.pre-commit-config.yaml

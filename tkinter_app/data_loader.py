@@ -1023,6 +1023,11 @@ CONFIG_SNAKEMAKE_STAGE_FLAGS: List[Dict[str, str]] = [
         "description": "Execute suitability.py to grade resources.",
     },
     {
+        "key": "results_analysis",
+        "label": "Results Analysis",
+        "description": "Aggregate all selected exclusion outputs into tables and a GeoPackage.",
+    },
+    {
         "key": "weather_data_prep",
         "label": "Weather Data Prep",
         "description": "Prepare atlite-ready weather cut-outs.",
@@ -1524,6 +1529,8 @@ def load_snakemake_sections() -> List[Dict[str, Any]]:
             flattened.update(stages)
         flattened.setdefault("scenarios", [])
         flattened.setdefault("technology_scenarios", {})
+        for stage in CONFIG_SNAKEMAKE_STAGE_FLAGS:
+            flattened.setdefault(stage["key"], False)
         return _build_sections_from_data(
             flattened, CONFIG_SNAKEMAKE_SECTION_DEFINITIONS
         )
