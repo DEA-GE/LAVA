@@ -13,6 +13,7 @@ nav:
     - Troubleshooting: home/troubleshooting.md
   - Knowledge Base:
     - General Methodology: knowledge_base/general_methodology.md
+    - User Interface: knowledge_base/user_interface.md
     - Snakemake Checkpoints and Inputs: knowledge_base/snakemake_checkpoints_and_inputs.md
     - Recommendations for Parameters: knowledge_base/recommendations_for_parameters.md
     - Reanalysis: knowledge_base/reanalysis.md

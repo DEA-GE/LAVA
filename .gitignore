@@ -118,8 +118,14 @@
 # --- User interface ---
 !tkinter_app
 !tkinter_app/data_loader.py
+!tkinter_app/documentation_tab.py
 !tkinter_app/flag_mapper.py
 !tkinter_app/main.py
+!tkinter_app/map_renderer.py
+!tkinter_app/map_tab.py
+!tkinter_app/process_runner.py
+!tkinter_app/results_tab.py
+!tkinter_app/widgets.py
 !tkinter_app/_init__.py
 !tests
 !tests/test_results_workflow.py
