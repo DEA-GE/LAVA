@@ -7977,6 +7977,7 @@ class RunTab(ttk.Frame):
 
 class MapTab(ttk.Frame):
     MAX_LAYERS = 3
+    SUPPORTED_SUFFIXES = {".tif", ".tiff", ".geojson", ".gpkg"}
     FILETYPES = [
         ("Supported files", "*.tif *.tiff *.geojson *.gpkg"),
         ("GeoTIFF", "*.tif *.tiff"),
@@ -7992,6 +7993,13 @@ class MapTab(ttk.Frame):
         ]
         self.layer_opacity = [tk.DoubleVar(value=0.7) for _ in range(self.MAX_LAYERS)]
         self.layer_names = [tk.StringVar(value="") for _ in range(self.MAX_LAYERS)]
+        self.preset_region_var = tk.StringVar()
+        self.preset_layer_var = tk.StringVar()
+        self.preset_region_combo: Optional[ttk.Combobox] = None
+        self.preset_layer_combo: Optional[ttk.Combobox] = None
+        self.preset_add_button: Optional[ttk.Button] = None
+        self.preset_regions: Dict[str, List[Path]] = {}
+        self.preset_layer_paths: Dict[str, Path] = {}
         self._map_dir: Optional[Path] = None
         self._map_view: Optional[Dict[str, Any]] = None
         self.status_var = tk.StringVar(value="")
@@ -8002,13 +8010,57 @@ class MapTab(ttk.Frame):
             "success": "#1a7f37",
         }
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(3, weight=1)
+        self.rowconfigure(4, weight=1)
         self._build_ui()
         self.bind("<Destroy>", self._on_destroy)
 
     def _build_ui(self) -> None:
+        presets = ttk.LabelFrame(self, text="Available Region Layers")
+        presets.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 0))
+        presets.columnconfigure(3, weight=1)
+        ttk.Label(presets, text="Region:").grid(
+            row=0, column=0, sticky="w", padx=(8, 6), pady=8
+        )
+        self.preset_region_combo = ttk.Combobox(
+            presets,
+            textvariable=self.preset_region_var,
+            state="readonly",
+            width=24,
+        )
+        self.preset_region_combo.grid(row=0, column=1, sticky="w", pady=8)
+        self.preset_region_combo.bind(
+            "<<ComboboxSelected>>", self._on_preset_region_selected
+        )
+        ttk.Label(presets, text="Available layer:").grid(
+            row=0, column=2, sticky="e", padx=(18, 6), pady=8
+        )
+        self.preset_layer_combo = ttk.Combobox(
+            presets,
+            textvariable=self.preset_layer_var,
+            state="readonly",
+        )
+        self.preset_layer_combo.grid(row=0, column=3, sticky="ew", pady=8)
+        self.preset_add_button = ttk.Button(
+            presets,
+            text="Add to Layer Selection",
+            command=self._add_preset_layer,
+            state="disabled",
+        )
+        self.preset_add_button.grid(row=0, column=4, padx=(6, 0), pady=8)
+        ttk.Button(
+            presets, text="Refresh", command=self._refresh_preset_regions
+        ).grid(row=0, column=5, padx=8, pady=8)
+        ttk.Label(
+            presets,
+            text=(
+                "Layers are discovered from data/<region>. Temporary and old-resolution "
+                "backup files are omitted."
+            ),
+            foreground="#555555",
+        ).grid(row=1, column=0, columnspan=6, sticky="w", padx=8, pady=(0, 8))
+
         selection = ttk.LabelFrame(self, text="Layer Selection")
-        selection.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        selection.grid(row=1, column=0, sticky="ew", padx=10, pady=10)
         for col in (1, 5, 7):
             selection.columnconfigure(col, weight=1)
         for idx in range(self.MAX_LAYERS):
@@ -8053,7 +8105,7 @@ class MapTab(ttk.Frame):
             order_combo.current(idx)
 
         buttons = ttk.Frame(self)
-        buttons.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
+        buttons.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 5))
         ttk.Button(buttons, text="Load Map", command=self._load).pack(side="left")
         ttk.Button(buttons, text="Clear All", command=self._clear_all).pack(
             side="left", padx=(6, 0)
@@ -8066,10 +8118,10 @@ class MapTab(ttk.Frame):
             justify="left",
             foreground="#0d5d9b",
         )
-        self.status_label.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 5))
+        self.status_label.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 5))
 
         map_and_legend = ttk.Frame(self)
-        map_and_legend.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        map_and_legend.grid(row=4, column=0, sticky="nsew", padx=10, pady=(0, 10))
         map_and_legend.columnconfigure(0, weight=3)
         map_and_legend.columnconfigure(1, weight=1)
         map_and_legend.rowconfigure(0, weight=1)
@@ -8095,7 +8147,154 @@ class MapTab(ttk.Frame):
             text="Enter HTML or plain text for legend (optional).",
             foreground="#555555",
         ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 0))
-        self._set_status("Select up to three layers to display on the map.", "info")
+        self._refresh_preset_regions()
+
+    @classmethod
+    def _discover_region_layers(cls, data_dir: Path) -> Dict[str, List[Path]]:
+        """Return supported, user-facing map files grouped by data region."""
+        regions: Dict[str, List[Path]] = {}
+        if not data_dir.is_dir():
+            return regions
+        for region_dir in sorted(
+            (path for path in data_dir.iterdir() if path.is_dir()),
+            key=lambda path: path.name.casefold(),
+        ):
+            files = sorted(
+                (
+                    path
+                    for path in region_dir.rglob("*")
+                    if path.is_file()
+                    and path.suffix.lower() in cls.SUPPORTED_SUFFIXES
+                    and not path.name.startswith(".")
+                    and ".old_resolution." not in path.name.lower()
+                ),
+                key=lambda path: str(path.relative_to(region_dir)).casefold(),
+            )
+            if files:
+                regions[region_dir.name] = files
+        return regions
+
+    @staticmethod
+    def _crs_label(stem: str) -> str:
+        match = re.search(r"(EPSG\d+)", stem, re.IGNORECASE)
+        return match.group(1).upper() if match else "native CRS"
+
+    @classmethod
+    def _preset_layer_label(cls, region: str, path: Path) -> str:
+        """Build a concise label for commonly generated LAVA map layers."""
+        stem = path.stem
+        lower = stem.lower()
+        crs = cls._crs_label(stem)
+        parent = path.parent.name
+        if parent == "available_land":
+            content = stem.removeprefix(f"{region}_")
+            resource_values = content.endswith("_available_land_ResourceValues")
+            suffix = (
+                "_available_land_ResourceValues"
+                if resource_values
+                else "_available_land"
+            )
+            identity = content.removesuffix(suffix)
+            technology, separator, scenario = identity.partition("_")
+            technology_labels = {
+                "onshorewind": "Onshore wind",
+                "offshorewind": "Offshore wind",
+                "solar": "Solar",
+            }
+            technology = technology_labels.get(
+                technology, technology.replace("_", " ").title()
+            )
+            result_type = "Resource values" if resource_values else "Available land"
+            details = f"{technology} · {scenario}" if separator else technology
+            return f"{result_type} — {details}"
+        if path.suffix.lower() == ".geojson" and lower.startswith(region.lower()):
+            return f"Study-area boundary — {crs}"
+        if "landcover" in lower:
+            style = "colored" if "colored" in lower else crs
+            return f"Land cover — {style}"
+        if lower.startswith("population_"):
+            return f"Population — {crs}"
+        if lower.startswith("protected_areas"):
+            return f"Protected areas — {crs}"
+        if lower.startswith("dem_buffered"):
+            return f"Elevation (buffered) — {crs}"
+        if lower.startswith("dem_"):
+            return f"Elevation — {crs}"
+        if lower.startswith("wind_"):
+            return f"Wind resource — {crs}"
+        if lower.startswith("solar_"):
+            return f"Solar resource — {crs}"
+        if lower.startswith("goas_"):
+            return f"Global atlas grid — {crs}"
+        if parent == "derived_from_DEM":
+            measure = "Slope" if lower.startswith("slope_") else "Aspect"
+            return f"{measure} — {crs}"
+        if parent == "OSM_Infrastructure":
+            return f"OSM infrastructure — {stem.replace('_', ' ').title()}"
+        relative_parent = parent.replace("_", " ").title()
+        return f"{relative_parent} — {stem.replace('_', ' ')}"
+
+    def _refresh_preset_regions(self) -> None:
+        self.preset_regions = self._discover_region_layers(PARENT_DIR / "data")
+        region_names = list(self.preset_regions)
+        if self.preset_region_combo:
+            self.preset_region_combo.configure(values=region_names)
+        current = self.preset_region_var.get()
+        if current not in self.preset_regions:
+            self.preset_region_var.set(region_names[0] if region_names else "")
+        self._on_preset_region_selected()
+        if not region_names:
+            self._set_status(
+                f"No supported map layers were found below {PARENT_DIR / 'data'}.",
+                "warning",
+            )
+
+    def _on_preset_region_selected(self, _event: Optional[tk.Event] = None) -> None:
+        region = self.preset_region_var.get().strip()
+        available = self.preset_regions.get(region, [])
+        labels: Dict[str, Path] = {}
+        for path in available:
+            label = self._preset_layer_label(region, path)
+            if label in labels:
+                relative = path.relative_to(PARENT_DIR / "data" / region)
+                label = f"{label} [{relative}]"
+            labels[label] = path
+        self.preset_layer_paths = labels
+        values = list(labels)
+        if self.preset_layer_combo:
+            self.preset_layer_combo.configure(values=values)
+        self.preset_layer_var.set(values[0] if values else "")
+        if self.preset_add_button:
+            self.preset_add_button.configure(state="normal" if values else "disabled")
+        if region:
+            self._set_status(
+                f"Found {len(values)} available map layer(s) for {region}.",
+                "success" if values else "warning",
+            )
+
+    def _add_preset_layer(self) -> None:
+        label = self.preset_layer_var.get().strip()
+        path = self.preset_layer_paths.get(label)
+        if path is None:
+            messagebox.showwarning("Add Region Layer", "Select an available layer first.")
+            return
+        resolved = str(path.resolve())
+        if any(var.get().strip() == resolved for var in self.file_vars):
+            self._set_status(f"{label} is already selected.", "warning")
+            return
+        slot = next(
+            (index for index, variable in enumerate(self.file_vars) if not variable.get().strip()),
+            None,
+        )
+        if slot is None:
+            messagebox.showwarning(
+                "Add Region Layer",
+                "All three layer slots are in use. Clear a slot before adding another layer.",
+            )
+            return
+        self.file_vars[slot].set(resolved)
+        self.layer_names[slot].set(label)
+        self._set_status(f"Added {label} as layer {slot + 1}.", "success")
 
     def _browse(self, idx: int) -> None:
         current_value = self.file_vars[idx].get().strip()
@@ -10281,6 +10480,7 @@ class PythonScriptManagerApp(tk.Tk):
         super().__init__()
         self.title("Python Script Manager (Tkinter)")
         self.geometry("1200x780")
+        self.state("zoomed")
         if HAVE_TTKBOOTSTRAP:
             try:
                 self.style = Style(theme="litera", master=self)
