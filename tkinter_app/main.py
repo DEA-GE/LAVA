@@ -861,104 +861,33 @@ def build_map_html(
     return union_bounds
 
 
-def _show_map_fallback(
-    html_path: Path, parent: tk.Widget, reason: Optional[str] = None
-) -> Dict[str, Any]:
+def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
+    """Open the interactive map in the system browser.
+
+    Browser display is intentional: Folium and Leaflet receive a complete,
+    maintained browser runtime without coupling the Tkinter application to an
+    embedded WebView implementation.
+    """
+    target = Path(html_path).resolve()
     info = "Interactive map opened in your default browser."
-    if reason:
-        info = f"{info} ({reason})"
     label = ttk.Label(
-        parent, text=info, foreground="#a66b00", wraplength=420, justify="left"
+        parent, text=info, foreground="#1a7f37", wraplength=420, justify="left"
     )
     label.pack(fill="x", padx=10, pady=8)
-    webbrowser.open_new_tab(html_path.resolve().as_uri())
-    return {"embedded": False, "widget": label, "cleanup": lambda: None}
-
-
-def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
-    target = Path(html_path)
-    try:
-        from tkwebview2.tkwebview2 import WebView2  # type: ignore
-    except Exception as exc:  # pragma: no cover - optional dependency
-        return _show_map_fallback(target, parent, f"tkwebview2 unavailable: {exc}")
-
-    container = ttk.Frame(parent)
-    container.pack(fill="both", expand=True)
-    container.update_idletasks()
-    width = max(container.winfo_width(), 400)
-    height = max(container.winfo_height(), 300)
-    try:
-        widget = WebView2(container, width=width, height=height)
-    except Exception as exc:
-        container.destroy()
-        return _show_map_fallback(
-            target, parent, f"Unable to initialise WebView2: {exc}"
+    opened = webbrowser.open_new_tab(target.as_uri())
+    if not opened:
+        label.configure(
+            text=(
+                "The map was created, but the operating system did not confirm "
+                f"that it opened a browser. Open it manually: {target}"
+            ),
+            foreground="#b42318",
         )
-
-    widget.pack(fill="both", expand=True)
-    uri = target.resolve().as_uri()
-    loaded = False
-    for method_name in ("load_url", "navigate", "go"):
-        method = getattr(widget, method_name, None)
-        if callable(method):
-            try:
-                method(uri)
-                loaded = True
-                break
-            except Exception:
-                continue
-    if not loaded:
-        try:
-            html_text = target.read_text(encoding="utf-8")
-        except Exception as exc:
-            widget.destroy()
-            container.destroy()
-            return _show_map_fallback(target, parent, f"Unable to display map: {exc}")
-        html_loaded = False
-        for method_name in (
-            "load_html",
-            "load_html_string",
-            "set_html",
-            "load_html_content",
-        ):
-            method = getattr(widget, method_name, None)
-            if callable(method):
-                try:
-                    method(html_text)
-                    html_loaded = True
-                    break
-                except Exception:
-                    continue
-        if not html_loaded:
-            try:
-                widget.html = html_text  # type: ignore[attr-defined]
-                html_loaded = True
-            except Exception:
-                html_loaded = False
-        if not html_loaded:
-            widget.destroy()
-            container.destroy()
-            return _show_map_fallback(
-                target, parent, "Unable to display map in embedded viewer."
-            )
-
-    def cleanup() -> None:
-        try:
-            widget.destroy()
-        except Exception:
-            pass
-        if container.winfo_exists():
-            try:
-                container.destroy()
-            except Exception:
-                pass
-
-    container.bind("<Destroy>", lambda _e: cleanup())
     return {
-        "embedded": True,
-        "widget": container,
-        "cleanup": cleanup,
-        "browser": widget,
+        "embedded": False,
+        "opened": opened,
+        "widget": label,
+        "cleanup": lambda: None,
     }
 
 
@@ -8481,14 +8410,14 @@ class MapTab(ttk.Frame):
             return
         self._map_dir = temp_dir
         self._map_view = show_map_in_tk(str(map_html), self.map_container)
-        embedded = bool(self._map_view.get("embedded")) if self._map_view else False
-        if embedded:
+        browser_opened = bool(self._map_view.get("opened")) if self._map_view else False
+        if browser_opened:
             self._set_status(
-                f"Loaded {len(layers)} layer(s) in the embedded map.", "success"
+                f"Loaded {len(layers)} layer(s) in your default browser.", "success"
             )
         else:
             self._set_status(
-                f"Loaded {len(layers)} layer(s). The map opened in your browser.",
+                "The map was created, but the browser could not be opened automatically.",
                 "warning",
             )
 
@@ -8590,8 +8519,8 @@ class ResultsTab(ttk.Frame):
         frame = ttk.LabelFrame(self.analysis_tab, text="Results Analysis")
         frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(3, weight=1)
-        frame.rowconfigure(4, weight=2)
+        frame.rowconfigure(3, weight=0)
+        frame.rowconfigure(4, weight=1)
 
         ttk.Label(
             frame,
@@ -8624,11 +8553,11 @@ class ResultsTab(ttk.Frame):
         self.progress_bar.grid(row=1, column=0, sticky="ew")
 
         log_frame = ttk.LabelFrame(frame, text="Execution Log")
-        log_frame.grid(row=3, column=0, sticky="nsew")
+        log_frame.grid(row=3, column=0, sticky="ew")
         log_frame.columnconfigure(0, weight=1)
         log_frame.rowconfigure(0, weight=1)
         self.log_text = tk.Text(
-            log_frame, height=8, wrap="none", state="disabled", font=("Consolas", 10)
+            log_frame, height=4, wrap="none", state="disabled", font=("Consolas", 10)
         )
         self.log_text.grid(row=0, column=0, sticky="nsew")
         log_scroll = ttk.Scrollbar(
