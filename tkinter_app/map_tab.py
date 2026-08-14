@@ -12,6 +12,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Any, Dict, List, Optional, Tuple
 
+import geopandas as gpd  # noqa: F401  # Load GEOS before rasterio/GDAL on Windows.
 from rasterio.warp import transform_geom
 
 if __package__:
@@ -53,13 +54,20 @@ class MapTab(ttk.Frame):
         self.layer_names = [tk.StringVar(value="") for _ in range(self.MAX_LAYERS)]
         self.preset_region_var = tk.StringVar()
         self.preset_layer_var = tk.StringVar()
+        self.preset_technology_var = tk.StringVar(value="All")
+        self.preset_scenario_var = tk.StringVar(value="All")
         self.preset_region_combo: Optional[ttk.Combobox] = None
         self.preset_layer_combo: Optional[ttk.Combobox] = None
+        self.preset_technology_combo: Optional[ttk.Combobox] = None
+        self.preset_scenario_combo: Optional[ttk.Combobox] = None
         self.preset_add_button: Optional[ttk.Button] = None
+        self.preset_add_matching_button: Optional[ttk.Button] = None
         self.preset_regions: Dict[str, List[Path]] = {}
         self.preset_layer_paths: Dict[str, Path] = {}
         self._map_dir: Optional[Path] = None
         self._map_view: Optional[Dict[str, Any]] = None
+        self._last_map_html: Optional[Path] = None
+        self.export_map_button: Optional[ttk.Button] = None
         self.status_var = tk.StringVar(value="")
         self._status_palette = {
             "info": "#0d5d9b",
@@ -108,6 +116,46 @@ class MapTab(ttk.Frame):
         ttk.Button(
             presets, text="Refresh", command=self._refresh_preset_regions
         ).grid(row=0, column=5, padx=8, pady=8)
+        ttk.Label(presets, text="Technology filter:").grid(
+            row=1, column=0, sticky="w", padx=(8, 6), pady=(0, 8)
+        )
+        self.preset_technology_combo = ttk.Combobox(
+            presets,
+            textvariable=self.preset_technology_var,
+            values=("All",),
+            state="readonly",
+            width=24,
+        )
+        self.preset_technology_combo.grid(
+            row=1, column=1, sticky="w", pady=(0, 8)
+        )
+        self.preset_technology_combo.bind(
+            "<<ComboboxSelected>>", lambda _event: self._apply_preset_filters()
+        )
+        ttk.Label(presets, text="Scenario filter:").grid(
+            row=1, column=2, sticky="e", padx=(18, 6), pady=(0, 8)
+        )
+        self.preset_scenario_combo = ttk.Combobox(
+            presets,
+            textvariable=self.preset_scenario_var,
+            values=("All",),
+            state="readonly",
+        )
+        self.preset_scenario_combo.grid(
+            row=1, column=3, sticky="ew", pady=(0, 8)
+        )
+        self.preset_scenario_combo.bind(
+            "<<ComboboxSelected>>", lambda _event: self._apply_preset_filters()
+        )
+        self.preset_add_matching_button = ttk.Button(
+            presets,
+            text="Add Matching Results",
+            command=self._add_matching_result_layers,
+            state="disabled",
+        )
+        self.preset_add_matching_button.grid(
+            row=1, column=4, columnspan=2, sticky="ew", padx=(6, 8), pady=(0, 8)
+        )
         ttk.Label(
             presets,
             text=(
@@ -115,7 +163,7 @@ class MapTab(ttk.Frame):
                 "backup files are omitted."
             ),
             foreground="#555555",
-        ).grid(row=1, column=0, columnspan=6, sticky="w", padx=8, pady=(0, 8))
+        ).grid(row=2, column=0, columnspan=6, sticky="w", padx=8, pady=(0, 8))
 
         selection = ttk.LabelFrame(self, text="Layer Selection")
         selection.grid(row=1, column=0, sticky="ew", padx=10, pady=10)
@@ -165,6 +213,13 @@ class MapTab(ttk.Frame):
         buttons = ttk.Frame(self)
         buttons.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 5))
         ttk.Button(buttons, text="Load Map", command=self._load).pack(side="left")
+        self.export_map_button = ttk.Button(
+            buttons,
+            text="Save Map HTML...",
+            command=self._export_map_html,
+            state="disabled",
+        )
+        self.export_map_button.pack(side="left", padx=(6, 0))
         ttk.Button(buttons, text="Clear All", command=self._clear_all).pack(
             side="left", padx=(6, 0)
         )
@@ -310,8 +365,66 @@ class MapTab(ttk.Frame):
     def _on_preset_region_selected(self, _event: Optional[tk.Event] = None) -> None:
         region = self.preset_region_var.get().strip()
         available = self.preset_regions.get(region, [])
+        identities = [
+            identity
+            for path in available
+            if (identity := self._available_land_identity(region, path)) is not None
+        ]
+        technologies = sorted({identity[0] for identity in identities}, key=str.casefold)
+        scenarios = sorted({identity[1] for identity in identities}, key=str.casefold)
+        technology_values = ["All", *technologies]
+        scenario_values = ["All", *scenarios]
+        if self.preset_technology_combo:
+            self.preset_technology_combo.configure(values=technology_values)
+        if self.preset_scenario_combo:
+            self.preset_scenario_combo.configure(values=scenario_values)
+        if self.preset_technology_var.get() not in technology_values:
+            self.preset_technology_var.set("All")
+        if self.preset_scenario_var.get() not in scenario_values:
+            self.preset_scenario_var.set("All")
+        self._apply_preset_filters()
+
+    @staticmethod
+    def _available_land_identity(region: str, path: Path) -> Optional[Tuple[str, str]]:
+        if path.parent.name != "available_land":
+            return None
+        stem = path.stem
+        for suffix in ("_available_land_ResourceValues", "_available_land"):
+            if stem.endswith(suffix):
+                stem = stem[: -len(suffix)]
+                break
+        else:
+            return None
+        if stem.startswith(f"{region}_"):
+            stem = stem[len(region) + 1 :]
+        for technology in ("onshorewind", "offshorewind", "solar"):
+            prefix = f"{technology}_"
+            marker = f"_{technology}_"
+            if stem.startswith(prefix):
+                scenario = stem[len(prefix) :]
+                return (technology, scenario) if scenario else None
+            if marker in stem:
+                scenario = stem.split(marker, 1)[1]
+                return (technology, scenario) if scenario else None
+        technology, separator, scenario = stem.partition("_")
+        return (technology, scenario) if separator and scenario else None
+
+    def _apply_preset_filters(self) -> None:
+        region = self.preset_region_var.get().strip()
+        available = self.preset_regions.get(region, [])
+        technology_filter = self.preset_technology_var.get().strip() or "All"
+        scenario_filter = self.preset_scenario_var.get().strip() or "All"
         labels: Dict[str, Path] = {}
         for path in available:
+            identity = self._available_land_identity(region, path)
+            if technology_filter != "All" or scenario_filter != "All":
+                if identity is None:
+                    continue
+                technology, scenario = identity
+                if technology_filter != "All" and technology != technology_filter:
+                    continue
+                if scenario_filter != "All" and scenario != scenario_filter:
+                    continue
             label = self._preset_layer_label(region, path)
             if label in labels:
                 relative = path.relative_to(PARENT_DIR / "data" / region)
@@ -324,10 +437,59 @@ class MapTab(ttk.Frame):
         self.preset_layer_var.set(values[0] if values else "")
         if self.preset_add_button:
             self.preset_add_button.configure(state="normal" if values else "disabled")
+        matching_results = sum(
+            1
+            for path in labels.values()
+            if self._available_land_identity(region, path) is not None
+        )
+        if self.preset_add_matching_button:
+            self.preset_add_matching_button.configure(
+                state="normal" if matching_results else "disabled"
+            )
         if region:
+            filter_note = ""
+            if technology_filter != "All" or scenario_filter != "All":
+                filter_note = " after filtering"
             self._set_status(
-                f"Found {len(values)} available map layer(s) for {region}.",
+                f"Found {len(values)} available map layer(s) for {region}{filter_note}.",
                 "success" if values else "warning",
+            )
+
+    def _add_matching_result_layers(self) -> None:
+        region = self.preset_region_var.get().strip()
+        matching = [
+            (label, path)
+            for label, path in self.preset_layer_paths.items()
+            if self._available_land_identity(region, path) is not None
+        ]
+        if not matching:
+            messagebox.showwarning(
+                "Add Matching Results",
+                "No available-land result layers match the selected filters.",
+            )
+            return
+        selected_paths = {variable.get().strip() for variable in self.file_vars}
+        free_slots = [
+            index for index, variable in enumerate(self.file_vars) if not variable.get().strip()
+        ]
+        added = 0
+        for label, path in matching:
+            resolved = str(path.resolve())
+            if resolved in selected_paths or not free_slots:
+                continue
+            slot = free_slots.pop(0)
+            self.file_vars[slot].set(resolved)
+            self.layer_names[slot].set(label)
+            selected_paths.add(resolved)
+            added += 1
+        if added:
+            remaining = len(matching) - added
+            suffix = f" {remaining} matching layer(s) did not fit." if remaining > 0 else ""
+            self._set_status(f"Added {added} matching result layer(s).{suffix}", "success")
+        else:
+            self._set_status(
+                "Matching result layers are already selected or all layer slots are full.",
+                "warning",
             )
 
     def _add_preset_layer(self) -> None:
@@ -538,6 +700,9 @@ class MapTab(ttk.Frame):
             messagebox.showerror("Load Map", f"Could not build the map:\n{exc}")
             return
         self._map_dir = temp_dir
+        self._last_map_html = map_html
+        if self.export_map_button:
+            self.export_map_button.configure(state="normal")
         self._map_view = show_map_in_tk(str(map_html), self.map_container)
         browser_opened = bool(self._map_view.get("opened")) if self._map_view else False
         if browser_opened:
@@ -549,6 +714,30 @@ class MapTab(ttk.Frame):
                 "The map was created, but the browser could not be opened automatically.",
                 "warning",
             )
+
+    def _export_map_html(self) -> None:
+        source = self._last_map_html
+        if source is None or not source.is_file():
+            messagebox.showwarning(
+                "Save Map HTML", "Load a map before exporting its HTML file."
+            )
+            return
+        destination = filedialog.asksaveasfilename(
+            title="Save interactive map",
+            initialdir=str(PARENT_DIR),
+            initialfile="lava_map.html",
+            defaultextension=".html",
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
+        )
+        if not destination:
+            return
+        try:
+            shutil.copy2(source, Path(destination))
+        except OSError as exc:
+            self._set_status(f"Could not save map HTML: {exc}", "error")
+            messagebox.showerror("Save Map HTML", f"Could not save the map:\n{exc}")
+            return
+        self._set_status(f"Saved interactive map to {destination}.", "success")
 
     def _clear_map_display(self) -> None:
         if self._map_view:
@@ -579,6 +768,12 @@ class MapTab(ttk.Frame):
         if self._map_dir and self._map_dir.exists():
             shutil.rmtree(self._map_dir, ignore_errors=True)
         self._map_dir = None
+        self._last_map_html = None
+        if self.export_map_button:
+            try:
+                self.export_map_button.configure(state="disabled")
+            except tk.TclError:
+                pass
 
     def _set_status(self, message: str, level: str = "info") -> None:
         color = self._status_palette.get(level, self._status_palette["info"])

@@ -170,6 +170,15 @@ to continue. The preflight for a spatial preparation or Snakemake run can also
 summarize why prepared spatial data is considered reusable or why preparation
 is required.
 
+For Snakemake runs, the **Workflow plan** view expands the configured stages
+into their requested region, technology, scenario, and weather-year targets.
+Implicit dependencies are included; for example, an exclusion request also
+shows spatial data preparation. A missing output is marked as planned to run,
+while an existing output is marked for a freshness check. Prepared spatial
+inputs can be identified as reusable from the spatial preflight. These statuses
+are preliminary: Snakemake's dry run makes the final timestamp and dependency
+decision.
+
 **Dry run** is available only in Snakemake Workflow mode. It asks Snakemake to
 construct and report the planned jobs without executing them. A successful dry
 run is a useful dependency and configuration check, but it cannot guarantee
@@ -223,7 +232,29 @@ outputs, including `aggregated_available_land.json`. The table displays scenario
 technology, region, eligibility share, available area, and power potential.
 Each column can be filtered using a case-insensitive text match. The execution
 log is intentionally compact and scrollable so more space remains available for
-the result table.
+the result table. Select a column heading to sort it; metric columns are sorted
+numerically, including values stored in scientific notation.
+
+### Scenario Comparison
+
+Select a baseline scenario (Scenario A) and a comparison scenario (Scenario B)
+to match results by technology and region. The table presents both values and
+calculates Scenario B minus Scenario A for:
+
+- eligibility share in percentage points;
+- available area in square kilometres; and
+- power potential in terawatts.
+
+Technology and region filters can narrow the comparison. Rows present in only
+one scenario remain visible with blank unavailable values rather than being
+silently removed. Comparison columns are sortable and the displayed comparison
+can be exported as UTF-8 CSV or as an Excel workbook. Excel export requires
+`openpyxl`; if it is unavailable, CSV export remains available.
+
+The chart below the table can group differences by region or technology and can
+show any of the three metrics. Green bars are positive changes and red bars are
+negative changes. Eligibility differences are averaged when several rows are
+combined; area and power differences are summed.
 
 ### Delete Scenario Results
 
@@ -243,10 +274,15 @@ region to list its available GeoTIFF, GeoJSON, and GeoPackage layers. Up to thre
 layers can be selected, ordered, renamed, and assigned an opacity. Temporary
 files and old-resolution backups are omitted from the preset list.
 
+Technology and scenario filters narrow the available-land outputs for the
+selected region. **Add Matching Results** fills the available layer slots with
+matching result rasters, which makes comparing scenarios or technologies faster.
+
 **Load Map** prepares an interactive HTML map and opens it in the system's
 default web browser. The map is intentionally browser-based rather than embedded
 in the Tkinter window. A custom plain-text or HTML legend can be added before
-opening it.
+opening it. After loading, **Save Map HTML...** saves a portable copy of the
+interactive map for later viewing or sharing.
 
 ## Documentation tab
 

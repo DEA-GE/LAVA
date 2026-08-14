@@ -66,6 +66,284 @@ RUN_HISTORY_PATH = PARENT_DIR / "logs" / "ui_run_history.json"
 RUN_LOG_DIR = PARENT_DIR / "logs" / "ui_runs"
 
 
+def build_workflow_plan_rows(
+    regions: List[str],
+    technologies: List[str],
+    technology_scenarios: Mapping[str, Any],
+    stages: List[str],
+    weather_years: List[str],
+    *,
+    project_root: Path = PARENT_DIR,
+    spatial_plan: Optional[Mapping[str, Any]] = None,
+) -> List[Dict[str, str]]:
+    """Expand the configured Snakemake targets into user-facing preview rows.
+
+    Target existence is intentionally reported separately from freshness.
+    Snakemake remains responsible for comparing timestamps and resolving the
+    final DAG during a dry run or real run.
+    """
+
+    selected_stages = list(dict.fromkeys(str(stage) for stage in stages if stage))
+    requested_stages = set(selected_stages)
+    downstream_exclusion = {"suitability", "results_analysis"}
+    if requested_stages & downstream_exclusion:
+        if "exclusion" not in requested_stages:
+            selected_stages.insert(0, "exclusion")
+        if "spatial_data_prep" not in requested_stages:
+            selected_stages.insert(0, "spatial_data_prep")
+    elif "exclusion" in requested_stages and "spatial_data_prep" not in requested_stages:
+        selected_stages.insert(0, "spatial_data_prep")
+
+    normalized_regions = list(dict.fromkeys(str(value) for value in regions if value))
+    normalized_technologies = list(
+        dict.fromkeys(str(value) for value in technologies if value)
+    )
+    normalized_years = list(
+        dict.fromkeys(str(value) for value in weather_years if value)
+    )
+
+    def scenario_values(technology: str) -> List[str]:
+        raw = technology_scenarios.get(technology, [])
+        values = [raw] if isinstance(raw, str) else list(raw or [])
+        return list(dict.fromkeys(str(value) for value in values if str(value)))
+
+    def stage_name(stage: str) -> str:
+        labels = {
+            "spatial_data_prep": "Spatial data preparation",
+            "exclusion": "Land exclusion",
+            "suitability": "Suitability",
+            "results_analysis": "Results analysis",
+            "timeseries": "Timeseries",
+            "weather_data_prep": "Weather data preparation",
+            "weather_bias_adjust": "Weather bias adjustment",
+            "energy_profiles": "Energy profiles",
+        }
+        label = labels.get(stage, stage.replace("_", " ").title())
+        return label if stage in requested_stages else f"{label} (dependency)"
+
+    def target_status(targets: List[Path]) -> Tuple[str, str]:
+        if targets and all(path.is_file() for path in targets):
+            return "Output exists; check freshness", "existing"
+        return "Will run; output missing", "planned"
+
+    def spatial_status(region: str, target: Path) -> Tuple[str, str]:
+        region_records = spatial_plan.get("regions", {}) if spatial_plan else {}
+        if isinstance(region_records, Mapping):
+            for key, raw_record in region_records.items():
+                if not isinstance(raw_record, Mapping):
+                    continue
+                aliases = {
+                    str(key),
+                    str(raw_record.get("configured_region", "")),
+                    str(raw_record.get("region", "")),
+                }
+                if region not in aliases and canonical_region_name(region) not in aliases:
+                    continue
+                if raw_record.get("blocking"):
+                    return "Blocked by spatial inputs", "blocked"
+                if raw_record.get("requires_preparation") or not raw_record.get(
+                    "ready", False
+                ):
+                    return "Will prepare inputs", "planned"
+                return "Prepared inputs reusable", "ready"
+        return target_status([target])
+
+    rows: List[Dict[str, str]] = []
+
+    def add_row(
+        stage: str,
+        *,
+        region: str = "—",
+        technology: str = "—",
+        scenario: str = "—",
+        weather_year: str = "—",
+        targets: Optional[List[Path]] = None,
+        status: Optional[Tuple[str, str]] = None,
+    ) -> None:
+        status_text, status_level = status or target_status(targets or [])
+        rows.append(
+            {
+                "region": region or "Not configured",
+                "technology": technology or "Not configured",
+                "scenario": scenario or "Not configured",
+                "weather_year": weather_year or "Not configured",
+                "stage": stage_name(stage),
+                "status": status_text,
+                "status_level": status_level,
+                "targets": "\n".join(str(path) for path in (targets or [])),
+            }
+        )
+
+    region_values = normalized_regions or [""]
+    for stage in selected_stages:
+        if stage == "spatial_data_prep":
+            for region in region_values:
+                if not region:
+                    add_row(stage, region="", status=("Blocked: no region", "blocked"))
+                    continue
+                cleaned = canonical_region_name(region)
+                target = project_root / "data" / cleaned / f"{cleaned}_local_CRS.pkl"
+                add_row(
+                    stage,
+                    region=region,
+                    targets=[target],
+                    status=spatial_status(region, target),
+                )
+            continue
+
+        if stage in {"exclusion", "timeseries", "energy_profiles"}:
+            technology_values = normalized_technologies or [""]
+            for region in region_values:
+                for technology in technology_values:
+                    scenarios = scenario_values(technology) if technology else []
+                    scenario_items = scenarios or [""]
+                    year_items = (
+                        normalized_years or [""]
+                        if stage in {"timeseries", "energy_profiles"}
+                        else ["—"]
+                    )
+                    for scenario in scenario_items:
+                        for weather_year in year_items:
+                            if not region or not technology or not scenario:
+                                add_row(
+                                    stage,
+                                    region=region,
+                                    technology=technology,
+                                    scenario=scenario,
+                                    weather_year=weather_year,
+                                    status=("Blocked: incomplete selection", "blocked"),
+                                )
+                                continue
+                            if stage in {"timeseries", "energy_profiles"} and not weather_year:
+                                add_row(
+                                    stage,
+                                    region=region,
+                                    technology=technology,
+                                    scenario=scenario,
+                                    weather_year="",
+                                    status=("Blocked: no weather year", "blocked"),
+                                )
+                                continue
+                            cleaned = canonical_region_name(region)
+                            if stage == "exclusion":
+                                target = (
+                                    project_root
+                                    / "data"
+                                    / cleaned
+                                    / "available_land"
+                                    / f"{cleaned}_{technology}_{scenario}_available_land.tif"
+                                )
+                            else:
+                                target = (
+                                    project_root
+                                    / "data"
+                                    / cleaned
+                                    / "snakemake_log"
+                                    / f"{stage}_{technology}_{weather_year}_{scenario}.done"
+                                )
+                            add_row(
+                                stage,
+                                region=region,
+                                technology=technology,
+                                scenario=scenario,
+                                weather_year=weather_year,
+                                targets=[target],
+                            )
+            continue
+
+        if stage == "suitability":
+            shared_scenarios = list(
+                dict.fromkeys(
+                    scenario
+                    for technology in normalized_technologies
+                    for scenario in scenario_values(technology)
+                )
+            )
+            for region in region_values:
+                for scenario in shared_scenarios or [""]:
+                    if not region or not scenario:
+                        add_row(
+                            stage,
+                            region=region,
+                            technology="Shared",
+                            scenario=scenario,
+                            status=("Blocked: incomplete selection", "blocked"),
+                        )
+                        continue
+                    cleaned = canonical_region_name(region)
+                    target = (
+                        project_root
+                        / "data"
+                        / cleaned
+                        / "snakemake_log"
+                        / f"suitability_{scenario}.done"
+                    )
+                    add_row(
+                        stage,
+                        region=region,
+                        technology="Shared",
+                        scenario=scenario,
+                        targets=[target],
+                    )
+            continue
+
+        if stage == "weather_data_prep":
+            for region in region_values:
+                for weather_year in normalized_years or [""]:
+                    if not region or not weather_year:
+                        add_row(
+                            stage,
+                            region=region,
+                            weather_year=weather_year,
+                            status=("Blocked: incomplete selection", "blocked"),
+                        )
+                        continue
+                    cleaned = canonical_region_name(region)
+                    target = (
+                        project_root
+                        / "data"
+                        / cleaned
+                        / "snakemake_log"
+                        / f"weather_data_prep_{weather_year}.done"
+                    )
+                    add_row(
+                        stage,
+                        region=region,
+                        weather_year=weather_year,
+                        targets=[target],
+                    )
+            continue
+
+        if stage == "weather_bias_adjust":
+            for region in region_values:
+                if not region:
+                    add_row(stage, region="", status=("Blocked: no region", "blocked"))
+                    continue
+                cleaned = canonical_region_name(region)
+                target = (
+                    project_root
+                    / "data"
+                    / cleaned
+                    / "snakemake_log"
+                    / "weather_bias_adjust.done"
+                )
+                add_row(stage, region=region, targets=[target])
+            continue
+
+        if stage == "results_analysis":
+            targets = [
+                project_root / "aggregated_available_land.gpkg",
+                project_root / "aggregated_available_land.json",
+                project_root / "aggregated_available_land.csv",
+            ]
+            add_row(stage, targets=targets)
+            continue
+
+        add_row(stage, status=("Requested; dry run decides", "planned"))
+
+    return rows
+
+
 class PreflightDialog(tk.Toplevel):
     """Modal review of the exact run inputs and blocking preflight checks."""
 
@@ -76,8 +354,8 @@ class PreflightDialog(tk.Toplevel):
         is_dry_run = bool(report.get("dry_run"))
         action_name = "dry run" if is_dry_run else "run"
         self.title("Dry-run preflight" if is_dry_run else "Run preflight")
-        self.geometry("900x700")
-        self.minsize(720, 560)
+        self.geometry("1060x720")
+        self.minsize(820, 580)
         self.transient(master.winfo_toplevel())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.columnconfigure(0, weight=1)
@@ -134,6 +412,73 @@ class PreflightDialog(tk.Toplevel):
 
         details = ttk.Notebook(self)
         details.grid(row=2, column=0, sticky="nsew", padx=14, pady=6)
+
+        plan_rows = list(report.get("workflow_plan", []))
+        plan_frame: Optional[ttk.Frame] = None
+        if plan_rows:
+            plan_frame = ttk.Frame(details, padding=6)
+            plan_frame.columnconfigure(0, weight=1)
+            plan_frame.rowconfigure(0, weight=1)
+            details.add(plan_frame, text=f"Workflow plan ({len(plan_rows)})")
+            plan_columns = (
+                "region",
+                "technology",
+                "scenario",
+                "weather_year",
+                "stage",
+                "status",
+            )
+            plan_tree = ttk.Treeview(
+                plan_frame,
+                columns=plan_columns,
+                show="headings",
+                selectmode="browse",
+            )
+            for column, heading, width, stretch in (
+                ("region", "Region", 135, False),
+                ("technology", "Technology", 105, False),
+                ("scenario", "Scenario", 120, False),
+                ("weather_year", "Weather year", 90, False),
+                ("stage", "Stage", 190, True),
+                ("status", "Status", 215, True),
+            ):
+                plan_tree.heading(column, text=heading)
+                plan_tree.column(column, width=width, stretch=stretch, anchor="w")
+            plan_tree.grid(row=0, column=0, sticky="nsew")
+            plan_scroll_y = ttk.Scrollbar(
+                plan_frame, orient="vertical", command=plan_tree.yview
+            )
+            plan_scroll_y.grid(row=0, column=1, sticky="ns")
+            plan_scroll_x = ttk.Scrollbar(
+                plan_frame, orient="horizontal", command=plan_tree.xview
+            )
+            plan_scroll_x.grid(row=1, column=0, sticky="ew")
+            plan_tree.configure(
+                yscrollcommand=plan_scroll_y.set,
+                xscrollcommand=plan_scroll_x.set,
+            )
+            plan_tree.tag_configure("ready", foreground="#1A7F37")
+            plan_tree.tag_configure("existing", foreground="#8A5A00")
+            plan_tree.tag_configure("planned", foreground="#0D5D9B")
+            plan_tree.tag_configure("blocked", foreground="#B42318")
+            for item in plan_rows:
+                status_level = str(item.get("status_level", "planned"))
+                plan_tree.insert(
+                    "",
+                    "end",
+                    values=tuple(item.get(column, "") for column in plan_columns),
+                    tags=(status_level,),
+                )
+            ttk.Label(
+                plan_frame,
+                text=(
+                    "Output existence is a preliminary indicator. Snakemake's dry run "
+                    "makes the final freshness and dependency decision."
+                ),
+                foreground="#555555",
+                wraplength=940,
+                justify="left",
+            ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
 
         files_frame = ttk.Frame(details, padding=6)
         files_frame.columnconfigure(0, weight=1)
@@ -220,6 +565,8 @@ class PreflightDialog(tk.Toplevel):
         checks_text.configure(state="disabled")
         if issues:
             details.select(checks_frame)
+        elif plan_frame is not None:
+            details.select(plan_frame)
 
         footer = ttk.Frame(self, padding=(14, 6, 14, 14))
         footer.grid(row=3, column=0, sticky="ew")
@@ -2642,7 +2989,9 @@ class RunTab(ttk.Frame):
         self._check_referenced_inputs(report, config, regions, stages)
         self._check_preflight_dependencies(report, stages, mode)
 
-        if mode == "snakemake" and "exclusion" in stages:
+        if mode == "snakemake" and (
+            {"exclusion", "suitability", "results_analysis"} & set(stages)
+        ):
             try:
                 spatial_plan = build_spatial_prep_plan(project_root=PARENT_DIR)
                 report["spatial_prep_plan"] = spatial_plan
@@ -2687,6 +3036,17 @@ class RunTab(ttk.Frame):
                     f"Spatial preparation planning could not run: {exc}",
                 )
 
+        if mode == "snakemake":
+            report["workflow_plan"] = build_workflow_plan_rows(
+                regions,
+                technologies,
+                technology_scenario_map,
+                stages,
+                weather_years,
+                project_root=PARENT_DIR,
+                spatial_plan=report.get("spatial_prep_plan"),
+            )
+
         execution_summary = "Single script"
         if mode == "snakemake":
             execution_summary = (
@@ -2707,6 +3067,9 @@ class RunTab(ttk.Frame):
             "Enabled stages": ", ".join(stage.replace("_", " ") for stage in stages)
             if stages
             else "None",
+            "Planned targets": str(len(report.get("workflow_plan", [])))
+            if mode == "snakemake"
+            else "Not applicable",
             "Core count": str(cores),
         }
         report["run_context"] = {
