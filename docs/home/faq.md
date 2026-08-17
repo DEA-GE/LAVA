@@ -10,7 +10,7 @@ By default, all outputs from the pipeline are stored under the `data/` directory
 
 To add a new region (area of interest) for analysis, follow these steps:
 
-1. **Prepare the region data:** Obtain a vector file (e.g., a shapefile or GeoJSON) that delineates the new region's boundary. Place this file in the `Raw_spatial_Data/custom_study_region` directory. The name of the file to be used is written in the config.yaml file (custom_study_area_filename).
+1. **Prepare the region data:** Obtain a GeoJSON that delineates the new region's boundary. Create a named collection folder below `Raw_Spatial_Data/custom_study_area/` and place the file there, for example `Raw_Spatial_Data/custom_study_area/municipalities/Odense.geojson`. Set `custom_study_area_filename` in `config.yaml` to the path relative to `custom_study_area`, such as `municipalities/Odense.geojson`. For workflows over several files, use a template such as `municipalities/{region_name}.geojson`.
 
 ## Do I need to download satellite images manually?
 

@@ -104,7 +104,12 @@ class ConfigurationSetupDialog(tk.Toplevel):
         self.gadm_input_var = tk.StringVar()
         self.gadm_level_var = tk.IntVar(value=1)
         self.gadm_output_var = tk.StringVar(
-            value=str(PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area")
+            value=str(
+                PARENT_DIR
+                / "Raw_Spatial_Data"
+                / "custom_study_area"
+                / "gadm_areas"
+            )
         )
         self.gadm_overwrite_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar()
@@ -220,8 +225,9 @@ class ConfigurationSetupDialog(tk.Toplevel):
             study_area,
             text=(
                 "Each named area at the selected administrative level is written to "
-                "Raw_Spatial_Data/custom_study_area and listed in "
-                "processed_areas_list.json."
+                "a collection folder under Raw_Spatial_Data/custom_study_area and "
+                "listed in that folder's processed_areas_list.json. Use a distinct "
+                "folder for each dataset or administrative level."
             ),
             foreground="#555555",
             wraplength=740,
@@ -363,10 +369,26 @@ class ConfigurationSetupDialog(tk.Toplevel):
             ) from exc
         if level < 0:
             raise ValueError("Administrative level must be a non-negative integer.")
+        output_path = self._resolve_setup_path(output_text)
+        custom_root = (
+            PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area"
+        ).resolve()
+        try:
+            relative_output = output_path.relative_to(custom_root)
+        except ValueError as exc:
+            raise ValueError(
+                "The output must be a named collection folder below "
+                f"{custom_root}."
+            ) from exc
+        if relative_output == Path("."):
+            raise ValueError(
+                "Choose or create a named collection folder below "
+                f"{custom_root}; do not write GeoJSON files directly into it."
+            )
         return {
             "input_path": input_path,
             "gadm_level": level,
-            "output_folder": self._resolve_setup_path(output_text),
+            "output_folder": output_path,
             "overwrite": self.gadm_overwrite_var.get(),
         }
 

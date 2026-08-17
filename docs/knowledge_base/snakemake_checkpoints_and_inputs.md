@@ -244,9 +244,13 @@ while a shared canonical name identifies generated paths. For example,
 Manual runs and Snakemake use the same naming function, so they address the same
 generated files.
 
-Older custom study areas using the canonical filename remain accepted as a
-fallback. Existing prepared caches without the newer land-cover metadata can
-also be reused when their real raster properties match the current request.
+Custom study-area GeoJSON files should be grouped in named collection folders,
+for example `Raw_Spatial_Data/custom_study_area/gadm_areas/SjÃ¦lland.geojson`,
+and `custom_study_area_filename` should contain the relative path
+`gadm_areas/{region_name}.geojson`. Older flat files and files using the
+canonical cleaned filename remain accepted as fallbacks. Existing prepared
+caches without the newer land-cover metadata can also be reused when their real
+raster properties match the current request.
 
 ## Inspect the decision outside the UI
 

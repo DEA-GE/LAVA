@@ -22,6 +22,7 @@ except ImportError:  # pragma: no cover - optional dependency
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIGS_PATH = ROOT_DIR / "configs"
 CONFIG_PATH = CONFIGS_PATH / "config.yaml"
+CONFIG_TEMPLATE_PATH = CONFIGS_PATH / "config_template.yaml"
 ONSHORE_PATH = CONFIGS_PATH / "onshorewind.yaml"
 SOLAR_PATH = CONFIGS_PATH / "solar.yaml"
 OFFSHORE_PATH = CONFIGS_PATH / "offshorewind.yaml"
@@ -52,28 +53,27 @@ LEGACY_WEATHER_DATA_EXTEND_OPTIONS = (
 def load_custom_study_area_names(
     folder: Path = CUSTOM_STUDY_AREA_PATH,
 ) -> List[str]:
-    """Return selectable region names from custom study-area GeoJSON files."""
+    """Return region names from GeoJSON files in study-area collection folders."""
     target = Path(folder)
     if not target.is_dir():
         return []
 
     names: set[str] = {
         path.stem.strip()
-        for path in target.iterdir()
+        for path in target.rglob("*.geojson")
         if path.is_file() and path.suffix.casefold() == ".geojson" and path.stem.strip()
     }
-    manifest = target / "processed_areas_list.json"
-    if manifest.is_file():
+    for manifest in target.rglob("processed_areas_list.json"):
         try:
             manifest_values = json.loads(manifest.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            manifest_values = []
+            continue
         if isinstance(manifest_values, list):
             names.update(
                 str(value).strip()
                 for value in manifest_values
                 if str(value).strip()
-                and (target / f"{str(value).strip()}.geojson").is_file()
+                and (manifest.parent / f"{str(value).strip()}.geojson").is_file()
             )
     return sorted(names, key=str.casefold)
 
@@ -94,8 +94,6 @@ FALLBACK_SECTIONS = [
         "parameters": [
             {"key": "study_region_name", "value": "Sample Region", "type": "string"},
             {"key": "country_code", "value": "AAA", "type": "string"},
-            {"key": "scenario", "value": "ref", "type": "string"},
-            {"key": "technology", "value": "solar", "type": "string"},
         ],
     }
 ]
@@ -219,26 +217,6 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "type": "string",
                 "description": "Three-letter ISO code used by GADM and solar and wind atlases.",
             },
-            {
-                "key": "scenario",
-                "type": "string",
-                "description": "Scenario tag for filenames.",
-            },
-            {
-                "key": "technology",
-                "type": "string",
-                "description": "Technology tag for filenames.",
-            },
-            {
-                "key": "CRS_manual",
-                "type": "string",
-                "description": "Manual CRS override.",
-            },
-            {
-                "key": "model_areas_filename",
-                "type": "string",
-                "description": "Model areas filename.",
-            },
         ],
     },
     {
@@ -263,8 +241,12 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "custom_study_area_filename",
-                "type": "string",
-                "description": "Custom study area filename template. Use {region_name}.geojson when using snakemake to iterate over several areas.",
+                "type": "nullable_string",
+                "description": (
+                    "GeoJSON path relative to Raw_Spatial_Data/custom_study_area. "
+                    "Keep files in a named collection folder and use "
+                    "{region_name}.geojson for Snakemake iteration."
+                ),
             },
         ],
     },
@@ -285,13 +267,18 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "landcover_filename",
-                "type": "string",
+                "type": "nullable_string",
                 "description": "Landcover filename with extension; used instead of openeo.",
             },
             {
                 "key": "DEM_filename",
                 "type": "string",
                 "description": "DEM raster filename.",
+            },
+            {
+                "key": "buildings_filename",
+                "type": "nullable_string",
+                "description": "Local buildings raster filename.",
             },
         ],
     },
@@ -307,7 +294,7 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "OSM_folder_name",
-                "type": "string",
+                "type": "nullable_string",
                 "description": "Geofabrik OSM folder name within /Raw_Spatial_Data/OSM with all raw OSM shapefiles; only needed if Geofabrik used as OSM source",
             },
             {
@@ -418,7 +405,7 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "protected_areas_filename",
-                "type": "string",
+                "type": "nullable_string",
                 "description": "Protected areas filename. The file should be in (EPSG:4326).",
             },
         ],
@@ -435,7 +422,7 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "forest_density_filename",
-                "type": "string",
+                "type": "nullable_string",
                 "description": "Forest density raster filename.",
             },
         ],
@@ -463,9 +450,36 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         ],
     },
     {
+        "name": "spatial_paths",
+        "displayName": "Spatial Paths",
+        "description": "Projection and optional spatial input locations.",
+        "parameters": [
+            {
+                "key": "CRS_manual",
+                "type": "nullable_string",
+                "description": "Manual CRS override; blank selects the local UTM zone.",
+            },
+            {
+                "key": "additional_exclusion_polygons_folder_name",
+                "type": "nullable_string",
+                "description": "Folder for extra exclusion polygons.",
+            },
+            {
+                "key": "additional_exclusion_rasters_folder_name",
+                "type": "nullable_string",
+                "description": "Folder for extra exclusion rasters.",
+            },
+            {
+                "key": "model_areas_filename",
+                "type": "nullable_string",
+                "description": "Optional model areas filename.",
+            },
+        ],
+    },
+    {
         "name": "weather",
-        "displayName": "Weather data",
-        "description": "Weather data settings.",
+        "displayName": "Weather Download",
+        "description": "Weather download extent and variables.",
         "parameters": [
             {
                 "key": "weather_data_folder",
@@ -476,7 +490,8 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "key": "weather_data_extend",
                 "type": "string",
                 "description": (
-                    "Weather download extent mode or a custom study-area filename."
+                    "Weather download extent mode or a custom GeoJSON path relative "
+                    "to the custom_study_area folder."
                 ),
             },
             {
@@ -494,53 +509,80 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "type": "array",
                 "description": "ERA5 feature groups to download.",
             },
-            {
-                "key": "weather_external_data_path",
-                "type": "string",
-                "description": "Optional external weather data directory.",
-            },
-            {
-                "key": "input_area",
-                "type": "string",
-                "description": "Area used to create energy profiles.",
-            },
-            {
-                "key": "weather_year",
-                "type": "number",
-                "description": "Weather dataset year.",
-            },
-            {
-                "key": "weather_bias_correction",
-                "type": "mapping",
-                "description": "Bias-correction toggles by technology.",
-            },
-            {
-                "key": "weather_bias_range",
-                "type": "array",
-                "description": "Minimum and maximum bias-correction factors.",
-            },
         ],
     },
     {
-        "name": "additional_data",
-        "displayName": "Additional Data",
-        "description": "Custom exclusion dataset locations.",
+        "name": "timeseries",
+        "displayName": "Timeseries",
+        "description": "Atlite timeseries inputs and technology definitions.",
         "parameters": [
             {
-                "key": "additional_exclusion_polygons_folder_name",
-                "type": "string",
-                "description": "Folder for extra exclusion polygons.",
+                "key": "available_land",
+                "type": "mapping",
+                "description": "Optional available-land raster mask settings.",
             },
             {
-                "key": "additional_exclusion_rasters_folder_name",
+                "key": "weather_year",
+                "type": "integer",
+                "description": "Weather dataset year used for timeseries generation.",
+            },
+            {
+                "key": "cutout_name",
                 "type": "string",
-                "description": "Folder for extra exclusion rasters.",
+                "description": "Cutout filename template; {year} is replaced at runtime.",
+            },
+            {
+                "key": "cutout_dir",
+                "type": "string",
+                "description": "Directory containing weather cutout files.",
+            },
+            {
+                "key": "drop_leap_day",
+                "type": "boolean",
+                "description": "Drop February 29 from leap-year timeseries.",
+            },
+            {
+                "key": "test_mode",
+                "type": "boolean",
+                "description": "Process only the first week for a quick test run.",
+            },
+            {
+                "key": "shapes_path",
+                "type": "string",
+                "description": "GeoJSON path template containing region polygons.",
+            },
+            {
+                "key": "shapes_name_column",
+                "type": "string",
+                "description": "Column that identifies regions in the shapes file.",
+            },
+            {
+                "key": "show_progress",
+                "type": "boolean",
+                "description": "Show atlite progress bars.",
+            },
+            {
+                "key": "technologies",
+                "type": "mapping",
+                "description": "Enabled timeseries technologies and their parameters.",
             },
         ],
     },
 ]
 
 ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
+    {
+        "name": "scenario",
+        "displayName": "Scenario",
+        "description": "Reference scenario used as the base for exclusion settings.",
+        "parameters": [
+            {
+                "key": "reference_scenario",
+                "type": "string",
+                "description": "Name of the reference scenario.",
+            },
+        ],
+    },
     {
         "name": "deployment",
         "displayName": "Deployment Settings",
@@ -558,7 +600,7 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "projection_manual",
-                "type": "string",
+                "type": "nullable_string",
                 "description": "Optional manual projection override.",
             },
         ],
@@ -600,15 +642,34 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "type": "number",
                 "description": "Enable north-facing pixel exclusion.",
             },
+        ],
+    },
+    {
+        "name": "buildings",
+        "displayName": "Building Exclusions",
+        "description": "Building-footprint threshold and surrounding buffer.",
+        "parameters": [
+            {
+                "key": "max_buildings_footprint",
+                "type": "number",
+                "description": "Maximum building footprint per raster pixel (sqm).",
+            },
+            {
+                "key": "buildings_buffer",
+                "type": "number",
+                "description": "Buffer distance around buildings (m).",
+            },
+        ],
+    },
+    {
+        "name": "population",
+        "displayName": "Population Exclusion",
+        "description": "Population threshold used during exclusion.",
+        "parameters": [
             {
                 "key": "max_population",
                 "type": "number",
                 "description": "Maximum population per pixel.",
-            },
-            {
-                "key": "max_forest_density",
-                "type": "number",
-                "description": "Maximum forest density percent.",
             },
         ],
     },
@@ -666,6 +727,18 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "key": "plants_buffer",
                 "type": "number",
                 "description": "Plant buffer distance (m).",
+            },
+        ],
+    },
+    {
+        "name": "forest",
+        "displayName": "Forest Exclusion",
+        "description": "Forest-density threshold used during exclusion.",
+        "parameters": [
+            {
+                "key": "max_forest_density",
+                "type": "number",
+                "description": "Maximum forest density percent.",
             },
         ],
     },
@@ -743,37 +816,32 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         ],
     },
     {
-        "name": "technology",
-        "displayName": "Technology Parameters",
-        "description": "Turbine configuration and derating factors.",
+        "name": "additional_scenarios",
+        "displayName": "Additional Scenarios",
+        "description": "Scenario-specific overrides of reference exclusion settings.",
         "parameters": [
             {
-                "key": "turbine",
-                "type": "string",
-                "description": "Turbine configuration filename.",
-            },
-            {
-                "key": "tech_derate",
-                "type": "number",
-                "description": "Technology derate factor (e.g. 0.95). Used in computing of energy profiles.",
-            },
-        ],
-    },
-    {
-        "name": "wind_groups",
-        "displayName": "Wind Resource Groups",
-        "description": "Wind speed thresholds per resource group.",
-        "parameters": [
-            {
-                "key": "rg_thr",
+                "key": "additional_scenarios",
                 "type": "mapping",
-                "description": "Wind resource group thresholds (m/s).",
+                "description": "Named scenarios and the settings each scenario overrides.",
             },
         ],
     },
 ]
 
 SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
+    {
+        "name": "scenario",
+        "displayName": "Scenario",
+        "description": "Reference scenario used as the base for exclusion settings.",
+        "parameters": [
+            {
+                "key": "reference_scenario",
+                "type": "string",
+                "description": "Name of the reference scenario.",
+            },
+        ],
+    },
     {
         "name": "deployment",
         "displayName": "Deployment Settings",
@@ -791,7 +859,7 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
             },
             {
                 "key": "projection_manual",
-                "type": "string",
+                "type": "nullable_string",
                 "description": "Optional manual projection override.",
             },
         ],
@@ -833,15 +901,34 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "type": "number",
                 "description": "Enable north-facing pixel exclusion.",
             },
+        ],
+    },
+    {
+        "name": "buildings",
+        "displayName": "Building Exclusions",
+        "description": "Building-footprint threshold and surrounding buffer.",
+        "parameters": [
+            {
+                "key": "max_buildings_footprint",
+                "type": "number",
+                "description": "Maximum building footprint per raster pixel (sqm).",
+            },
+            {
+                "key": "buildings_buffer",
+                "type": "number",
+                "description": "Buffer distance around buildings (m).",
+            },
+        ],
+    },
+    {
+        "name": "population",
+        "displayName": "Population Exclusion",
+        "description": "Population threshold used during exclusion.",
+        "parameters": [
             {
                 "key": "max_population",
                 "type": "number",
                 "description": "Maximum population per pixel.",
-            },
-            {
-                "key": "max_forest_density",
-                "type": "number",
-                "description": "Maximum forest density percent.",
             },
         ],
     },
@@ -899,6 +986,18 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "key": "plants_buffer",
                 "type": "number",
                 "description": "Plant buffer distance (m).",
+            },
+        ],
+    },
+    {
+        "name": "forest",
+        "displayName": "Forest Exclusion",
+        "description": "Forest-density threshold used during exclusion.",
+        "parameters": [
+            {
+                "key": "max_forest_density",
+                "type": "number",
+                "description": "Maximum forest density percent.",
             },
         ],
     },
@@ -976,31 +1075,14 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         ],
     },
     {
-        "name": "technology",
-        "displayName": "Technology Parameters",
-        "description": "Panel configuration and derating factors.",
+        "name": "additional_scenarios",
+        "displayName": "Additional Scenarios",
+        "description": "Scenario-specific overrides of reference exclusion settings.",
         "parameters": [
             {
-                "key": "panel",
-                "type": "string",
-                "description": "Panel configuration filename.",
-            },
-            {
-                "key": "tech_derate",
-                "type": "number",
-                "description": "Technology derate factor.",
-            },
-        ],
-    },
-    {
-        "name": "solar_groups",
-        "displayName": "Solar Resource Groups",
-        "description": "Solar production thresholds per resource group.",
-        "parameters": [
-            {
-                "key": "rg_thr",
+                "key": "additional_scenarios",
                 "type": "mapping",
-                "description": "Solar resource group thresholds (kWh/m2/yr).",
+                "description": "Named scenarios and the settings each scenario overrides.",
             },
         ],
     },
@@ -1079,8 +1161,8 @@ CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "key": "study_region_name",
                 "type": "array",
                 "description": (
-                    "Regions to run, loaded from GeoJSON files in "
-                    "Raw_Spatial_Data/custom_study_area."
+                    "Regions to run, discovered recursively from GeoJSON files in "
+                    "collection folders below Raw_Spatial_Data/custom_study_area."
                 ),
             },
             {
@@ -1310,6 +1392,12 @@ def cast_value(param_type: str, value: Any) -> Any:
         except ValueError:
             return text
 
+    if kind == "nullable_string":
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
+
     if isinstance(value, str):
         return value
     return "" if value is None else str(value)
@@ -1468,8 +1556,11 @@ def load_initial_sections() -> List[Dict[str, Any]]:
     """
     Load configuration sections from config.yaml, falling back to a minimal default.
     """
+    template_sections = _load_sections_from_yaml(
+        CONFIG_TEMPLATE_PATH, CONFIG_SECTION_DEFINITIONS, FALLBACK_SECTIONS
+    )
     return _load_sections_from_yaml(
-        CONFIG_PATH, CONFIG_SECTION_DEFINITIONS, FALLBACK_SECTIONS
+        CONFIG_PATH, CONFIG_SECTION_DEFINITIONS, template_sections
     )
 
 
@@ -1644,6 +1735,17 @@ def validate_configuration_documents(
                 "custom_study_area_filename",
                 "The custom study area overrides the configured GADM region.",
             )
+        if (
+            custom_area
+            and Path(str(config.get("custom_study_area_filename"))).parent == Path(".")
+        ):
+            add(
+                "warning",
+                "config.yaml",
+                "custom_study_area_filename",
+                "Place the GeoJSON in a named collection folder and include that "
+                "folder in the relative path.",
+            )
 
         gadm_source = str(config.get("GADM_source") or "gadm").strip()
         if gadm_source not in GADM_SOURCE_OPTIONS:
@@ -1717,6 +1819,18 @@ def validate_configuration_documents(
                 "Weather extent uses a retired value. Choose gadm_country, "
                 "wb_country, bbox, downloaded_region, or enter a custom study-area "
                 "filename.",
+            )
+        elif (
+            weather_extend
+            and weather_extend not in WEATHER_DATA_EXTEND_OPTIONS
+            and Path(weather_extend).parent == Path(".")
+        ):
+            add(
+                "warning",
+                "config.yaml",
+                "weather_data_extend",
+                "Custom weather study areas should include their collection folder "
+                "in the relative GeoJSON path.",
             )
         if weather_extend == "bbox":
             bounds = config.get("bbox")
@@ -2120,7 +2234,7 @@ def sections_to_mapping(sections: List[Dict[str, Any]]) -> MutableMapping[str, A
                     value = cast_value(param_type, value)
                 elif param_type == "mapping":
                     value = cast_value("mapping", value)
-                elif param_type in {"integer", "source"}:
+                elif param_type in {"integer", "source", "nullable_string"}:
                     value = cast_value(param_type, value)
             mapping_key = param["key"]
             data[mapping_key] = value

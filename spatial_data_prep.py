@@ -191,10 +191,9 @@ if custom_study_area_filename:
     print(f"\nUsing custom study area filename: {custom_study_area_filename}")
     if used_legacy_study_area_name:
         logging.warning(
-            "Using legacy cleaned custom study-area filename %s. Prefer a file "
-            "named from the original region value %s.",
-            custom_study_area_filename,
-            args.region,
+            "Using a legacy flat or cleaned custom study-area path %s. Move the "
+            "GeoJSON into a named collection folder when convenient.",
+            custom_study_area_filepath,
         )
     region = gpd.read_file(custom_study_area_filepath).dissolve()
     if region.crs != 4326:

@@ -8,7 +8,7 @@ country_code: CHN #3-letter ISO code; also needed for global wind atlas
 GADM_region_name:  #exact name as in GADM file (NAME_{gadm_level})
 GADM_level: 
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: '{region_name}.geojson' #if you need a dynamic filename, then use {region_name} in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+custom_study_area_filename: 'gadm_areas/{region_name}.geojson' # path relative to Raw_Spatial_Data/custom_study_area; use a distinct collection folder when preparing several datasets or levels
 
 
 #--data retrieval----------------------------------------------------------------------

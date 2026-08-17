@@ -12,7 +12,7 @@ from typing import Sequence
 import geopandas as gpd
 
 
-DEFAULT_OUTPUT_FOLDER = Path("Raw_Spatial_Data/custom_study_area")
+DEFAULT_OUTPUT_FOLDER = Path("Raw_Spatial_Data/custom_study_area/gadm_areas")
 AREA_RENAMES = {"XinjiangUygur": "Xinjiang", "NingxiaHui": "Ningxia"}
 
 
@@ -53,11 +53,12 @@ def extract_gadm_levels(
     *,
     overwrite: bool = False,
 ) -> GADMExtractionResult:
-    """Extract every named area at one GADM level into a separate GeoJSON.
+    """Extract every named area into a separate GeoJSON in one collection folder.
 
     Existing area files are preserved unless ``overwrite`` is true. The returned
     result lets graphical and command-line callers report created and skipped
-    files without parsing console output.
+    files without parsing console output. Use a distinct output folder for each
+    source dataset or administrative level.
     """
     source = Path(input_path).expanduser()
     destination = Path(output_folder).expanduser()

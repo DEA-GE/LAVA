@@ -9,7 +9,7 @@ GADM_source: gadm #[mandatory][string: gadm/wb], gadm: https://gadm.org/maps.htm
 GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{ADM_level}) or on WorldBank https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (NAM_{ADM_level}) or "{region_name}" when looping with Snakemake
 GADM_level: 2 #[situational][integer]
 # or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: #[situational][string] if you need a dynamic filename, then use "{region_name}.geojson" in the filename which is replaced in the spatial_data_prep script e.g. gadm41_CHN_1_{region_name}.geojson
+custom_study_area_filename: #[situational][string] path relative to Raw_Spatial_Data/custom_study_area; keep GeoJSON files in a named collection folder, e.g. gadm_areas/{region_name}.geojson
 
 
 #--data retrieval----------------------------------------------------------------------
@@ -86,7 +86,7 @@ model_areas_filename:
 #--Weather data  -------------------------------------------------------------
 # download settings
 weather_data_folder: Raw_Spatial_Data/weather_data #[mandatory][string] folder where weather data cutout will be stored
-weather_data_extend: gadm_country # [mandatory][gadm_country/wb_country/bbox/downloaded_region/{name of custom area file incl file ending}]
+weather_data_extend: gadm_country # [mandatory][gadm_country/wb_country/bbox/downloaded_region/{collection folder}/{custom area filename}]
 bbox: [xmin, ymin, xmax, ymax] # [situational][xmin, ymin, xmax, ymax] only needed if weather_data_extend is set to bbox; in EPSG4326; Odense: [9.8828, 54.9881, 10.876700000000001, 55.780899999999995]
 weather_years: 
     years: [2019] # list of historical weather years 

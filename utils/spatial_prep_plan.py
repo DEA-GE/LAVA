@@ -95,12 +95,12 @@ def resolve_custom_study_area_path(
     filename_template: str,
     project_root: str | Path = ".",
 ) -> tuple[Path, bool]:
-    """Resolve a custom study area using its original region spelling.
+    """Resolve a custom study area inside a named collection folder.
 
     The name supplied by the workflow/GADM selection is authoritative.  A
-    cleaned-name candidate is accepted only as a backward-compatible fallback
-    for caches created by older LAVA versions.  The boolean return value tells
-    callers whether that fallback was selected.
+    cleaned-name candidate and the former flat-file layout are accepted as
+    backward-compatible fallbacks. The boolean return value tells callers
+    whether a legacy fallback was selected.
     """
     root = Path(project_root)
     custom_directory = root / "Raw_Spatial_Data" / "custom_study_area"
@@ -110,15 +110,29 @@ def resolve_custom_study_area_path(
         raise ValueError(
             f"Invalid custom study-area filename template {filename_template!r}: {exc}"
         ) from exc
-    original_path = custom_directory / original_name
+    relative_original = Path(original_name)
+    if relative_original.is_absolute() or ".." in relative_original.parts:
+        raise ValueError(
+            "Custom study-area paths must be relative to "
+            "Raw_Spatial_Data/custom_study_area and cannot contain '..'."
+        )
+    original_path = custom_directory / relative_original
+    uses_collection_folder = relative_original.parent != Path(".")
     if original_path.is_file():
-        return original_path, False
+        return original_path, not uses_collection_folder
 
     cleaned_region = canonical_region_name(configured_region)
     cleaned_name = filename_template.format(region_name=cleaned_region)
-    cleaned_path = custom_directory / cleaned_name
+    relative_cleaned = Path(cleaned_name)
+    cleaned_path = custom_directory / relative_cleaned
     if cleaned_path != original_path and cleaned_path.is_file():
         return cleaned_path, True
+
+    if uses_collection_folder:
+        for legacy_name in (relative_original.name, relative_cleaned.name):
+            legacy_path = custom_directory / legacy_name
+            if legacy_path.is_file():
+                return legacy_path, True
     return original_path, False
 
 

@@ -46,7 +46,7 @@ class SpatialPreparationPlanTests(unittest.TestCase):
             )
 
             self.assertEqual(path, original)
-            self.assertFalse(used_legacy_name)
+            self.assertTrue(used_legacy_name)
 
     def test_custom_study_area_accepts_cleaned_legacy_name(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

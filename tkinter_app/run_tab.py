@@ -2628,9 +2628,9 @@ class RunTab(ttk.Frame):
                         self._add_preflight_issue(
                             report,
                             "warning",
-                            "Using a legacy cleaned custom study-area filename for "
-                            f"{region}: {resolved_path.name}. Rename it using the "
-                            "original region spelling when convenient.",
+                            "Using a legacy flat or cleaned custom study-area path "
+                            f"for {region}: {resolved_path}. Move the GeoJSON into "
+                            "a named collection folder when convenient.",
                         )
 
             if str(config.get("landcover_source") or "").strip().lower() == "file":
@@ -2714,13 +2714,25 @@ class RunTab(ttk.Frame):
                 and weather_extent not in WEATHER_DATA_EXTEND_OPTIONS
                 and weather_extent not in LEGACY_WEATHER_DATA_EXTEND_OPTIONS
             ):
+                try:
+                    weather_area_path, _used_legacy_path = (
+                        resolve_custom_study_area_path(
+                            configured_region=str(
+                                config.get("study_region_name") or ""
+                            ),
+                            filename_template=weather_extent,
+                            project_root=PARENT_DIR,
+                        )
+                    )
+                except ValueError as exc:
+                    weather_area_path = PARENT_DIR / "__invalid_custom_study_area__"
+                    self._add_preflight_issue(
+                        report,
+                        "error",
+                        f"Invalid custom weather study-area path: {exc}",
+                    )
                 self._record_preflight_path(
-                    report,
-                    "Custom weather study area",
-                    PARENT_DIR
-                    / "Raw_Spatial_Data"
-                    / "custom_study_area"
-                    / weather_extent,
+                    report, "Custom weather study area", weather_area_path
                 )
 
         weather_consumers = {"weather_bias_adjust", "energy_profiles"}

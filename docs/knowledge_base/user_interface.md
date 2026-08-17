@@ -46,8 +46,8 @@ The setup dialog can:
 - create the active files from the default templates;
 - use an available country example as the template source;
 - preserve existing files or replace them when overwrite is enabled; and
-- optionally extract study areas from a GADM input file into
-  `Raw_Spatial_Data/custom_study_area/`.
+- optionally extract study areas from a GADM input file into a named collection
+  folder such as `Raw_Spatial_Data/custom_study_area/gadm_areas/`.
 
 The preview lists the source and destination of every configuration file before
 anything is created. Preparing GADM study areas is optional and does not change
@@ -101,9 +101,12 @@ because the exclusion rule would have no parameter definition to use.
 ### Regions, technologies, and scenarios
 
 The Workflow configuration determines which combinations Snakemake requests.
-Study-region choices are discovered from
-`Raw_Spatial_Data/custom_study_area/`. The editor supports adding one region,
-removing one, or adding all discovered regions.
+Study-region choices are discovered recursively from GeoJSON files in named
+collection folders below `Raw_Spatial_Data/custom_study_area/`. The editor
+supports adding one region, removing one, or adding all discovered regions.
+Use a distinct collection folder for each source dataset or administrative
+level. Flat files directly in `custom_study_area/` remain readable for backward
+compatibility but are no longer the recommended layout.
 
 The scenario entry in `config_snakemake.yaml` does not replace exclusion
 parameters in a technology YAML file. It selects a named scenario already

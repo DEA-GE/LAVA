@@ -41,6 +41,8 @@
 # --- Tests ---
 !tests
 !tests/test_spatial_prep_plan.py
+!tests/test_custom_study_areas.py
+!tests/test_technology_config_editor.py
 # --- Raw input data ---
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
@@ -57,6 +59,8 @@
 !Raw_Spatial_Data/GOAS/.gitkeep
 !Raw_Spatial_Data/custom_study_area
 !Raw_Spatial_Data/custom_study_area/.gitkeep
+!Raw_Spatial_Data/custom_study_area/gadm_areas
+!Raw_Spatial_Data/custom_study_area/gadm_areas/.gitkeep
 !Raw_Spatial_Data/additional_exclusion_polygons
 !Raw_Spatial_Data/additional_exclusion_polygons/.gitkeep
 !Raw_Spatial_Data/global_solar_wind_atlas

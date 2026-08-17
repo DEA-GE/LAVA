@@ -100,6 +100,8 @@ Understanding the repository layout will help in navigating the project and conf
 │   ├── 📁 additional_exclusion_polygons
 │   ├── 📁 buildings
 │   ├── 📁 custom_study_area
+│   │   └── 📁 gadm_areas
+│   │       └── Region.geojson
 │   ├── 📁 DEM
 │   ├── 📁 global_solar_wind_atlas
 │   ├── 📁 GOAS

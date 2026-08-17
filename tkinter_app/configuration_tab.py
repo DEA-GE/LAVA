@@ -72,8 +72,10 @@ PARAMETER_CHOICES: Dict[str, List[str]] = {
     "technology": ["onshorewind", "solar", "offshorewind"],
 }
 PARAMETER_PICKERS: Dict[str, str] = {
-    "custom_study_area_filename": "filename", "landcover_filename": "filename",
-    "DEM_filename": "filename", "protected_areas_filename": "filename",
+    "custom_study_area_filename": "custom_study_area_file",
+    "landcover_filename": "filename",
+    "DEM_filename": "filename", "buildings_filename": "filename",
+    "protected_areas_filename": "filename",
     "forest_density_filename": "filename", "model_areas_filename": "filename",
     "weather_data_extend": "filename", "weather_external_data_path": "directory",
     "additional_exclusion_polygons_folder_name": "folder_name",
@@ -82,7 +84,9 @@ PARAMETER_PICKERS: Dict[str, str] = {
 }
 PARAMETER_UNITS: Dict[str, str] = {
     "deployment_density": "MW/km2", "resolution_manual": "m", "resolution_landcover": "degrees",
-    "max_elevation": "m", "max_slope": "degrees", "railways_buffer": "m",
+    "max_elevation": "m", "max_slope": "degrees", "max_buildings_footprint": "sqm",
+    "buildings_buffer": "m", "max_population": "people/pixel", "max_forest_density": "%",
+    "railways_buffer": "m",
     "roads_buffer": "m", "airports_buffer": "m", "waterbodies_buffer": "m",
     "military_buffer": "m", "coastlines_buffer": "m", "protectedAreas_buffer": "m",
     "transmission_lines_buffer": "m", "generators_buffer": "m", "plants_buffer": "m",
@@ -124,6 +128,23 @@ def format_yaml_comment_hint(comment: str) -> str:
     metadata = " ".join(re.findall(r"\[[^\]]+\]", metadata_text))
     remainder = remainder.strip()
     return f"{metadata} Example: {remainder}" if remainder else metadata
+
+
+def _mousewheel_scroll_units(event: tk.Event) -> int:
+    """Translate a cross-platform mouse-wheel event into canvas scroll units."""
+    button = getattr(event, "num", None)
+    if button == 4:
+        return -1
+    if button == 5:
+        return 1
+
+    delta = int(getattr(event, "delta", 0) or 0)
+    if delta == 0:
+        return 0
+    if sys.platform == "darwin":
+        return -1 if delta > 0 else 1
+    steps = max(1, abs(delta) // 120)
+    return -steps if delta > 0 else steps
 
 
 
@@ -185,7 +206,7 @@ def sections_to_yaml(sections: List[Dict[str, Any]]) -> str:
                 value = _coerce_list_value(value_type, value)
             elif value_type == "mapping":
                 value = cast_value("mapping", value)
-            elif value_type in {"integer", "source"}:
+            elif value_type in {"integer", "source", "nullable_string"}:
                 value = cast_value(value_type, value)
             data[param["key"]] = value
     if yaml is not None:
@@ -1478,7 +1499,12 @@ class ConfigurationTab(ttk.Frame):
         if not picker:
             return
         current = variable.get().strip()
-        initial_dir = PARENT_DIR
+        custom_study_area_root = PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area"
+        initial_dir = (
+            custom_study_area_root
+            if picker == "custom_study_area_file"
+            else PARENT_DIR
+        )
         if current:
             candidate = Path(current)
             if not candidate.is_absolute():
@@ -1496,7 +1522,29 @@ class ConfigurationTab(ttk.Frame):
         if not selected:
             return
         selected_path = Path(selected)
-        if picker in {"filename", "folder_name"}:
+        if picker == "custom_study_area_file":
+            try:
+                relative_path = selected_path.resolve().relative_to(
+                    custom_study_area_root.resolve()
+                )
+            except ValueError:
+                messagebox.showerror(
+                    "Custom study area",
+                    "Select a GeoJSON inside a collection folder under:\n"
+                    f"{custom_study_area_root}",
+                    parent=self,
+                )
+                return
+            if relative_path.parent == Path("."):
+                messagebox.showerror(
+                    "Custom study area",
+                    "Place the GeoJSON in a named collection folder below:\n"
+                    f"{custom_study_area_root}",
+                    parent=self,
+                )
+                return
+            rendered = relative_path.as_posix()
+        elif picker in {"filename", "folder_name"}:
             rendered = selected_path.name
         elif picker == "project_file":
             try:
@@ -1949,6 +1997,7 @@ class ConfigurationTab(ttk.Frame):
         frame = info.get("visual_frame")
         if frame is None:
             return
+        scroll_canvas = info.get("visual_canvas")
         for child in frame.winfo_children():
             child.destroy()
         info["param_controls"] = []
@@ -2124,6 +2173,8 @@ class ConfigurationTab(ttk.Frame):
                             state="normal",
                             width=24,
                         )
+                        if scroll_canvas is not None:
+                            self._redirect_mousewheel_to_canvas(widget, scroll_canvas)
                     elif param_type in {"number", "integer"}:
                         minimum, maximum, increment = self._numeric_limits(
                             param["key"], param_type
@@ -2136,6 +2187,8 @@ class ConfigurationTab(ttk.Frame):
                             increment=increment,
                             width=24,
                         )
+                        if scroll_canvas is not None:
+                            self._redirect_mousewheel_to_canvas(widget, scroll_canvas)
                     else:
                         widget = ttk.Entry(input_frame, textvariable=var, width=27)
                     widget.grid(row=0, column=0, sticky="ew")
@@ -2240,6 +2293,11 @@ class ConfigurationTab(ttk.Frame):
             elif param_type == "source":
                 var = ctrl.get("var")
                 param["value"] = cast_value("source", "" if var is None else var.get())
+            elif param_type == "nullable_string":
+                var = ctrl.get("var")
+                param["value"] = cast_value(
+                    "nullable_string", "" if var is None else var.get()
+                )
             elif param_type.startswith("list:"):
                 var = ctrl.get("var")
                 if var is not None:
@@ -2472,7 +2530,7 @@ class ConfigurationTab(ttk.Frame):
                 value = param.get("value")
                 if param_type.startswith("list:"):
                     value = _coerce_list_value(param_type, value)
-                elif param_type in {"integer", "source"}:
+                elif param_type in {"integer", "source", "nullable_string"}:
                     value = cast_value(param_type, value)
                 data[param["key"]] = value
         if yaml is not None:
@@ -3480,6 +3538,7 @@ class ConfigurationTab(ttk.Frame):
                         state="normal",
                         width=37,
                     )
+                    self._redirect_mousewheel_to_canvas(widget, self.param_canvas)
                 elif value_type in {"number", "integer"}:
                     minimum, maximum, increment = self._numeric_limits(key, value_type)
                     widget = ttk.Spinbox(
@@ -3490,6 +3549,7 @@ class ConfigurationTab(ttk.Frame):
                         increment=increment,
                         width=37,
                     )
+                    self._redirect_mousewheel_to_canvas(widget, self.param_canvas)
                 else:
                     widget = ttk.Entry(control_frame, textvariable=var, width=40)
                 widget.grid(row=0, column=0, sticky="ew")
@@ -3678,6 +3738,8 @@ class ConfigurationTab(ttk.Frame):
                     value = None
         elif value_type == "source":
             value = cast_value("source", raw_value)
+        elif value_type == "nullable_string":
+            value = cast_value("nullable_string", raw_value)
         elif value_type.startswith("list:"):
             value = _coerce_list_value(value_type, raw_value)
         else:
@@ -3976,12 +4038,10 @@ class ConfigurationTab(ttk.Frame):
 
     def _enable_mousewheel(self, canvas: tk.Canvas) -> None:
         """Enable cross-platform mousewheel scrolling on a Canvas."""
-        import sys
-
         def _on_mousewheel(event):
-            # Windows / macOS use <MouseWheel>
-            delta = -1 if sys.platform == "darwin" else int(-event.delta / 120)
-            canvas.yview_scroll(delta, "units")
+            units = _mousewheel_scroll_units(event)
+            if units:
+                canvas.yview_scroll(units, "units")
 
         # Bindings for Windows/macOS
         canvas.bind(
@@ -3992,3 +4052,19 @@ class ConfigurationTab(ttk.Frame):
         # Bindings for Linux (X11)
         canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
         canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+
+    @staticmethod
+    def _redirect_mousewheel_to_canvas(
+        widget: tk.Widget, canvas: tk.Canvas
+    ) -> None:
+        """Scroll the pane without letting input widgets alter their values."""
+
+        def _on_mousewheel(event: tk.Event) -> str:
+            units = _mousewheel_scroll_units(event)
+            if units:
+                canvas.yview_scroll(units, "units")
+            return "break"
+
+        widget.bind("<MouseWheel>", _on_mousewheel, add="+")
+        widget.bind("<Button-4>", _on_mousewheel, add="+")
+        widget.bind("<Button-5>", _on_mousewheel, add="+")
