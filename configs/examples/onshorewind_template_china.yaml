@@ -52,6 +52,9 @@ transmission_lines_buffer: 1000
 generators_buffer: 1000
 plants_buffer: 1000 
 
+# additional exclusion rasters
+additional_exclusion_rasters_buffer: {} # mapping of processed raster filenames to buffer distances in meters
+
 # additional exclusion polygons
 additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order of the files in the "additional_exclusion_polygons"-folder in the region data folder
 
@@ -61,6 +64,20 @@ max_wind_speed: null #m/s
 
 # inclusion filter
 # EITHER use substations OR transmission OR roads (meters)
+additional_inclusion_polygons:
+  enabled: false
+  combine: all # all = intersection; any = union of these polygons
+  defaults:
+    buffer: 0 # meters
+  overrides: {} # optional settings keyed by original source filename
+additional_inclusion_rasters:
+  enabled: false
+  combine: all # all = intersection; any = union of these rasters
+  defaults:
+    buffer: 0 # meters
+    codes: [1] # raster values that indicate eligible land
+    nodata: 0
+  overrides: {} # optional settings keyed by original source filename
 substations_inclusion_buffer: 100000
 transmission_inclusion_buffer: 100000
 roads_inclusion_buffer: 10000
