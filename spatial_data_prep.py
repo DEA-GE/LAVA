@@ -40,6 +40,10 @@ from utils.data_preprocessing import (
     retrieve_wdpa_url,
     save_richdem_file,
 )
+from utils.inclusion_layers import (
+    prepare_inclusion_polygon_folder,
+    prepare_inclusion_raster_folder,
+)
 from utils.local_OSM_shp_files import process_all_local_osm_layer
 from utils.fetch_OSM import osm_to_gpkg
 from utils.simplify import generate_overpass_polygon
@@ -93,6 +97,12 @@ consider_additional_exclusion_polygons = config[
 consider_additional_exclusion_rasters = config[
     "additional_exclusion_rasters_folder_name"
 ]
+consider_additional_inclusion_polygons = config.get(
+    "additional_inclusion_polygons_folder_name"
+)
+consider_additional_inclusion_rasters = config.get(
+    "additional_inclusion_rasters_folder_name"
+)
 CRS_manual = config["CRS_manual"]  # if None use empty string
 consider_protected_areas = config["protected_areas_source"]
 OSM_source = config["OSM_source"]  # either 'geofabrik' or 'overpass'
@@ -526,6 +536,34 @@ if consider_additional_exclusion_rasters:
                 filepath, region_name_clean, region, add_excl_rasters_dir, data_name
             )
             counter = counter + 1
+
+
+# clip and reproject additional inclusion polygons
+if consider_additional_inclusion_polygons:
+    print("\nprocessing additional inclusion polygons")
+    inclusion_polygon_folder_name = config["additional_inclusion_polygons_folder_name"]
+    prepare_inclusion_polygon_folder(
+        os.path.join(data_path, "additional_inclusion_polygons"),
+        os.path.join(output_dir, "additional_inclusion_polygons"),
+        inclusion_polygon_folder_name,
+        region,
+        region_name_clean,
+        global_crs_obj,
+        global_crs_tag,
+    )
+
+
+# clip and reproject additional inclusion rasters to the study-area CRS
+if consider_additional_inclusion_rasters:
+    print("\nprocessing additional inclusion rasters")
+    inclusion_raster_folder_name = config["additional_inclusion_rasters_folder_name"]
+    prepare_inclusion_raster_folder(
+        os.path.join(data_path, "additional_inclusion_rasters"),
+        os.path.join(output_dir, "additional_inclusion_rasters"),
+        inclusion_raster_folder_name,
+        region,
+        region_name_clean,
+    )
 
 
 # population data

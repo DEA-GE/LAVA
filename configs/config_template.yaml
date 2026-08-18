@@ -69,9 +69,11 @@ compute_terrain_ruggedness: 1
 
 CRS_manual:  #set CRS instead of calculating local UTM zone
 
-# additional polygons and rasters
+# additional exclusion and inclusion polygons and rasters
 additional_exclusion_polygons_folder_name: #[optional][string]
 additional_exclusion_rasters_folder_name: #[optional][string]
+additional_inclusion_polygons_folder_name: #[optional][string] subfolder containing all inclusion polygon files; enable and configure them in the technology YAML
+additional_inclusion_rasters_folder_name: #[optional][string] subfolder containing all inclusion GeoTIFFs; enable and configure them in the technology YAML
 
 
 #--exclusions----------------------------------------------------------------------

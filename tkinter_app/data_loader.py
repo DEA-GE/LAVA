@@ -470,6 +470,16 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "description": "Folder for extra exclusion rasters.",
             },
             {
+                "key": "additional_inclusion_polygons_folder_name",
+                "type": "nullable_string",
+                "description": "Folder for extra inclusion polygons.",
+            },
+            {
+                "key": "additional_inclusion_rasters_folder_name",
+                "type": "nullable_string",
+                "description": "Folder for extra inclusion rasters.",
+            },
+            {
                 "key": "model_areas_filename",
                 "type": "nullable_string",
                 "description": "Optional model areas filename.",
@@ -745,8 +755,13 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     {
         "name": "additional_exclusions",
         "displayName": "Additional Exclusions",
-        "description": "Custom exclusion polygon buffers.",
+        "description": "Custom exclusion polygon and raster buffers.",
         "parameters": [
+            {
+                "key": "additional_exclusion_rasters_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed raster filename.",
+            },
             {
                 "key": "additional_exclusion_polygons_buffer",
                 "type": "array",
@@ -776,6 +791,24 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Inclusion Filters",
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
+            {
+                "key": "additional_inclusion_polygons",
+                "type": "mapping",
+                "description": (
+                    "Automatically apply every polygon from the selected folder; "
+                    "configure all/any combination, defaults, and source-filename "
+                    "overrides."
+                ),
+            },
+            {
+                "key": "additional_inclusion_rasters",
+                "type": "mapping",
+                "description": (
+                    "Automatically apply every raster from the selected folder; "
+                    "configure all/any combination, defaults, eligible codes, "
+                    "NoData, and source-filename overrides."
+                ),
+            },
             {
                 "key": "substations_inclusion_buffer",
                 "type": "number",
@@ -1004,8 +1037,13 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     {
         "name": "additional_exclusions",
         "displayName": "Additional Exclusions",
-        "description": "Custom exclusion polygon buffers.",
+        "description": "Custom exclusion polygon and raster buffers.",
         "parameters": [
+            {
+                "key": "additional_exclusion_rasters_buffer",
+                "type": "mapping",
+                "description": "Buffer distances keyed by processed raster filename.",
+            },
             {
                 "key": "additional_exclusion_polygons_buffer",
                 "type": "array",
@@ -1035,6 +1073,24 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
         "displayName": "Inclusion Filters",
         "description": "Buffers to include areas near infrastructure (meters).",
         "parameters": [
+            {
+                "key": "additional_inclusion_polygons",
+                "type": "mapping",
+                "description": (
+                    "Automatically apply every polygon from the selected folder; "
+                    "configure all/any combination, defaults, and source-filename "
+                    "overrides."
+                ),
+            },
+            {
+                "key": "additional_inclusion_rasters",
+                "type": "mapping",
+                "description": (
+                    "Automatically apply every raster from the selected folder; "
+                    "configure all/any combination, defaults, eligible codes, "
+                    "NoData, and source-filename overrides."
+                ),
+            },
             {
                 "key": "substations_inclusion_buffer",
                 "type": "number",
