@@ -216,10 +216,10 @@ elif adm_source == "gadm":
             "epsg:4326", inplace=True
         )  # pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
         logging.info("using admin area within country as study area (source: GADM)")
-elif adm_source == "wb":
+elif adm_source in ("wb", "gb"):
     # Use World Bank boundaries via Space2Stats client
     region = download_admin_boundary_WB(
-        iso3_code=country_code, level=adm_level, region_name=adm_region_name
+        iso3_code=country_code, level=adm_level, region_name=adm_region_name, source=adm_source
     )
     if region.empty:
         raise ValueError(
@@ -227,7 +227,7 @@ elif adm_source == "wb":
         )
     logging.info("using admin area within country as study area (source: World Bank)")
 else:
-    raise ValueError(f"ADM_source must be 'gadm' or 'wb', got: {adm_source}")
+    raise ValueError(f"ADM_source must be 'gadm', 'wb' or 'gb', got: {adm_source}")
 
 # simplify polygon of study area (openeo can only handle polygons up to a certain size)
 try:
