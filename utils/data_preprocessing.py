@@ -23,15 +23,12 @@ import logging
 
 
 def download_admin_boundary_WB(
-    iso3_code: str, 
-    level: int = 0, 
-    region_name: str = None,
-    source: str = "WB"
+    iso3_code: str, level: int = 0, region_name: str = None, source: str = "WB"
 ) -> gpd.GeoDataFrame:
     """
-    Download administrative boundaries using Space2Stats client (WorldBank). 
+    Download administrative boundaries using Space2Stats client (WorldBank).
     https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63
-    
+
     Parameters:
     -----------
     iso3_code : str
@@ -46,32 +43,32 @@ def download_admin_boundary_WB(
         If None, returns all regions at the specified level.
     source : {'WB', 'GB'}, default='WB'
         Boundary source: 'WB' for World Bank or 'GB' for geoBoundaries.
-    
+
     Returns:
     --------
     gpd.GeoDataFrame
         GeoDataFrame containing the requested administrative boundaries.
-    
+
     Examples:
     ---------
     # Get entire country boundary
     country_boundary = download_admin_boundary('KEN')
-    
+
     # Get all level 1 regions
     level1_regions = download_admin_boundary('KEN', level=1)
-    
+
     # Get specific level 1 region
     nairobi = download_admin_boundary('KEN', level=1, region_name='Nairobi')
-    
+
     # Get specific level 2 region
     specific_district = download_admin_boundary('KEN', level=2, region_name='Mombasa')
     """
     source = source.upper()
-    if source not in {'WB', 'GB'}:
+    if source not in {"WB", "GB"}:
         raise ValueError(f"source must be 'WB' or 'GB'. Got {source!r}")
-    
+
     client = Space2StatsClient()
-    
+
     # Map level to ADM string
     if level == 0:
         adm_string = "ADM0"
@@ -81,29 +78,42 @@ def download_admin_boundary_WB(
         adm_string = "ADM2"
     else:
         raise ValueError(f"Level must be 0, 1, or 2. Got {level}")
-    
-    # Fetch boundaries from Space2Stats
-    boundaries = client.fetch_admin_boundaries(iso3_code, adm_string, source=source)
-    
+
+    # Fetch boundaries from Space2Stats.
+    # Older space2stats_client versions don't accept a `source` kwarg, so fall back if needed.
+    try:
+        boundaries = client.fetch_admin_boundaries(iso3_code, adm_string, source=source)
+    except TypeError as e:
+        if "source" not in str(e):
+            raise
+        if source != "WB":
+            print(
+                f"Warning: installed space2stats_client version does not support source={source!r}; "
+                "falling back to default source (WB)."
+            )
+        boundaries = client.fetch_admin_boundaries(iso3_code, adm_string)
+
     # Filter by region name if specified
     if region_name is not None:
         if level == 0:
             print("Warning: region_name is ignored when level=0 (country boundary)")
         else:
             # Column name varies between API versions
-            if 'shapeName' in boundaries.columns:
-                name_col = 'shapeName'
-            elif f'NAM_{level}' in boundaries.columns:
-                name_col = f'NAM_{level}'
+            if "shapeName" in boundaries.columns:
+                name_col = "shapeName"
+            elif f"NAM_{level}" in boundaries.columns:
+                name_col = f"NAM_{level}"
             else:
-                raise ValueError(f"No recognized name column found. Available columns: {boundaries.columns.tolist()}")
-            
+                raise ValueError(
+                    f"No recognized name column found. Available columns: {boundaries.columns.tolist()}"
+                )
+
             boundaries = boundaries[boundaries[name_col] == region_name]
-            
+
             if boundaries.empty:
                 print(f"Warning: No region found with {name_col}='{region_name}'")
                 print(f"Available regions: {boundaries[name_col].unique().tolist()}")
-    
+
     return boundaries
 
 
