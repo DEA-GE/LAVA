@@ -1200,9 +1200,17 @@ CONFIG_SNAKEMAKE_STAGE_FLAGS: List[Dict[str, str]] = [
         "description": "Apply bias correction to weather data.",
     },
     {
+        "key": "timeseries",
+        "label": "Timeseries",
+        "description": (
+            "Generate regional technology profiles from the configured weather "
+            "cutout and available-land rasters."
+        ),
+    },
+    {
         "key": "energy_profiles",
         "label": "Energy Profiles",
-        "description": "Generate energy profile time series.",
+        "description": "Generate profiles with the legacy energy_profiles.py workflow.",
     },
 ]
 
@@ -2122,11 +2130,7 @@ def validate_configuration_documents(
         dependencies = {
             "exclusion": ("spatial_data_prep",),
             "suitability": ("exclusion",),
-            "energy_profiles": (
-                "suitability",
-                "weather_data_prep",
-                "weather_bias_adjust",
-            ),
+            "energy_profiles": ("weather_data_prep",),
         }
         for stage, required in dependencies.items():
             if not enabled(stages.get(stage)):
@@ -2141,7 +2145,12 @@ def validate_configuration_documents(
                 )
         weather_stages = any(
             enabled(stages.get(name))
-            for name in ("weather_data_prep", "weather_bias_adjust", "energy_profiles")
+            for name in (
+                "weather_data_prep",
+                "weather_bias_adjust",
+                "timeseries",
+                "energy_profiles",
+            )
         )
         weather_years = snakemake.get("weather_years")
         if weather_stages and weather_years in (None, "", []):

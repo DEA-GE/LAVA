@@ -722,6 +722,7 @@ class RunTab(ttk.Frame):
         "results_analysis": "Results analysis",
         "weather_data_prep": "Weather data preparation",
         "weather_bias_adjust": "Weather bias adjustment",
+        "timeseries": "Timeseries",
         "energy_profiles": "Energy profiles",
         "snakemake": "Snakemake workflow",
     }
@@ -776,6 +777,14 @@ class RunTab(ttk.Frame):
                 "id": "weather_bias_adjust",
                 "name": "weather_bias_adjust.py",
                 "description": "Adjust weather data biases",
+            },
+            {
+                "id": "timeseries",
+                "name": "timeseries.py",
+                "description": (
+                    "Generate one technology profile from a regional available-land "
+                    "raster and a shared weather cutout."
+                ),
             },
             {
                 "id": "energy_profiles",
@@ -1243,6 +1252,12 @@ class RunTab(ttk.Frame):
             "exclusion": {"region", "technology", "scenario"},
             "suitability": {"region", "scenario"},
             "weather_bias_adjust": set(),
+            "timeseries": {
+                "region",
+                "technology",
+                "scenario",
+                "weather_year",
+            },
             "energy_profiles": {
                 "region",
                 "technology",
@@ -1513,6 +1528,7 @@ class RunTab(ttk.Frame):
             "spatial_data_prep",
             "exclusion",
             "suitability",
+            "timeseries",
             "energy_profiles",
         }
         data_root = cwd / "data"
@@ -1864,6 +1880,7 @@ class RunTab(ttk.Frame):
             "exclusion": ("config.yaml", "technology"),
             "weather_data_prep": ("config.yaml", "weather_data_extend"),
             "weather_bias_adjust": ("config.yaml", "weather_bias_correction"),
+            "timeseries": ("config.yaml", "available_land"),
             "energy_profiles": ("config.yaml", "input_area"),
         }
         return stage_targets.get(self.current_stage)
@@ -2327,6 +2344,12 @@ class RunTab(ttk.Frame):
                 ("scenario", "--scenario"),
             ),
             "weather_bias_adjust": (),
+            "timeseries": (
+                ("region", "--region"),
+                ("technology", "--technology"),
+                ("scenario", "--scenario"),
+                ("weather_year", "--weather_year"),
+            ),
             "energy_profiles": (
                 ("region", "--region"),
                 ("technology", "--technology"),
@@ -2529,6 +2552,15 @@ class RunTab(ttk.Frame):
                 "rioxarray",
                 "matplotlib",
                 "geopandas",
+                "yaml",
+            ),
+            "timeseries": (
+                "atlite",
+                "numpy",
+                "xarray",
+                "pandas",
+                "geopandas",
+                "rasterio",
                 "yaml",
             ),
             "energy_profiles": (
@@ -2735,7 +2767,7 @@ class RunTab(ttk.Frame):
                     report, "Custom weather study area", weather_area_path
                 )
 
-        weather_consumers = {"weather_bias_adjust", "energy_profiles"}
+        weather_consumers = {"weather_bias_adjust", "timeseries", "energy_profiles"}
         weather_path_value = config.get("weather_external_data_path")
         if stage_set & weather_consumers:
             if weather_path_value is None or not str(weather_path_value).strip():
@@ -2842,12 +2874,12 @@ class RunTab(ttk.Frame):
             stages = [script_id]
             technologies = (
                 self._preflight_values(self.run_technology_var.get())
-                if script_id in {"exclusion", "energy_profiles"}
+                if script_id in {"exclusion", "timeseries", "energy_profiles"}
                 else []
             )
             weather_years = (
                 self._preflight_values(self.run_weather_year_var.get())
-                if script_id in {"weather_data_prep", "energy_profiles"}
+                if script_id in {"weather_data_prep", "timeseries", "energy_profiles"}
                 else []
             )
             cores = 1
@@ -2883,23 +2915,6 @@ class RunTab(ttk.Frame):
                     + ", ".join(omitted_from_suitability)
                     + ".",
                 )
-        elif "energy_profiles" in stages:
-            suitability = self._load_preflight_yaml(
-                CONFIGS_DIR / "suitability.yaml", "Suitability configuration", report
-            )
-            suitability_techs = set(
-                self._preflight_values(suitability.get("suitability_techs"))
-            )
-            absent = sorted(set(technologies) - suitability_techs)
-            if absent:
-                self._add_preflight_issue(
-                    report,
-                    "error",
-                    "Energy-profile technologies missing from suitability_techs: "
-                    + ", ".join(absent)
-                    + ".",
-                )
-
         duplicates = sorted(
             {tech for tech in technologies if technologies.count(tech) > 1}
         )
@@ -2912,9 +2927,15 @@ class RunTab(ttk.Frame):
         technologies = list(dict.fromkeys(technologies))
 
         technology_configs_needed: List[str] = []
-        if mode == "snakemake" and ({"exclusion", "energy_profiles"} & set(stages)):
+        if mode == "snakemake" and (
+            {"exclusion", "timeseries", "energy_profiles"} & set(stages)
+        ):
             technology_configs_needed.extend(technologies)
-        elif mode == "single" and script_id in {"exclusion", "energy_profiles"}:
+        elif mode == "single" and script_id in {
+            "exclusion",
+            "timeseries",
+            "energy_profiles",
+        }:
             technology_configs_needed.extend(technologies)
         if "suitability" in stages:
             technology_configs_needed.extend(
