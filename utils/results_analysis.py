@@ -38,7 +38,6 @@ from rasterio.vrt import WarpedVRT
 from shapely.geometry import shape
 from shapely.ops import unary_union
 
-
 logger = logging.getLogger(__name__)
 
 

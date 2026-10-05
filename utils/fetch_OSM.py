@@ -10,19 +10,19 @@ in its own file, named as <region>_<feature>_<geometry>.gpkg.
 The script also tracks unsupported geometry types and saves a JSON summary per feature/region.
 """
 
+import json
+import logging
 import os
 import time
-import json
-from typing import Optional
-from shapely.geometry import shape
-import geopandas as gpd
-from OSMPythonTools.nominatim import Nominatim
-from OSMPythonTools.overpass import overpassQueryBuilder, Overpass
-from utils.data_preprocessing import rel_path
-import yaml
 
-import logging
+import geopandas as gpd
+import yaml
 from OSMPythonTools import logger as osm_logger
+from OSMPythonTools.nominatim import Nominatim
+from OSMPythonTools.overpass import Overpass, overpassQueryBuilder
+from shapely.geometry import shape
+
+from utils.data_preprocessing import rel_path
 
 # Suppress OSMPythonTools errors (especially geometry building errors)
 osm_logger.setLevel(logging.CRITICAL)
@@ -37,9 +37,9 @@ def osm_to_gpkg(
     feature_key: str,
     features_dict: dict,
     output_dir: str = "OSM_Infrastructure",
-    EPSG: Optional[int] = 4326,
-    timeout: Optional[int] = 200,
-    relevant_geometries_override: Optional[dict] = None,
+    EPSG: int | None = 4326,
+    timeout: int | None = 200,
+    relevant_geometries_override: dict | None = None,
 ):
     """
     Fetch OSM infrastructure data for a given region and feature key and save to individual GeoPackages.

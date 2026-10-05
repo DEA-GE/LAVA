@@ -1,6 +1,7 @@
 import json
+
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, mapping
+from shapely.geometry import MultiPolygon, Polygon, mapping
 from shapely.ops import unary_union
 
 

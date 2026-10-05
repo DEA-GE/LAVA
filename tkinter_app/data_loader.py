@@ -4,12 +4,12 @@ Utility helpers to load initial configuration sections and sample result data.
 
 from __future__ import annotations
 
-import json
-from copy import deepcopy
 import ast
+import json
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from ruamel.yaml import YAML
@@ -29,7 +29,7 @@ SUITABILITY_PATH = CONFIGS_PATH / "suitability.yaml"
 SNAKEMAKE_PATH = CONFIGS_PATH / "snakemake.yaml"
 SAMPLE_RESULTS_PATH = ROOT_DIR / "src" / "sample-results.json"
 
-YAML_RT: Optional[YAML] = None  # type: ignore[assignment]
+YAML_RT: YAML | None = None  # type: ignore[assignment]
 if YAML is not None:
     YAML_RT = YAML(typ="rt")
     YAML_RT.preserve_quotes = True
@@ -51,7 +51,7 @@ FALLBACK_SECTIONS = [
     }
 ]
 
-DEFAULT_RESULTS_DATA: Dict[str, Any] = {
+DEFAULT_RESULTS_DATA: dict[str, Any] = {
     "summary": [
         {"metric": "Total Records Processed", "value": "12,458", "change": "+15%"},
         {"metric": "Success Rate", "value": "98.5%", "change": "+2.3%"},
@@ -154,7 +154,7 @@ DEFAULT_RESULTS_DATA: Dict[str, Any] = {
     ],
 }
 
-CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
+CONFIG_SECTION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "general",
         "displayName": "General",
@@ -479,7 +479,7 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     },
 ]
 
-ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
+ONSHORE_SECTION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "deployment",
         "displayName": "Deployment Settings",
@@ -735,7 +735,7 @@ ONSHORE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     },
 ]
 
-SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
+SOLAR_SECTION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "deployment",
         "displayName": "Deployment Settings",
@@ -991,7 +991,7 @@ SOLAR_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     },
 ]
 
-CONFIG_SNAKEMAKE_STAGE_FLAGS: List[Dict[str, str]] = [
+CONFIG_SNAKEMAKE_STAGE_FLAGS: list[dict[str, str]] = [
     {
         "key": "spatial_data_prep",
         "label": "Spatial Data Preparation",
@@ -1024,7 +1024,7 @@ CONFIG_SNAKEMAKE_STAGE_FLAGS: List[Dict[str, str]] = [
     },
 ]
 
-CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
+CONFIG_SNAKEMAKE_SECTION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "snakemake_parameters",
         "displayName": "Snakemake Parameters",
@@ -1111,7 +1111,7 @@ def stringify_mapping_value(value: Any) -> str:
             elif item is None:
                 pairs.append(f"{key}: null")
             else:
-                pairs.append(f"{key}: {repr(item)}")
+                pairs.append(f"{key}: {item!r}")
         return "\n".join(pairs)
     if value is None:
         return ""
@@ -1146,7 +1146,7 @@ def parse_mapping_text(text: str) -> Any:
                 return parsed_yaml
         except Exception:
             pass
-    simple_mapping: Dict[str, Any] = {}
+    simple_mapping: dict[str, Any] = {}
     for line in stripped.splitlines():
         stripped_line = line.strip()
         if not stripped_line or stripped_line.startswith("#"):
@@ -1206,7 +1206,7 @@ def cast_value(param_type: str, value: Any) -> Any:
             items = [text] if text else []
 
         if subtype in {"number", "float"}:
-            numbers: List[float] = []
+            numbers: list[float] = []
             for item in items:
                 try:
                     numbers.append(float(item))
@@ -1215,7 +1215,7 @@ def cast_value(param_type: str, value: Any) -> Any:
             return numbers
 
         if subtype == "integer":
-            integers: List[int] = []
+            integers: list[int] = []
             for item in items:
                 try:
                     integers.append(int(float(item)))
@@ -1247,7 +1247,7 @@ def cast_value(param_type: str, value: Any) -> Any:
 
     if kind == "mapping":
         if isinstance(value, Mapping):
-            converted: Dict[str, Any] = {}
+            converted: dict[str, Any] = {}
             for key, item in value.items():
                 if isinstance(item, MutableSequence) and not isinstance(
                     item, (str, bytes, bytearray)
@@ -1352,10 +1352,10 @@ def _infer_param_type(value: Any) -> str:
 
 
 def _build_sections_from_data(
-    data: Dict[str, Any],
-    definitions: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    sections: List[Dict[str, Any]] = []
+    data: dict[str, Any],
+    definitions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    sections: list[dict[str, Any]] = []
     used_keys = set()
 
     for section_def in definitions:
@@ -1388,7 +1388,7 @@ def _build_sections_from_data(
                 }
             )
 
-    leftovers = [key for key in data.keys() if key not in used_keys]
+    leftovers = [key for key in data if key not in used_keys]
     if leftovers:
         extra_params = []
         for key in leftovers:
@@ -1415,9 +1415,9 @@ def _build_sections_from_data(
 
 def _load_sections_from_yaml(
     path: Path,
-    definitions: List[Dict[str, Any]],
-    fallback: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    definitions: list[dict[str, Any]],
+    fallback: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     yaml_rt = YAML_RT
     if yaml_rt is None or not path.exists():
         return deepcopy(fallback)
@@ -1433,7 +1433,7 @@ def _load_sections_from_yaml(
     return _build_sections_from_data(dict(data), definitions)
 
 
-def load_initial_sections() -> List[Dict[str, Any]]:
+def load_initial_sections() -> list[dict[str, Any]]:
     """
     Load configuration sections from config.yaml, falling back to a minimal default.
     """
@@ -1442,7 +1442,7 @@ def load_initial_sections() -> List[Dict[str, Any]]:
     )
 
 
-def load_onshore_sections() -> List[Dict[str, Any]]:
+def load_onshore_sections() -> list[dict[str, Any]]:
     fallback = _build_sections_from_data(
         {},
         ONSHORE_SECTION_DEFINITIONS,
@@ -1450,7 +1450,7 @@ def load_onshore_sections() -> List[Dict[str, Any]]:
     return _load_sections_from_yaml(ONSHORE_PATH, ONSHORE_SECTION_DEFINITIONS, fallback)
 
 
-def load_solar_sections() -> List[Dict[str, Any]]:
+def load_solar_sections() -> list[dict[str, Any]]:
     fallback = _build_sections_from_data(
         {},
         SOLAR_SECTION_DEFINITIONS,
@@ -1458,17 +1458,17 @@ def load_solar_sections() -> List[Dict[str, Any]]:
     return _load_sections_from_yaml(SOLAR_PATH, SOLAR_SECTION_DEFINITIONS, fallback)
 
 
-def load_offshore_sections() -> List[Dict[str, Any]]:
+def load_offshore_sections() -> list[dict[str, Any]]:
     """Load an initialized offshore configuration using inferred field types."""
     return _load_sections_from_yaml(OFFSHORE_PATH, [], [])
 
 
-def load_suitability_sections() -> List[Dict[str, Any]]:
+def load_suitability_sections() -> list[dict[str, Any]]:
     """Load suitability settings; nested structures are inferred as mappings."""
     return _load_sections_from_yaml(SUITABILITY_PATH, [], [])
 
 
-def load_snakemake_sections() -> List[Dict[str, Any]]:
+def load_snakemake_sections() -> list[dict[str, Any]]:
     fallback = _build_sections_from_data(
         {  # dummy data, user must specify
             "snakefile": "snakefile_dummy",
@@ -1499,7 +1499,7 @@ def load_snakemake_sections() -> List[Dict[str, Any]]:
         return deepcopy(fallback)
 
 
-def load_sample_results() -> Dict[str, Any]:
+def load_sample_results() -> dict[str, Any]:
     """
     Load sample result data from the existing JSON file or use defaults.
     """
@@ -1514,13 +1514,13 @@ def load_sample_results() -> Dict[str, Any]:
 def validate_configuration_documents(
     documents: Mapping[str, Any],
     configs_path: Path = CONFIGS_PATH,
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Validate related active configuration documents.
 
     Each issue contains ``severity``, ``file``, ``key``, and ``message`` so UI
     clients can display it and navigate back to the affected setting.
     """
-    issues: List[Dict[str, str]] = []
+    issues: list[dict[str, str]] = []
 
     def add(severity: str, file_name: str, key: str, message: str) -> None:
         issues.append(
@@ -1818,7 +1818,7 @@ def _assign_sequence(target: Any, value: Sequence[Any]) -> MutableSequence[Any]:
     if isinstance(target, MutableSequence):
         target[:] = seq_values
         return target
-    if CommentedSeq is List:
+    if CommentedSeq is list:
         return list(seq_values)
     new_seq = CommentedSeq(seq_values)
     return new_seq
@@ -1889,7 +1889,7 @@ class RoundTripConfigStore:
             self.yaml.dump(self.document, stream)
 
 
-def sections_to_mapping(sections: List[Dict[str, Any]]) -> MutableMapping[str, Any]:
+def sections_to_mapping(sections: list[dict[str, Any]]) -> MutableMapping[str, Any]:
     """
     Convert section dictionaries into a flat mapping suitable for ``deep_update``.
 
@@ -1915,7 +1915,7 @@ def sections_to_mapping(sections: List[Dict[str, Any]]) -> MutableMapping[str, A
     return data
 
 
-def save_sections_round_trip(path: Path, sections: List[Dict[str, Any]]) -> str:
+def save_sections_round_trip(path: Path, sections: list[dict[str, Any]]) -> str:
     """
     Persist *sections* into *path* while keeping formatting and comments intact.
 
@@ -1945,7 +1945,7 @@ def demo_tkinter_round_trip_editor(config_path: Path = CONFIG_PATH) -> None:
     """
 
     import tkinter as tk
-    from tkinter import ttk, messagebox
+    from tkinter import messagebox, ttk
 
     store = RoundTripConfigStore(config_path)
 

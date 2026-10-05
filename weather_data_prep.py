@@ -1,10 +1,12 @@
 import argparse
+import logging
+import os
+
+import atlite
 import geopandas as gpd
 import pygadm
-import atlite
-import os
-import logging
 import yaml
+
 from utils.data_preprocessing import clean_region_name, download_admin_boundary_WB
 
 logging.basicConfig(level=logging.INFO)

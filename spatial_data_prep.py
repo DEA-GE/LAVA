@@ -1,25 +1,26 @@
-# -*- coding: utf-8 -*-
 """
 @author: Jonas Meier
 
 TBA
 """
 
-import time
-import os
-import geopandas as gpd
+import argparse
 import json
+import logging
+import os
 import pickle
-import yaml
-import rasterio
-import pygadm
+import time
+
+import geopandas as gpd
+import numpy as np
 import openeo
+import pygadm
+import rasterio
 import richdem
 import xdem
-import logging
-import argparse
-import numpy as np
+import yaml
 from pyproj import CRS
+
 from utils.data_preprocessing import (
     clean_region_name,
     clip_raster,
@@ -40,14 +41,14 @@ from utils.data_preprocessing import (
     retrieve_wdpa_url,
     save_richdem_file,
 )
+from utils.fetch_OSM import osm_to_gpkg
 from utils.inclusion_layers import (
     prepare_inclusion_polygon_folder,
     prepare_inclusion_raster_folder,
 )
 from utils.local_OSM_shp_files import process_all_local_osm_layer
-from utils.fetch_OSM import osm_to_gpkg
-from utils.simplify import generate_overpass_polygon
 from utils.proximity_calc import generate_distance_raster
+from utils.simplify import generate_overpass_polygon
 
 # Record the starting time
 start_time = time.time()
@@ -219,7 +220,10 @@ elif adm_source == "gadm":
 elif adm_source in ("wb", "gb"):
     # Use World Bank boundaries via Space2Stats client
     region = download_admin_boundary_WB(
-        iso3_code=country_code, level=adm_level, region_name=adm_region_name, source=adm_source
+        iso3_code=country_code,
+        level=adm_level,
+        region_name=adm_region_name,
+        source=adm_source,
     )
     if region.empty:
         raise ValueError(
@@ -679,8 +683,8 @@ if config["landcover_source"] == "openeo":
                     output_dir,
                     f"landcover_openeo_colored_{region_name_clean}_{global_crs_tag}.tif",
                 )
-                colors_dict_int = getattr(
-                    legends, "colors_dict_esa_worldcover2021_int"
+                colors_dict_int = (
+                    legends.colors_dict_esa_worldcover2021_int
                 )  # color codes as RGB integers
                 with rasterio.open(openeo_landcover_filePath) as landcover:
                     band = landcover.read(
@@ -1062,7 +1066,9 @@ if consider_solar_atlas == 1:
         print("Global solar atlas data already downloaded")
 
     if solar_raster_filePath is None:
-        logging.error("PVOUT.tif was not found in the extracted world solar atlas folder.")
+        logging.error(
+            "PVOUT.tif was not found in the extracted world solar atlas folder."
+        )
     else:
         # clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
         clip_reproject_raster(

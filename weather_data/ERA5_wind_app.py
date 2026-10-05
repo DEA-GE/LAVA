@@ -4,15 +4,16 @@ Displays mean wind speed maps and time series from NetCDF files
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
-from tkinterdnd2 import DND_FILES, TkinterDnD
-import xarray as xr
+from tkinter import messagebox, ttk
+
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 import numpy as np
+import xarray as xr
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 
 class WindMapApp:
@@ -257,7 +258,7 @@ class WindMapApp:
                 text=file_path, foreground="black", font=("Arial", 10, "normal")
             )
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load NetCDF file:\n{str(e)}")
+            messagebox.showerror("Error", f"Failed to load NetCDF file:\n{e!s}")
 
     def load_netcdf(self, file_path):
         """Load and process NetCDF file"""

@@ -1,12 +1,15 @@
 """Tkinter-based translation of the Python Script Manager interface."""
 
 from __future__ import annotations
+
 import ast
 import html
 import importlib.util
 import json
+import keyword
 import os
 import queue
+import re
 import shlex
 import shutil
 import signal
@@ -15,25 +18,24 @@ import sys
 import tempfile
 import threading
 import time
+import tkinter as tk
 import webbrowser
+from collections.abc import Callable, Mapping
+from collections.abc import Mapping as MappingABC
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from collections.abc import Mapping as MappingABC
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
-import keyword
-import re
-
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
-import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import numpy as np
-from PIL import Image
+from typing import Any
+
 import folium
+import numpy as np
 import rasterio
+from branca.element import MacroElement, Template
+from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.warp import transform_bounds
-from branca.element import MacroElement, Template
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 try:  # Optional ttkbootstrap theming
     from ttkbootstrap import Style  # type: ignore
@@ -54,23 +56,28 @@ if str(CURRENT_DIR) not in sys.path:
     sys.path.append(str(CURRENT_DIR))
 if str(PARENT_DIR) not in sys.path:
     sys.path.append(str(PARENT_DIR))
-from flag_mapper import make_path, ui_bool_to_numeric, yaml_numeric_to_ui_bool  # type: ignore  # noqa: E402
-from data_loader import (  # type: ignore  # noqa: E402
+from data_loader import (  # type: ignore
     CONFIG_SNAKEMAKE_STAGE_FLAGS,
     cast_value,
-    round_trip_available,
     load_initial_sections,
     load_offshore_sections,
     load_onshore_sections,
-    load_solar_sections,
-    load_snakemake_sections,
     load_sample_results,
+    load_snakemake_sections,
+    load_solar_sections,
+    round_trip_available,
     save_mapping_round_trip,
     save_sections_round_trip,
     stringify_list_value,
     validate_configuration_documents,
 )
-from utils.initialization import (  # noqa: E402
+from flag_mapper import (  # type: ignore
+    make_path,
+    ui_bool_to_numeric,
+    yaml_numeric_to_ui_bool,
+)
+
+from utils.initialization import (
     available_example_countries,
     initialize_config_templates,
     preview_config_templates,
@@ -110,7 +117,7 @@ DOCUMENT_CATEGORIES = {
     "Snakefile": "Snakefile",
 }
 
-PARAMETER_CHOICES: Dict[str, List[str]] = {
+PARAMETER_CHOICES: dict[str, list[str]] = {
     "landcover_source": ["openeo", "file"],
     "OSM_source": ["overpass", "geofabrik"],
     "population_source": ["worldpop", "file"],
@@ -120,7 +127,7 @@ PARAMETER_CHOICES: Dict[str, List[str]] = {
     "technology": ["onshorewind", "solar", "offshorewind"],
 }
 
-PARAMETER_PICKERS: Dict[str, str] = {
+PARAMETER_PICKERS: dict[str, str] = {
     "custom_study_area_filename": "filename",
     "landcover_filename": "filename",
     "DEM_filename": "filename",
@@ -136,7 +143,7 @@ PARAMETER_PICKERS: Dict[str, str] = {
     "snakefile": "project_file",
 }
 
-PARAMETER_UNITS: Dict[str, str] = {
+PARAMETER_UNITS: dict[str, str] = {
     "deployment_density": "MW/km2",
     "resolution_manual": "m",
     "resolution_landcover": "degrees",
@@ -166,7 +173,7 @@ PARAMETER_UNITS: Dict[str, str] = {
 }
 
 
-def missing_active_configs(configs_dir: Path = CONFIGS_DIR) -> List[Path]:
+def missing_active_configs(configs_dir: Path = CONFIGS_DIR) -> list[Path]:
     """Return initialized configuration files required by the main UI."""
     return [
         configs_dir / name
@@ -175,9 +182,9 @@ def missing_active_configs(configs_dir: Path = CONFIGS_DIR) -> List[Path]:
     ]
 
 
-def extract_yaml_comment_hints(yaml_text: str) -> Dict[str, str]:
+def extract_yaml_comment_hints(yaml_text: str) -> dict[str, str]:
     """Extract per-key help verbatim from YAML comments without inventing examples."""
-    hints: Dict[str, str] = {}
+    hints: dict[str, str] = {}
     active_key = re.compile(r"^\s*([A-Za-z_][\w.-]*)\s*:[^#]*#\s*(.+?)\s*$")
     commented_value = re.compile(r"^\s*#\s*([A-Za-z_][\w.-]*)\s*:\s*(.+?)\s*$")
     for line in yaml_text.splitlines():
@@ -214,14 +221,14 @@ class Tooltip:
         self.widget = widget
         self.text = text.strip()
         self.delay_ms = delay_ms
-        self._after_id: Optional[str] = None
-        self._window: Optional[tk.Toplevel] = None
+        self._after_id: str | None = None
+        self._window: tk.Toplevel | None = None
         widget.bind("<Enter>", self._schedule, add="+")
         widget.bind("<Leave>", self._hide, add="+")
         widget.bind("<ButtonPress>", self._hide, add="+")
         widget.bind("<Destroy>", self._hide, add="+")
 
-    def _schedule(self, _event: Optional[tk.Event] = None) -> None:
+    def _schedule(self, _event: tk.Event | None = None) -> None:
         self._cancel()
         if self.text:
             self._after_id = self.widget.after(self.delay_ms, self._show)
@@ -258,7 +265,7 @@ class Tooltip:
                 pass
             self._after_id = None
 
-    def _hide(self, _event: Optional[tk.Event] = None) -> None:
+    def _hide(self, _event: tk.Event | None = None) -> None:
         self._cancel()
         if self._window is not None:
             try:
@@ -271,7 +278,7 @@ class Tooltip:
 class TextSyntaxHighlighter:
     """Lightweight syntax highlighting for Tkinter ``Text`` widgets."""
 
-    _TAG_STYLES: Dict[str, Dict[str, Any]] = {
+    _TAG_STYLES: dict[str, dict[str, Any]] = {
         "comment": {"foreground": "#6A9955"},
         "keyword": {"foreground": "#C586C0"},
         "string": {"foreground": "#CE9178"},
@@ -288,7 +295,7 @@ class TextSyntaxHighlighter:
         re.DOTALL,
     )
     _YAML_STRING_PATTERN = re.compile(r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')""")
-    _LANGUAGE_RULES: Dict[str, List[Tuple[str, re.Pattern[str], int]]] = {
+    _LANGUAGE_RULES: dict[str, list[tuple[str, re.Pattern[str], int]]] = {
         "yaml": [
             ("comment", re.compile(r"#.*", re.MULTILINE), 0),
             ("key", re.compile(r"(?m)^\s*([^:\n]+)(?=\s*:)"), 1),
@@ -310,7 +317,7 @@ class TextSyntaxHighlighter:
     def __init__(self, widget: tk.Text, language: str = "plain") -> None:
         self.widget = widget
         self.language = language if language in self._LANGUAGE_RULES else "plain"
-        self._after_id: Optional[str] = None
+        self._after_id: str | None = None
         self._configured_tags: set[str] = set()
         self._setup_tags()
         for sequence in (
@@ -342,7 +349,7 @@ class TextSyntaxHighlighter:
             self.widget.tag_configure(tag_name, **options)
             self._configured_tags.add(tag_name)
 
-    def _schedule_refresh(self, _event: Optional[tk.Event] = None) -> None:
+    def _schedule_refresh(self, _event: tk.Event | None = None) -> None:
         if self._after_id:
             try:
                 self.widget.after_cancel(self._after_id)
@@ -369,7 +376,7 @@ class TextSyntaxHighlighter:
                 end_index = f"1.0+{end_offset}c"
                 self.widget.tag_add(tag, start_index, end_index)
 
-    def _on_destroy(self, _event: Optional[tk.Event] = None) -> None:
+    def _on_destroy(self, _event: tk.Event | None = None) -> None:
         if self._after_id:
             try:
                 self.widget.after_cancel(self._after_id)
@@ -378,7 +385,7 @@ class TextSyntaxHighlighter:
             self._after_id = None
 
 
-def _coerce_list_value(param_type: str, value: Any) -> List[Any]:
+def _coerce_list_value(param_type: str, value: Any) -> list[Any]:
     """
     Convert raw UI input into a list according to ``list:<subtype>`` typing.
 
@@ -421,9 +428,9 @@ def _plain_yaml_value(value: Any) -> Any:
     return value
 
 
-def sections_to_yaml(sections: List[Dict[str, Any]]) -> str:
+def sections_to_yaml(sections: list[dict[str, Any]]) -> str:
     """Serialize visual sections to the flat structure used by config.yaml."""
-    data: Dict[str, Any] = {}
+    data: dict[str, Any] = {}
     for section in sections:
         for param in section.get("parameters", []):
             path = make_path(section["name"], param["key"])
@@ -452,7 +459,7 @@ def sections_to_yaml(sections: List[Dict[str, Any]]) -> str:
 
 
 def rebuild_from_widgets(
-    original: Any, registry: Dict[str, tk.Variable], path: str = ""
+    original: Any, registry: dict[str, tk.Variable], path: str = ""
 ) -> Any:
     """
     Reconstruct a data structure using the original YAML object as template and
@@ -527,8 +534,8 @@ def rebuild_from_widgets(
 
 
 def yaml_to_sections(
-    baseline: List[Dict[str, Any]], yaml_text: str
-) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
+    baseline: list[dict[str, Any]], yaml_text: str
+) -> tuple[list[dict[str, Any]] | None, str | None]:
     """Parse YAML and merge known keys back into the section structure."""
     if not yaml:
         return (
@@ -584,8 +591,8 @@ def yaml_to_sections(
     return updated, None
 
 
-def _extract_geojson_bounds(payload: Any) -> Optional[List[List[float]]]:
-    coords: List[Tuple[float, float]] = []
+def _extract_geojson_bounds(payload: Any) -> list[list[float]] | None:
+    coords: list[tuple[float, float]] = []
 
     def visit(node: Any) -> None:
         if isinstance(node, dict):
@@ -625,7 +632,7 @@ def _percentile_stretch(
 
 def geotiff_to_png_with_bounds(
     tif_path: str, out_dir: str, max_size_px: int = 2048, png_quality: int = 90
-) -> Tuple[str, List[List[float]]]:
+) -> tuple[str, list[list[float]]]:
     """
     Convert GeoTIFF to PNG for Leaflet ImageOverlay with better visual parity to QGIS:
       - applies palette if present
@@ -711,13 +718,13 @@ def geotiff_to_png_with_bounds(
 
 
 def build_map_html(
-    layers: List[Dict[str, Any]],
+    layers: list[dict[str, Any]],
     out_html: str,
     legend_html: str = "",
-    default_center: Tuple[float, float] = (55.6761, 12.5683),
+    default_center: tuple[float, float] = (55.6761, 12.5683),
     default_zoom: int = 7,
     raster_opacity: float = 0.7,
-) -> Optional[List[List[float]]]:
+) -> list[list[float]] | None:
     out_html_path = Path(out_html)
     out_html_path.parent.mkdir(parents=True, exist_ok=True)
     fmap = folium.Map(
@@ -725,8 +732,8 @@ def build_map_html(
     )
 
     def update_union(
-        current: Optional[List[List[float]]], new_bounds: Optional[List[List[float]]]
-    ) -> Optional[List[List[float]]]:
+        current: list[list[float]] | None, new_bounds: list[list[float]] | None
+    ) -> list[list[float]] | None:
         if not new_bounds:
             return current
         if current is None:
@@ -743,7 +750,7 @@ def build_map_html(
     sorted_layers = sorted(
         layers, key=lambda item: (item.get("order", 0), item.get("index", 0))
     )
-    union_bounds: Optional[List[List[float]]] = None
+    union_bounds: list[list[float]] | None = None
     for layer in sorted_layers:
         display_name = layer.get("display_name") or layer.get("name") or "Layer"
         if layer["type"] == "raster":
@@ -770,10 +777,10 @@ def build_map_html(
                 "fillOpacity": max(0.0, min(1.0, opacity * 0.6)),
             }
 
-            def style_function(_feature, style=style_dict) -> Dict[str, Any]:
+            def style_function(_feature, style=style_dict) -> dict[str, Any]:
                 return style
 
-            def highlight_function(_feature, style=style_dict) -> Dict[str, Any]:
+            def highlight_function(_feature, style=style_dict) -> dict[str, Any]:
                 highlighted = dict(style)
                 highlighted["weight"] = style.get("weight", 2) + 1
                 highlighted["opacity"] = min(1.0, style.get("opacity", opacity) + 0.1)
@@ -821,8 +828,8 @@ def build_map_html(
 
 
 def _show_map_fallback(
-    html_path: Path, parent: tk.Widget, reason: Optional[str] = None
-) -> Dict[str, Any]:
+    html_path: Path, parent: tk.Widget, reason: str | None = None
+) -> dict[str, Any]:
     info = "Interactive map opened in your default browser."
     if reason:
         info = f"{info} ({reason})"
@@ -834,7 +841,7 @@ def _show_map_fallback(
     return {"embedded": False, "widget": label, "cleanup": lambda: None}
 
 
-def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
+def show_map_in_tk(html_path: str, parent: tk.Widget) -> dict[str, Any]:
     target = Path(html_path)
     try:
         from tkwebview2.tkwebview2 import WebView2  # type: ignore
@@ -924,41 +931,41 @@ def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
 class ConfigurationTab(ttk.Frame):
     """Configuration management tab."""
 
-    def __init__(self, master: tk.Widget, sections: List[Dict[str, Any]]):
+    def __init__(self, master: tk.Widget, sections: list[dict[str, Any]]):
         super().__init__(master)
         self.sections_baseline = deepcopy(sections)
         self.sections = deepcopy(sections)
-        self.config_save_path: Optional[Path] = None
-        self._config_source_text: Optional[str] = None
-        self.snakefile_save_path: Optional[Path] = None
+        self.config_save_path: Path | None = None
+        self._config_source_text: str | None = None
+        self.snakefile_save_path: Path | None = None
         self._snakefile_source_text = SNAKEFILE_TEMPLATE
         self.config_dirty = False
         self.snakefile_dirty = False
         self.raw_dirty = False
-        self.advanced_save_path: Optional[Path] = None
+        self.advanced_save_path: Path | None = None
         self._advanced_source_text: str = ""
         self.advanced_dirty = False
         self.enable_visual_editor = True
         self.columnconfigure(0, weight=1)
         self.rowconfigure(2, weight=1)
         self.config_mode = tk.StringVar(value="visual")
-        self.param_vars: Dict[Tuple[int, int], Any] = {}
-        self.param_widgets: Dict[Tuple[int, int], tk.Widget] = {}
-        self.mapping_registries: Dict[Tuple[int, int], Dict[str, tk.StringVar]] = {}
+        self.param_vars: dict[tuple[int, int], Any] = {}
+        self.param_widgets: dict[tuple[int, int], tk.Widget] = {}
+        self.mapping_registries: dict[tuple[int, int], dict[str, tk.StringVar]] = {}
         self.settings_search_var = tk.StringVar()
         self.filtered_section_indices = list(range(len(self.sections)))
         self._handling_settings_search = False
-        self._comment_help_cache: Dict[str, Dict[str, str]] = {}
-        self.validation_issues: List[Dict[str, str]] = []
-        self.validation_issue_items: Dict[str, Dict[str, str]] = {}
+        self._comment_help_cache: dict[str, dict[str, str]] = {}
+        self.validation_issues: list[dict[str, str]] = []
+        self.validation_issue_items: dict[str, dict[str, str]] = {}
         self._suspend_dirty_tracking = False
-        self._visual_histories: Dict[str, Dict[str, Any]] = {}
-        self.document_tabs: Dict[str, tk.Widget] = {}
-        self.document_tab_notebooks: Dict[str, ttk.Notebook] = {}
-        self.document_tab_titles: Dict[str, str] = {}
-        self.document_categories: Dict[str, str] = {}
-        self.category_tabs: Dict[str, ttk.Frame] = {}
-        self.document_save_buttons: Dict[str, ttk.Button] = {}
+        self._visual_histories: dict[str, dict[str, Any]] = {}
+        self.document_tabs: dict[str, tk.Widget] = {}
+        self.document_tab_notebooks: dict[str, ttk.Notebook] = {}
+        self.document_tab_titles: dict[str, str] = {}
+        self.document_categories: dict[str, str] = {}
+        self.category_tabs: dict[str, ttk.Frame] = {}
+        self.document_save_buttons: dict[str, ttk.Button] = {}
         self.extra_files = self._load_additional_files()
         self._build_ui()
         self._refresh_config_view()
@@ -1364,9 +1371,9 @@ class ConfigurationTab(ttk.Frame):
         if not text:
             return
         tooltip = Tooltip(widget, text)
-        setattr(widget, "_lava_tooltip", tooltip)
+        widget._lava_tooltip = tooltip
 
-    def _yaml_comment_hints(self, label: str) -> Dict[str, str]:
+    def _yaml_comment_hints(self, label: str) -> dict[str, str]:
         cached = self._comment_help_cache.get(label)
         if cached is not None:
             return cached
@@ -1511,7 +1518,7 @@ class ConfigurationTab(ttk.Frame):
 
     def _parse_validation_document(
         self, file_name: str, yaml_text: str
-    ) -> Tuple[Optional[Mapping[str, Any]], Optional[Dict[str, str]]]:
+    ) -> tuple[Mapping[str, Any] | None, dict[str, str] | None]:
         if yaml is None:
             return None, {
                 "severity": "error",
@@ -1539,9 +1546,9 @@ class ConfigurationTab(ttk.Frame):
 
     def _collect_validation_documents(
         self,
-    ) -> Tuple[Dict[str, Mapping[str, Any]], List[Dict[str, str]]]:
-        documents: Dict[str, Mapping[str, Any]] = {}
-        parse_issues: List[Dict[str, str]] = []
+    ) -> tuple[dict[str, Mapping[str, Any]], list[dict[str, str]]]:
+        documents: dict[str, Mapping[str, Any]] = {}
+        parse_issues: list[dict[str, str]] = []
 
         if self.config_mode.get() == "raw":
             config_text = self.config_text.get("1.0", "end-1c")
@@ -1572,7 +1579,7 @@ class ConfigurationTab(ttk.Frame):
                 parse_issues.append(issue)
         return documents, parse_issues
 
-    def _issues_for(self, file_name: str, key: str) -> List[Dict[str, str]]:
+    def _issues_for(self, file_name: str, key: str) -> list[dict[str, str]]:
         return [
             issue
             for issue in self.validation_issues
@@ -1665,7 +1672,7 @@ class ConfigurationTab(ttk.Frame):
             parent=self,
         )
 
-    def validate_all(self, refresh_visual: bool = True) -> List[Dict[str, str]]:
+    def validate_all(self, refresh_visual: bool = True) -> list[dict[str, str]]:
         documents, parse_issues = self._collect_validation_documents()
         self.validation_issues = parse_issues + validate_configuration_documents(
             documents, CONFIGS_DIR
@@ -1682,10 +1689,10 @@ class ConfigurationTab(ttk.Frame):
                     self._render_extra_visual_sections(label, info)
         return self.validation_issues
 
-    def validate_before_action(self, file_name: Optional[str], action: str) -> bool:
+    def validate_before_action(self, file_name: str | None, action: str) -> bool:
         issues = list(self.validate_all())
         if action == "run":
-            unsaved_files: List[str] = []
+            unsaved_files: list[str] = []
             if self.config_dirty:
                 unsaved_files.append("config.yaml")
             if self.snakefile_dirty:
@@ -1724,7 +1731,7 @@ class ConfigurationTab(ttk.Frame):
         )
         return False
 
-    def _on_validation_issue_open(self, _event: Optional[tk.Event] = None) -> None:
+    def _on_validation_issue_open(self, _event: tk.Event | None = None) -> None:
         selected = self.validation_tree.selection()
         if selected:
             issue = self.validation_issue_items.get(selected[0])
@@ -1808,7 +1815,7 @@ class ConfigurationTab(ttk.Frame):
             highlighter.refresh()
 
     @staticmethod
-    def _coerce_sequence_value(value: Any) -> List[Any]:
+    def _coerce_sequence_value(value: Any) -> list[Any]:
         if value is None:
             return []
         if isinstance(value, CommentedSeq):
@@ -1872,7 +1879,7 @@ class ConfigurationTab(ttk.Frame):
         sequence = ConfigurationTab._coerce_sequence_value(value)
         return ", ".join(str(item) for item in sequence) if sequence else ""
 
-    def _choices_for_parameter(self, key: str, current_value: Any = None) -> List[str]:
+    def _choices_for_parameter(self, key: str, current_value: Any = None) -> list[str]:
         if key in {"panel", "turbine"}:
             choices = sorted(
                 path.name for path in (CONFIGS_DIR / "technologies").glob("*.yaml")
@@ -1894,7 +1901,7 @@ class ConfigurationTab(ttk.Frame):
         return choices
 
     @staticmethod
-    def _numeric_limits(key: str, param_type: str) -> Tuple[float, float, float]:
+    def _numeric_limits(key: str, param_type: str) -> tuple[float, float, float]:
         if key == "GADM_level":
             return 0, 5, 1
         if key in {"population_year", "weather_year"}:
@@ -1964,9 +1971,9 @@ class ConfigurationTab(ttk.Frame):
         self,
         parent: tk.Widget,
         value: Any,
-        on_change: Callable[[List[Any]], None],
-        choices: Optional[List[str]] = None,
-    ) -> Tuple[ttk.Frame, tk.Listbox]:
+        on_change: Callable[[list[Any]], None],
+        choices: list[str] | None = None,
+    ) -> tuple[ttk.Frame, tk.Listbox]:
         frame = ttk.Frame(parent)
         frame.columnconfigure(0, weight=1)
         current = self._coerce_sequence_value(value)
@@ -2001,7 +2008,7 @@ class ConfigurationTab(ttk.Frame):
                     pass
             return text
 
-        def emit_selection(_event: Optional[tk.Event] = None) -> None:
+        def emit_selection(_event: tk.Event | None = None) -> None:
             if choice_mode:
                 values = [
                     parse_scalar(str(listbox.get(index)))
@@ -2070,8 +2077,8 @@ class ConfigurationTab(ttk.Frame):
         )
         self._refresh_advanced_highlight()
 
-    def _load_additional_files(self) -> Dict[str, Dict[str, Any]]:
-        entries: Dict[str, Dict[str, Any]] = {}
+    def _load_additional_files(self) -> dict[str, dict[str, Any]]:
+        entries: dict[str, dict[str, Any]] = {}
         specs = [
             (
                 "onshorewind.yaml",
@@ -2099,7 +2106,7 @@ class ConfigurationTab(ttk.Frame):
         for label, expected_path, section_loader, kind in specs:
             if not expected_path.exists():
                 continue
-            existing_path: Optional[Path] = expected_path
+            existing_path: Path | None = expected_path
             try:
                 content = expected_path.read_text(encoding="utf-8")
             except OSError:
@@ -2135,7 +2142,7 @@ class ConfigurationTab(ttk.Frame):
         return "plain"
 
     def _build_raw_extra_editor(
-        self, label: str, info: Dict[str, Any], parent: tk.Widget
+        self, label: str, info: dict[str, Any], parent: tk.Widget
     ) -> None:
         text_widget = tk.Text(
             parent,
@@ -2209,7 +2216,7 @@ class ConfigurationTab(ttk.Frame):
         self.document_save_buttons[label] = save_button
 
     def _build_structured_extra_editor(
-        self, label: str, info: Dict[str, Any], parent: tk.Widget
+        self, label: str, info: dict[str, Any], parent: tk.Widget
     ) -> None:
         # Keep the toggle row compact while letting the editor stack take the excess space.
         parent.columnconfigure(0, weight=1)
@@ -2357,7 +2364,7 @@ class ConfigurationTab(ttk.Frame):
         self._render_extra_visual_sections(label, info)
         self._handle_extra_mode_change(label, initial=True)
 
-    def _render_extra_visual_sections(self, label: str, info: Dict[str, Any]) -> None:
+    def _render_extra_visual_sections(self, label: str, info: dict[str, Any]) -> None:
         frame = info.get("visual_frame")
         if frame is None:
             return
@@ -2390,7 +2397,7 @@ class ConfigurationTab(ttk.Frame):
                 desc_text = (param.get("description") or "").strip()
                 comment_hint = self._comment_hint_for(label, param["key"])
                 param_type = param.get("type", "string")
-                ctrl_info: Dict[str, Any] = {
+                ctrl_info: dict[str, Any] = {
                     "section_index": s_index,
                     "param_index": p_index,
                     "param": param,
@@ -2425,7 +2432,7 @@ class ConfigurationTab(ttk.Frame):
                             wraplength=580,
                             justify="left",
                         ).pack(anchor="w", padx=4, pady=(0, 4))
-                    registry: Dict[str, tk.StringVar] = {}
+                    registry: dict[str, tk.StringVar] = {}
                     self._render_mapping_fields(
                         mapping_frame,
                         mapping_value,
@@ -2605,7 +2612,7 @@ class ConfigurationTab(ttk.Frame):
         self._mark_extra_dirty(label)
 
     def _on_extra_list_changed(
-        self, label: str, param: Dict[str, Any], values: List[Any]
+        self, label: str, param: dict[str, Any], values: list[Any]
     ) -> None:
         param["value"] = values
         self._mark_extra_dirty(label)
@@ -2665,7 +2672,7 @@ class ConfigurationTab(ttk.Frame):
                         if ctrl.get("list_choice_mode")
                         else range(listbox.size())
                     )
-                    values: List[Any] = []
+                    values: list[Any] = []
                     for index in indexes:
                         text = str(listbox.get(index))
                         parsed: Any = text
@@ -2773,7 +2780,7 @@ class ConfigurationTab(ttk.Frame):
         info = self.extra_files.get(label)
         if not info:
             return
-        text_widget: Optional[tk.Text] = info.get("text_widget")
+        text_widget: tk.Text | None = info.get("text_widget")
         if not text_widget:
             return
         self._update_extra_sections_from_controls(label)
@@ -2790,7 +2797,7 @@ class ConfigurationTab(ttk.Frame):
         info = self.extra_files.get(label)
         if not info:
             return True
-        text_widget: Optional[tk.Text] = info.get("text_widget")
+        text_widget: tk.Text | None = info.get("text_widget")
         if text_widget is None:
             return True
         yaml_text = text_widget.get("1.0", "end-1c")
@@ -2819,7 +2826,7 @@ class ConfigurationTab(ttk.Frame):
         if not info:
             return
 
-        mode_var: Optional[tk.StringVar] = info.get("mode_var")
+        mode_var: tk.StringVar | None = info.get("mode_var")
         if mode_var is None:
             return
 
@@ -2862,8 +2869,8 @@ class ConfigurationTab(ttk.Frame):
             if text_widget is not None:
                 info["raw_entry_text"] = text_widget.get("1.0", "end-1c")
 
-    def _extra_sections_to_yaml(self, sections: Optional[List[Dict[str, Any]]]) -> str:
-        data: Dict[str, Any] = {}
+    def _extra_sections_to_yaml(self, sections: list[dict[str, Any]] | None) -> str:
+        data: dict[str, Any] = {}
         if not sections:
             return ""
         for section in sections:
@@ -2897,14 +2904,14 @@ class ConfigurationTab(ttk.Frame):
         return "\n".join(lines) + "\n"
 
     def _serialize_sections_for_kind(
-        self, kind: Optional[str], sections: Optional[List[Dict[str, Any]]]
+        self, kind: str | None, sections: list[dict[str, Any]] | None
     ) -> str:
         if kind == "config_snakemake":
             return self._config_snakemake_sections_to_yaml(sections or [])
         return self._extra_sections_to_yaml(sections or [])
 
-    def _config_snakemake_sections_to_yaml(self, sections: List[Dict[str, Any]]) -> str:
-        flat: Dict[str, Any] = {}
+    def _config_snakemake_sections_to_yaml(self, sections: list[dict[str, Any]]) -> str:
+        flat: dict[str, Any] = {}
         for section in sections:
             for param in section.get("parameters", []):
                 flat[param["key"]] = param.get("value")
@@ -2927,7 +2934,7 @@ class ConfigurationTab(ttk.Frame):
             for item in self._coerce_sequence_value(flat.get("technologies", []))
         ]
         weather_years_raw = self._coerce_sequence_value(flat.get("weather_years", []))
-        weather_years: List[Any] = []
+        weather_years: list[Any] = []
         for item in weather_years_raw:
             if isinstance(item, (int, float)):
                 if isinstance(item, float) and not item.is_integer():
@@ -2946,7 +2953,7 @@ class ConfigurationTab(ttk.Frame):
             key: self._coerce_boolean_value(flat.get(key, True), default=True)
             for key in SNAKEMAKE_STAGE_KEYS
         }
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "study_region_name": study_regions,
             "scenario": scenario,
             "technologies": technologies,
@@ -2973,8 +2980,8 @@ class ConfigurationTab(ttk.Frame):
         )
 
     def _config_snakemake_sections_from_yaml(
-        self, yaml_text: str, sections: List[Dict[str, Any]]
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        self, yaml_text: str, sections: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], str | None]:
         if yaml is None:
             return sections, "PyYAML is required to edit this file in visual mode."
         try:
@@ -2983,7 +2990,7 @@ class ConfigurationTab(ttk.Frame):
             return sections, str(exc)
         if not isinstance(data, dict):
             return sections, "Expected a mapping at the top level."
-        flat: Dict[str, Any] = {
+        flat: dict[str, Any] = {
             "snakefile": data.get("snakefile", "snakemake_global"),
             "cores": data.get("cores", 4),
             "study_region_name": self._coerce_sequence_value(
@@ -3032,7 +3039,7 @@ class ConfigurationTab(ttk.Frame):
         info = self.extra_files.get(label)
         return bool(info and info.get("dirty"))
 
-    def dirty_document_names(self) -> List[str]:
+    def dirty_document_names(self) -> list[str]:
         return [
             label
             for category in CONFIGURATION_CATEGORIES
@@ -3099,7 +3106,7 @@ class ConfigurationTab(ttk.Frame):
                 text=f"{message} ({datetime.now().strftime('%H:%M:%S')})"
             )
 
-    def _visual_sections_for(self, label: str) -> Optional[List[Dict[str, Any]]]:
+    def _visual_sections_for(self, label: str) -> list[dict[str, Any]] | None:
         if label == "config.yaml":
             return self.sections
         info = self.extra_files.get(label)
@@ -3160,7 +3167,7 @@ class ConfigurationTab(ttk.Frame):
         history["current"] = current
         history["redo"].clear()
 
-    def _text_widget_for_document(self, label: str) -> Optional[tk.Text]:
+    def _text_widget_for_document(self, label: str) -> tk.Text | None:
         if label == "config.yaml":
             return self.config_text
         if label == "Snakefile":
@@ -3318,18 +3325,18 @@ class ConfigurationTab(ttk.Frame):
         if validate and not self.validate_before_action(label, "save"):
             return False
         kind = info.get("kind")
-        sections_data: Optional[List[Dict[str, Any]]] = info.get("sections")
+        sections_data: list[dict[str, Any]] | None = info.get("sections")
         has_structured_sections = sections_data is not None
-        text_widget: Optional[tk.Text] = info.get("text_widget")
+        text_widget: tk.Text | None = info.get("text_widget")
 
         if has_structured_sections:
-            mode_var: Optional[tk.StringVar] = info.get("mode_var")
+            mode_var: tk.StringVar | None = info.get("mode_var")
             if mode_var is not None and mode_var.get() == "raw":
                 if not self._sync_extra_text_to_visual(label):
                     return False
             else:
                 self._update_extra_sections_from_controls(label)
-            sections_list: List[Dict[str, Any]] = info.get("sections") or []
+            sections_list: list[dict[str, Any]] = info.get("sections") or []
             serialized_content = self._serialize_sections_for_kind(kind, sections_list)
         else:
             if text_widget is None:
@@ -3415,7 +3422,7 @@ class ConfigurationTab(ttk.Frame):
         info = self.extra_files.get(label)
         if not info:
             return
-        text_widget: Optional[tk.Text] = info.get("text_widget")
+        text_widget: tk.Text | None = info.get("text_widget")
         baseline = info.get("baseline", "")
         sections = info.get("sections")
         kind = info.get("kind")
@@ -3523,7 +3530,7 @@ class ConfigurationTab(ttk.Frame):
 
     def _matching_parameter_indices(
         self, section: Mapping[str, Any], query: str
-    ) -> List[int]:
+    ) -> list[int]:
         parameters = section.get("parameters", [])
         if not query or query in self._searchable_setting_text(section):
             return list(range(len(parameters)))
@@ -3533,7 +3540,7 @@ class ConfigurationTab(ttk.Frame):
             if query in self._searchable_setting_text(parameter)
         ]
 
-    def _selected_actual_section_index(self) -> Optional[int]:
+    def _selected_actual_section_index(self) -> int | None:
         selected = self.section_listbox.curselection()
         if not selected:
             return None
@@ -3583,7 +3590,7 @@ class ConfigurationTab(ttk.Frame):
             state="normal" if query else "disabled"
         )
 
-        document_matches: List[Tuple[str, List[int]]] = []
+        document_matches: list[tuple[str, list[int]]] = []
         if self.filtered_section_indices:
             document_matches.append(("config.yaml", self.filtered_section_indices))
         for label, info in self.extra_files.items():
@@ -3744,7 +3751,7 @@ class ConfigurationTab(ttk.Frame):
                         wraplength=600,
                         justify="left",
                     ).pack(anchor="w", padx=6, pady=(0, 3))
-                registry: Dict[str, tk.StringVar] = {}
+                registry: dict[str, tk.StringVar] = {}
                 self._render_mapping_fields(
                     frame,
                     mapping_value,
@@ -3927,7 +3934,7 @@ class ConfigurationTab(ttk.Frame):
         parent: tk.Widget,
         mapping_value: Mapping[str, Any],
         base_path: str,
-        registry: Dict[str, tk.StringVar],
+        registry: dict[str, tk.StringVar],
         on_change: Callable[[], None],
         *,
         anchor: str = "w",
@@ -3984,7 +3991,7 @@ class ConfigurationTab(ttk.Frame):
         param["_template"] = deepcopy(new_value)
         self._mark_config_dirty()
 
-    def _on_extra_mapping_changed(self, label: str, ctrl_info: Dict[str, Any]) -> None:
+    def _on_extra_mapping_changed(self, label: str, ctrl_info: dict[str, Any]) -> None:
         registry = ctrl_info.get("mapping_registry")
         if not registry:
             return
@@ -4009,7 +4016,7 @@ class ConfigurationTab(ttk.Frame):
         self._mark_config_dirty()
 
     def _on_list_param_change(
-        self, section_index: int, param_index: int, values: List[Any]
+        self, section_index: int, param_index: int, values: list[Any]
     ) -> None:
         self.sections[section_index]["parameters"][param_index]["value"] = values
         self._mark_config_dirty()
@@ -4104,7 +4111,7 @@ class ConfigurationTab(ttk.Frame):
             return
         if not self.validate_before_action(None, "save"):
             return
-        results: List[bool] = []
+        results: list[bool] = []
         for label in dirty_names:
             if label == "config.yaml":
                 results.append(self._save_config(validate=False))
@@ -4314,11 +4321,11 @@ class ConfigurationTab(ttk.Frame):
             self.advanced_status.configure(text="Advanced settings cleared")
         self._refresh_dirty_state_ui()
 
-    def get_config_path(self) -> Optional[Path]:
+    def get_config_path(self) -> Path | None:
         """Return the saved config.yaml path, if one exists."""
         return self.config_save_path
 
-    def get_snakefile_path(self) -> Optional[Path]:
+    def get_snakefile_path(self) -> Path | None:
         """Return the saved Snakefile path, if one exists."""
         return self.snakefile_save_path
 
@@ -4354,25 +4361,25 @@ class ProcessRunner:
     """Run subprocesses on a background thread and stream output back to Tk."""
 
     def __init__(self) -> None:
-        self.process: Optional[subprocess.Popen] = None
-        self.reader_threads: List[threading.Thread] = []
-        self.wait_thread: Optional[threading.Thread] = None
-        self.widget: Optional[tk.Widget] = None
-        self.queue: queue.Queue[Tuple[str, Any]] = queue.Queue()
-        self.after_id: Optional[str] = None
-        self.on_line: Optional[Callable[[str, str], None]] = None
-        self.on_exit: Optional[Callable[[int], None]] = None
+        self.process: subprocess.Popen | None = None
+        self.reader_threads: list[threading.Thread] = []
+        self.wait_thread: threading.Thread | None = None
+        self.widget: tk.Widget | None = None
+        self.queue: queue.Queue[tuple[str, Any]] = queue.Queue()
+        self.after_id: str | None = None
+        self.on_line: Callable[[str, str], None] | None = None
+        self.on_exit: Callable[[int], None] | None = None
         self._lock = threading.Lock()
         self._stopping = False
 
     def run(
         self,
         widget: tk.Widget,
-        cmd: List[str],
-        cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        on_line: Optional[Callable[[str, str], None]] = None,
-        on_exit: Optional[Callable[[int], None]] = None,
+        cmd: list[str],
+        cwd: Path | None = None,
+        env: dict[str, str] | None = None,
+        on_line: Callable[[str, str], None] | None = None,
+        on_exit: Callable[[int], None] | None = None,
     ) -> None:
         with self._lock:
             if self.process:
@@ -4384,7 +4391,7 @@ class ProcessRunner:
             self.reader_threads = []
             self.wait_thread = None
             self._stopping = False
-            popen_kwargs: Dict[str, Any] = {
+            popen_kwargs: dict[str, Any] = {
                 "stdout": subprocess.PIPE,
                 "stderr": subprocess.PIPE,
                 "stdin": subprocess.PIPE,
@@ -4481,7 +4488,7 @@ class ProcessRunner:
         thread.start()
 
     def _wait_for_process(self) -> None:
-        proc: Optional[subprocess.Popen]
+        proc: subprocess.Popen | None
         with self._lock:
             proc = self.process
         if not proc:
@@ -4500,7 +4507,7 @@ class ProcessRunner:
 
     def _drain_queue(self) -> None:
         self.after_id = None
-        exit_code: Optional[int] = None
+        exit_code: int | None = None
         while True:
             try:
                 item = self.queue.get_nowait()
@@ -4521,7 +4528,7 @@ class ProcessRunner:
             self._schedule_drain()
 
     def _cleanup_process_handles(self) -> None:
-        proc: Optional[subprocess.Popen]
+        proc: subprocess.Popen | None
         with self._lock:
             proc = self.process
             self.process = None
@@ -4729,13 +4736,13 @@ class RunTab(ttk.Frame):
         self.progress = tk.DoubleVar(value=0)
         self.execution_mode = tk.StringVar(value="single")
         self.selected_script = tk.StringVar(value="results_analysis")
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
-        self.after_id: Optional[str] = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
+        self.after_id: str | None = None
         self.runner = ProcessRunner()
         self.stop_requested = False
         self.reset_requested = False
-        self.temp_snakefile_path: Optional[Path] = None
+        self.temp_snakefile_path: Path | None = None
         self.snakemake_file_var = tk.StringVar()
         self.snakemake_cores_var = tk.IntVar()
         self.available_scripts = [
@@ -4770,8 +4777,8 @@ class RunTab(ttk.Frame):
                 "description": "Generate energy production profiles",
             },
         ]
-        self.expected_output_dir: Optional[Path] = None
-        self.last_run_script_id: Optional[str] = None
+        self.expected_output_dir: Path | None = None
+        self.last_run_script_id: str | None = None
         self.last_command_text = ""
         self.current_stage = ""
         self.current_region = ""
@@ -4781,9 +4788,9 @@ class RunTab(ttk.Frame):
         self.issue_count = 0
         self.issue_link_counter = 0
         self.traceback_active = False
-        self.current_run_log_path: Optional[Path] = None
-        self.last_log_folder: Optional[Path] = None
-        self.current_run_record_id: Optional[str] = None
+        self.current_run_log_path: Path | None = None
+        self.last_log_folder: Path | None = None
+        self.current_run_record_id: str | None = None
         self.run_history = self._load_run_history()
         self._build_ui()
 
@@ -5033,7 +5040,7 @@ class RunTab(ttk.Frame):
         if index >= 0:
             self.selected_script.set(self.available_scripts[index]["id"])
 
-    def _load_run_history(self) -> List[Dict[str, Any]]:
+    def _load_run_history(self) -> list[dict[str, Any]]:
         if not RUN_HISTORY_PATH.is_file():
             return []
         try:
@@ -5054,7 +5061,7 @@ class RunTab(ttk.Frame):
                 break
         return records
 
-    def _save_run_history(self) -> Optional[str]:
+    def _save_run_history(self) -> str | None:
         try:
             RUN_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
             temp_path = RUN_HISTORY_PATH.with_suffix(".tmp")
@@ -5096,7 +5103,7 @@ class RunTab(ttk.Frame):
             )
 
     def _begin_run_record(
-        self, report: Mapping[str, Any], command: List[Any], cwd: Path
+        self, report: Mapping[str, Any], command: list[Any], cwd: Path
     ) -> None:
         now = datetime.now()
         run_id = now.strftime("%Y%m%d_%H%M%S_%f")
@@ -5152,7 +5159,7 @@ class RunTab(ttk.Frame):
         if history_error:
             self.add_log("warning", f"Run history could not be saved: {history_error}")
 
-    def _finish_run_record(self, exit_code: Optional[int], status: str) -> None:
+    def _finish_run_record(self, exit_code: int | None, status: str) -> None:
         if not self.current_run_record_id:
             return
         now = datetime.now()
@@ -5190,7 +5197,7 @@ class RunTab(ttk.Frame):
         self.clipboard_append(self.last_command_text)
         self.add_log("success", "Command copied to the clipboard.")
 
-    def _history_record_for_selection(self) -> Optional[Dict[str, Any]]:
+    def _history_record_for_selection(self) -> dict[str, Any] | None:
         if not hasattr(self, "run_history_tree"):
             return None
         selection = self.run_history_tree.selection()
@@ -5232,7 +5239,7 @@ class RunTab(ttk.Frame):
                 "Log Folder", f"Could not open the log folder:\n{exc}", parent=self
             )
 
-    def _open_selected_history_log(self, _event: Optional[tk.Event] = None) -> None:
+    def _open_selected_history_log(self, _event: tk.Event | None = None) -> None:
         record = self._history_record_for_selection()
         if not record:
             return
@@ -5248,7 +5255,7 @@ class RunTab(ttk.Frame):
             pass
         self.config_tab._open_validation_issue({"file": file_name, "key": key})
 
-    def _failure_config_target(self, message: str) -> Optional[Tuple[str, str]]:
+    def _failure_config_target(self, message: str) -> tuple[str, str] | None:
         lower = message.lower()
         keyword_targets = (
             (("dem", "elevation"), ("config.yaml", "DEM_filename")),
@@ -5541,7 +5548,7 @@ class RunTab(ttk.Frame):
         self.progress_bar.stop()
         self.progress_bar.configure(mode="determinate")
 
-    def _format_command(self, cmd: List[str]) -> str:
+    def _format_command(self, cmd: list[str]) -> str:
         if hasattr(shlex, "join"):
             return shlex.join(cmd)
         return " ".join(cmd)
@@ -5559,7 +5566,7 @@ class RunTab(ttk.Frame):
             f"Could not find {script_name} in the expected locations."
         )
 
-    def _load_snakemake_settings(self) -> Tuple[str, int]:
+    def _load_snakemake_settings(self) -> tuple[str, int]:
         default_snakefile = "Snakefile"
         default_cores = 4
         path = CONFIGS_DIR / "snakemake.yaml"
@@ -5589,7 +5596,7 @@ class RunTab(ttk.Frame):
         self.snakemake_file_var.set(snakefile)
         self.snakemake_cores_var.set(cores)
 
-    def _build_single_command(self) -> Tuple[List[str], Path]:
+    def _build_single_command(self) -> tuple[list[str], Path]:
         script_id = self.selected_script.get()
         script = next(
             (item for item in self.available_scripts if item["id"] == script_id), None
@@ -5602,7 +5609,7 @@ class RunTab(ttk.Frame):
             command.extend(["--config", str(config_path)])
         return command, script_path.parent
 
-    def _build_snakemake_command(self) -> Tuple[List[str], Path, Optional[Path]]:
+    def _build_snakemake_command(self) -> tuple[list[str], Path, Path | None]:
         snakefile_setting, cores_value = self._load_snakemake_settings()
         self.snakemake_file_var.set(snakefile_setting)
         self.snakemake_cores_var.set(cores_value)
@@ -5620,8 +5627,8 @@ class RunTab(ttk.Frame):
         return command, PARENT_DIR, None
 
     def _assemble_snakemake_command(
-        self, snakefile_path: str, cores: int, snakemake_exec: Optional[str]
-    ) -> List[str]:
+        self, snakefile_path: str, cores: int, snakemake_exec: str | None
+    ) -> list[str]:
         base_args = [
             "--snakefile",
             snakefile_path,
@@ -5635,7 +5642,7 @@ class RunTab(ttk.Frame):
         return [sys.executable, "-m", "snakemake", *base_args]
 
     @staticmethod
-    def _preflight_values(value: Any) -> List[str]:
+    def _preflight_values(value: Any) -> list[str]:
         if value is None:
             return []
         if isinstance(value, str):
@@ -5652,13 +5659,13 @@ class RunTab(ttk.Frame):
         return bool(value)
 
     def _add_preflight_issue(
-        self, report: Dict[str, Any], severity: str, message: str
+        self, report: dict[str, Any], severity: str, message: str
     ) -> None:
         issue = {"severity": severity, "message": message}
         if issue not in report["issues"]:
             report["issues"].append(issue)
 
-    def _resolve_preflight_path(self, value: Any) -> Optional[Path]:
+    def _resolve_preflight_path(self, value: Any) -> Path | None:
         if value is None or not str(value).strip():
             return None
         try:
@@ -5671,14 +5678,14 @@ class RunTab(ttk.Frame):
 
     def _record_preflight_path(
         self,
-        report: Dict[str, Any],
+        report: dict[str, Any],
         label: str,
         value: Any,
         *,
         kind: str = "file",
         required: bool = True,
         missing_status: str = "Missing",
-    ) -> Optional[Path]:
+    ) -> Path | None:
         path = self._resolve_preflight_path(value)
         display_path = str(value or "")
         if path is None:
@@ -5708,10 +5715,10 @@ class RunTab(ttk.Frame):
         self,
         path: Path,
         label: str,
-        report: Dict[str, Any],
+        report: dict[str, Any],
         *,
         required: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         resolved = self._record_preflight_path(report, label, path, required=required)
         if resolved is None or not resolved.is_file():
             return {}
@@ -5739,7 +5746,7 @@ class RunTab(ttk.Frame):
         return data
 
     def _check_preflight_dependencies(
-        self, report: Dict[str, Any], stages: List[str], mode: str
+        self, report: dict[str, Any], stages: list[str], mode: str
     ) -> None:
         if not Path(sys.executable).is_file():
             self._add_preflight_issue(
@@ -5787,7 +5794,7 @@ class RunTab(ttk.Frame):
                 "yaml",
             ),
         }
-        missing_modules: List[str] = []
+        missing_modules: list[str] = []
         for module_name in sorted(
             {name for stage in stages for name in dependencies.get(stage, ())}
         ):
@@ -5820,10 +5827,10 @@ class RunTab(ttk.Frame):
 
     def _check_referenced_inputs(
         self,
-        report: Dict[str, Any],
+        report: dict[str, Any],
         config: Mapping[str, Any],
-        regions: List[str],
-        stages: List[str],
+        regions: list[str],
+        stages: list[str],
     ) -> None:
         stage_set = set(stages)
         if "spatial_data_prep" in stage_set:
@@ -5987,9 +5994,9 @@ class RunTab(ttk.Frame):
                 if record not in report["files"]:
                     report["files"].append(record)
 
-    def build_preflight_report(self) -> Dict[str, Any]:
+    def build_preflight_report(self) -> dict[str, Any]:
         """Build a non-mutating report for the currently selected execution."""
-        report: Dict[str, Any] = {
+        report: dict[str, Any] = {
             "summary": {},
             "files": [],
             "issues": [],
@@ -6003,7 +6010,7 @@ class RunTab(ttk.Frame):
         config = self._load_preflight_yaml(
             Path(config_path), "General configuration", report
         )
-        snakemake: Dict[str, Any] = {}
+        snakemake: dict[str, Any] = {}
         if mode == "snakemake":
             snakemake = self._load_preflight_yaml(
                 CONFIGS_DIR / "snakemake.yaml", "Workflow configuration", report
@@ -6058,7 +6065,7 @@ class RunTab(ttk.Frame):
             technologies = self._preflight_values(config.get("technology"))
             cores = 1
 
-        suitability: Dict[str, Any] = {}
+        suitability: dict[str, Any] = {}
         if "suitability" in stages:
             suitability = self._load_preflight_yaml(
                 CONFIGS_DIR / "suitability.yaml", "Suitability configuration", report
@@ -6117,10 +6124,13 @@ class RunTab(ttk.Frame):
             )
         technologies = list(dict.fromkeys(technologies))
 
-        technology_configs_needed: List[str] = []
-        if mode == "snakemake" and ({"exclusion", "energy_profiles"} & set(stages)):
-            technology_configs_needed.extend(technologies)
-        elif mode == "single" and script_id in {"exclusion", "energy_profiles"}:
+        technology_configs_needed: list[str] = []
+        if (
+            mode == "snakemake"
+            and ({"exclusion", "energy_profiles"} & set(stages))
+            or mode == "single"
+            and script_id in {"exclusion", "energy_profiles"}
+        ):
             technology_configs_needed.extend(technologies)
         if "suitability" in stages:
             technology_configs_needed.extend(
@@ -6428,8 +6438,8 @@ class MapTab(ttk.Frame):
         ]
         self.layer_opacity = [tk.DoubleVar(value=0.7) for _ in range(self.MAX_LAYERS)]
         self.layer_names = [tk.StringVar(value="") for _ in range(self.MAX_LAYERS)]
-        self._map_dir: Optional[Path] = None
-        self._map_view: Optional[Dict[str, Any]] = None
+        self._map_dir: Path | None = None
+        self._map_view: dict[str, Any] | None = None
         self.status_var = tk.StringVar(value="")
         self._status_palette = {
             "info": "#0d5d9b",
@@ -6581,7 +6591,7 @@ class MapTab(ttk.Frame):
         self._set_status("Preparing map...", "info")
         self._clear_map_display()
         self._cleanup_temp_dir()
-        entries: List[Tuple[int, Path]] = []
+        entries: list[tuple[int, Path]] = []
         for idx, var in enumerate(self.file_vars):
             raw = var.get().strip()
             if not raw:
@@ -6596,7 +6606,7 @@ class MapTab(ttk.Frame):
             )
             return
         temp_dir = Path(tempfile.mkdtemp(prefix="map_tab_"))
-        layers: List[Dict[str, Any]] = []
+        layers: list[dict[str, Any]] = []
         for idx, path in entries:
             if not path.exists():
                 self._set_status(f"File not found: {path}", "error")
@@ -6717,19 +6727,19 @@ class MapTab(ttk.Frame):
 class ResultsTab(ttk.Frame):
     """Run results_analysis and display the aggregated JSON output."""
 
-    def __init__(self, master: tk.Widget, _initial_data: Dict[str, Any]):
+    def __init__(self, master: tk.Widget, _initial_data: dict[str, Any]):
         super().__init__(master)
         self.runner = ProcessRunner()
         self.delete_runner = ProcessRunner()
         self.status = "idle"
         self.stop_requested = False
         self.progress = tk.DoubleVar(value=0)
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
-        self.after_id: Optional[str] = None
-        self.expected_output_dir: Optional[Path] = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
+        self.after_id: str | None = None
+        self.expected_output_dir: Path | None = None
         self.delete_status = "idle"
-        self.delete_expected_dir: Optional[Path] = None
+        self.delete_expected_dir: Path | None = None
         self.aggregated_columns = (
             "Scenario",
             "Technology",
@@ -6738,17 +6748,17 @@ class ResultsTab(ttk.Frame):
             "available_area_km2",
             "power_potential_TW",
         )
-        self.aggregated_tree: Optional[ttk.Treeview] = None
-        self.aggregated_filters: Dict[str, tk.StringVar] = {}
-        self.current_aggregated_rows: List[Dict[str, Any]] = []
-        self.latest_aggregated_path: Optional[Path] = None
-        self.delete_log_text: Optional[tk.Text] = None
+        self.aggregated_tree: ttk.Treeview | None = None
+        self.aggregated_filters: dict[str, tk.StringVar] = {}
+        self.current_aggregated_rows: list[dict[str, Any]] = []
+        self.latest_aggregated_path: Path | None = None
+        self.delete_log_text: tk.Text | None = None
         self.delete_input_var = tk.StringVar()
-        self.delete_run_button: Optional[ttk.Button] = None
-        self.delete_stop_button: Optional[ttk.Button] = None
-        self.delete_status_label: Optional[ttk.Label] = None
-        self.delete_input_entry: Optional[ttk.Entry] = None
-        self.delete_send_button: Optional[ttk.Button] = None
+        self.delete_run_button: ttk.Button | None = None
+        self.delete_stop_button: ttk.Button | None = None
+        self.delete_status_label: ttk.Label | None = None
+        self.delete_input_entry: ttk.Entry | None = None
+        self.delete_send_button: ttk.Button | None = None
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.notebook = ttk.Notebook(self)
@@ -6941,7 +6951,7 @@ class ResultsTab(ttk.Frame):
         self.delete_send_button.grid(row=0, column=2, padx=(6, 0))
         self._set_delete_running_state(False)
 
-    def _format_command(self, cmd: List[str]) -> str:
+    def _format_command(self, cmd: list[str]) -> str:
         if hasattr(shlex, "join"):
             return shlex.join(cmd)
         return " ".join(cmd)
@@ -7118,7 +7128,7 @@ class ResultsTab(ttk.Frame):
         self.latest_aggregated_path = None
         self._apply_aggregated_filters()
 
-    def _populate_aggregated_tree(self, rows: List[Dict[str, Any]]) -> None:
+    def _populate_aggregated_tree(self, rows: list[dict[str, Any]]) -> None:
         if not self.aggregated_tree:
             return
         self.aggregated_tree.delete(*self.aggregated_tree.get_children())
@@ -7268,7 +7278,7 @@ class ResultsTab(ttk.Frame):
         if not filters:
             self._populate_aggregated_tree(self.current_aggregated_rows)
             return
-        filtered_rows: List[Dict[str, Any]] = []
+        filtered_rows: list[dict[str, Any]] = []
         for row in self.current_aggregated_rows:
             matches_all = True
             for col, term in filters.items():
@@ -7289,8 +7299,8 @@ class ResultsTab(ttk.Frame):
             return formatted if formatted else "0"
         return str(value)
 
-    def _normalise_aggregated_rows(self, data: Any) -> List[Dict[str, Any]]:
-        rows: List[Dict[str, Any]] = []
+    def _normalise_aggregated_rows(self, data: Any) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
         if not isinstance(data, list):
             return rows
         for entry in data:
@@ -7330,13 +7340,13 @@ class ResultsTab(ttk.Frame):
                     )
         return rows
 
-    def _set_aggregated_rows(self, rows: List[Dict[str, Any]]) -> None:
+    def _set_aggregated_rows(self, rows: list[dict[str, Any]]) -> None:
         self.current_aggregated_rows = rows
         self._apply_aggregated_filters()
 
     def display_aggregated_json(
-        self, json_path: Optional[Path] = None
-    ) -> Tuple[str, str, int]:
+        self, json_path: Path | None = None
+    ) -> tuple[str, str, int]:
         if not self.aggregated_tree:
             return ("error", "Aggregated results view unavailable.", 0)
         target = json_path or (PARENT_DIR / "aggregated_available_land.json")
@@ -7484,7 +7494,7 @@ class ConfigurationSetupDialog(tk.Toplevel):
         ).pack(side="right")
         self._on_source_changed()
 
-    def _selected_country(self) -> Optional[str]:
+    def _selected_country(self) -> str | None:
         if self.source_var.get() != "example":
             return None
         return self.country_var.get().strip() or None
@@ -7496,7 +7506,7 @@ class ConfigurationSetupDialog(tk.Toplevel):
         )
         self._refresh_preview()
 
-    def _template_pairs(self) -> List[Tuple[Path, Path]]:
+    def _template_pairs(self) -> list[tuple[Path, Path]]:
         country = self._selected_country()
         if self.source_var.get() == "example" and not country:
             return []
@@ -7637,7 +7647,7 @@ class PythonScriptManagerApp(tk.Tk):
                 self.style = None
         self.sections = load_initial_sections()
         self.sample_results = load_sample_results()
-        self._setup_dialog: Optional[ConfigurationSetupDialog] = None
+        self._setup_dialog: ConfigurationSetupDialog | None = None
         self._setup_prompted = False
         outer = ttk.Frame(self)
         outer.pack(fill="both", expand=True)

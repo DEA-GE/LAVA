@@ -12,14 +12,13 @@ import argparse
 import shutil
 import sys
 from pathlib import Path
-from typing import List
 
 TEMPLATE_SUFFIX = "_template.yaml"
 EXAMPLE_TEMPLATE_TOKEN = "_template_"
 EXAMPLES_SUBDIR = "examples"
 
 
-def _available_example_countries(configs_dir: Path) -> List[str]:
+def _available_example_countries(configs_dir: Path) -> list[str]:
     """Return unique country names discovered in configs/examples templates."""
     examples_dir = configs_dir / EXAMPLES_SUBDIR
     if not examples_dir.exists():
@@ -45,7 +44,7 @@ def _available_example_countries(configs_dir: Path) -> List[str]:
     return sorted(countries_by_key.values(), key=str.lower)
 
 
-def available_example_countries(configs_dir: Path) -> List[str]:
+def available_example_countries(configs_dir: Path) -> list[str]:
     """Return country examples available to CLI and graphical front ends."""
     return _available_example_countries(Path(configs_dir))
 
@@ -102,7 +101,7 @@ def _prompt_country(configs_dir: Path) -> str:
         print("Invalid choice. Enter a number from the list or a country name.")
 
 
-def _prompt_overwrite(existing_targets: List[Path]) -> bool:
+def _prompt_overwrite(existing_targets: list[Path]) -> bool:
     """Ask whether existing target files should be overwritten."""
     print("The following target files already exist:")
     for path in existing_targets:
@@ -121,13 +120,13 @@ def _prompt_overwrite(existing_targets: List[Path]) -> bool:
         print("Invalid choice. Enter y/yes or n/no.")
 
 
-def _country_templates(configs_dir: Path, country: str) -> List[tuple[Path, Path]]:
+def _country_templates(configs_dir: Path, country: str) -> list[tuple[Path, Path]]:
     """Return (source, target) pairs for a selected country example."""
     examples_dir = configs_dir / EXAMPLES_SUBDIR
     if not examples_dir.exists():
         raise FileNotFoundError(f"Examples directory not found: {examples_dir}")
 
-    matches: List[tuple[Path, Path]] = []
+    matches: list[tuple[Path, Path]] = []
     country_key = country.strip().lower()
 
     for template_path in sorted(examples_dir.glob("*_template_*.yaml")):
@@ -145,9 +144,9 @@ def _country_templates(configs_dir: Path, country: str) -> List[tuple[Path, Path
     return matches
 
 
-def _default_templates(configs_dir: Path) -> List[tuple[Path, Path]]:
+def _default_templates(configs_dir: Path) -> list[tuple[Path, Path]]:
     """Return (source, target) pairs for default templates."""
-    matches: List[tuple[Path, Path]] = []
+    matches: list[tuple[Path, Path]] = []
     for template_path in sorted(configs_dir.glob(f"*{TEMPLATE_SUFFIX}")):
         target_name = template_path.name.removesuffix(TEMPLATE_SUFFIX) + ".yaml"
         target_path = template_path.with_name(target_name)
@@ -156,7 +155,7 @@ def _default_templates(configs_dir: Path) -> List[tuple[Path, Path]]:
     return matches
 
 
-def _template_pairs(configs_dir: Path, country: str | None) -> List[tuple[Path, Path]]:
+def _template_pairs(configs_dir: Path, country: str | None) -> list[tuple[Path, Path]]:
     """Return copy pairs for either default templates or a country example."""
     if country:
         country_templates = _country_templates(configs_dir, country)
@@ -173,7 +172,7 @@ def _template_pairs(configs_dir: Path, country: str | None) -> List[tuple[Path, 
 def preview_config_templates(
     configs_dir: Path,
     country: str | None = None,
-) -> List[tuple[Path, Path]]:
+) -> list[tuple[Path, Path]]:
     """Return the template-to-active-file operations without changing files."""
     return _template_pairs(Path(configs_dir), country)
 
@@ -182,7 +181,7 @@ def initialize_config_templates(
     configs_dir: Path,
     overwrite: bool = False,
     country: str | None = None,
-) -> List[Path]:
+) -> list[Path]:
     """Copy template YAML files to non-template YAML files in ``configs``.
 
     Default mode:
@@ -191,7 +190,7 @@ def initialize_config_templates(
     Country example mode:
     ``configs/examples/config_template_china.yaml`` -> ``configs/config.yaml``
     """
-    created_or_updated: List[Path] = []
+    created_or_updated: list[Path] = []
     for template_path, target_path in _template_pairs(configs_dir, country):
         if target_path.exists() and not overwrite:
             continue

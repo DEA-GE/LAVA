@@ -1,17 +1,19 @@
-import atlite
-import numpy as np
-import xarray as xr
-import pandas as pd
-import matplotlib.pyplot as plt
-import geopandas as gpd
-import os
-import json
-from pathlib import Path
-import yaml
-from utils.data_preprocessing import clean_region_name, rel_path
-import pickle
 import argparse
 import glob
+import json
+import os
+import pickle
+from pathlib import Path
+
+import atlite
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import xarray as xr
+import yaml
+
+from utils.data_preprocessing import clean_region_name, rel_path
 from utils.tech_config import load_tech_config
 
 # ------------------------------------------- Load configuration
@@ -101,9 +103,7 @@ if input_area == "resource_grades":
     )
     with open(resource_grades_file, "r") as f:
         potential_list = json.load(f)
-elif input_area == "available_land":
-    potential_list = [region_name]
-elif input_area == "study_region":
+elif input_area == "available_land" or input_area == "study_region":
     potential_list = [region_name]
 else:
     raise ValueError(f"Unknown potential method: {input_area}")

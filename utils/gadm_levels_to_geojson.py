@@ -1,6 +1,7 @@
-import geopandas as gpd
-import os
 import json
+import os
+
+import geopandas as gpd
 
 
 def extract_gadm_levels(

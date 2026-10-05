@@ -1,8 +1,8 @@
+import logging
 import os
+
 import geopandas as gpd
 from pyproj import CRS
-
-import logging
 
 
 def process_single_local_osm_layer(
@@ -38,7 +38,7 @@ def process_single_local_osm_layer(
     layer_fclasses = config.get("fclass", {}).get(layer_name)
 
     # Determine CRS tag for filename
-    crs_tag = "EPSG4326"  # default CRS string if no reprojection  # noqa: F841
+    crs_tag = "EPSG4326"  # default CRS string if no reprojection
     if target_crs:
         crs = CRS.from_user_input(target_crs)
         authority = crs.to_authority()

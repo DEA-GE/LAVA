@@ -9,20 +9,18 @@ from __future__ import annotations
 import argparse
 import re
 from pathlib import Path
-from typing import List, Set, Tuple
+
+TECHS: set[str] = {"onshorewind", "solar", "offshorewind"}
 
 
-TECHS: Set[str] = {"onshorewind", "solar", "offshorewind"}
-
-
-def _tech_pattern(techs: Set[str]) -> str:
+def _tech_pattern(techs: set[str]) -> str:
     return "|".join(re.escape(t) for t in sorted(techs, key=len, reverse=True))
 
 
 def _pairs_from_available_land(
-    province_dir: Path, province: str, techs: Set[str]
-) -> Set[Tuple[str, str]]:
-    pairs: Set[Tuple[str, str]] = set()
+    province_dir: Path, province: str, techs: set[str]
+) -> set[tuple[str, str]]:
+    pairs: set[tuple[str, str]] = set()
     folder = province_dir / "available_land"
     if not folder.exists():
         return pairs
@@ -65,9 +63,9 @@ def _pairs_from_available_land(
 
 
 def _pairs_from_snakemake_log(
-    province_dir: Path, techs: Set[str]
-) -> Set[Tuple[str, str]]:
-    pairs: Set[Tuple[str, str]] = set()
+    province_dir: Path, techs: set[str]
+) -> set[tuple[str, str]]:
+    pairs: set[tuple[str, str]] = set()
     folder = province_dir / "snakemake_log"
     if not folder.exists():
         return pairs
@@ -87,10 +85,10 @@ def _pairs_from_snakemake_log(
 
 
 def _build_rows_for_province(
-    province_dir: Path, techs: Set[str]
-) -> List[Tuple[str, str, str]]:
+    province_dir: Path, techs: set[str]
+) -> list[tuple[str, str, str]]:
     province = province_dir.name
-    pairs: Set[Tuple[str, str]] = set()
+    pairs: set[tuple[str, str]] = set()
     pairs |= _pairs_from_available_land(province_dir, province, techs)
     pairs |= _pairs_from_snakemake_log(province_dir, techs)
     return [
@@ -99,7 +97,7 @@ def _build_rows_for_province(
     ]
 
 
-def sync_scenario_logs(root: Path, dry_run: bool = False) -> Tuple[int, int, int]:
+def sync_scenario_logs(root: Path, dry_run: bool = False) -> tuple[int, int, int]:
     """Sync ``data/<province>/scenario_runs.log`` from existing files.
 
     Returns ``(changed, unchanged, total_provinces)``.

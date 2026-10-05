@@ -20,17 +20,16 @@ import argparse
 import csv
 import re
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 
-def _discover(root: Path) -> Tuple[Dict[str, Set[str]], List[str]]:
+def _discover(root: Path) -> tuple[dict[str, set[str]], list[str]]:
     """Return (scenarios_by_tech, provinces_with_logs).
 
     Parses every ``data/<province>/scenario_runs.log`` assuming CSV lines with
     three fields: province, technology, scenario.
     """
-    scenarios_by_tech: Dict[str, Set[str]] = {}
-    provinces: Set[str] = set()
+    scenarios_by_tech: dict[str, set[str]] = {}
+    provinces: set[str] = set()
 
     data_dir = root / "data"
     for log_path in data_dir.glob("*/scenario_runs.log"):
@@ -57,7 +56,7 @@ def _discover(root: Path) -> Tuple[Dict[str, Set[str]], List[str]]:
     return scenarios_by_tech, sorted(provinces)
 
 
-def _discover_provinces(root: Path) -> List[str]:
+def _discover_provinces(root: Path) -> list[str]:
     data_dir = root / "data"
     if not data_dir.exists():
         return []
@@ -65,7 +64,7 @@ def _discover_provinces(root: Path) -> List[str]:
 
 
 def _extract_scenario_from_filename(
-    name: str, province: str, techs: Set[str]
+    name: str, province: str, techs: set[str]
 ) -> str | None:
     """Extract scenario from known output filename patterns."""
     stem = Path(name).stem
@@ -105,9 +104,9 @@ def _extract_scenario_from_filename(
 
 
 def _discover_scenarios_from_files(
-    root: Path, provinces: List[str], techs: Set[str]
-) -> List[str]:
-    scenarios: Set[str] = set()
+    root: Path, provinces: list[str], techs: set[str]
+) -> list[str]:
+    scenarios: set[str] = set()
     for prov in provinces:
         base = root / "data" / prov
         for folder_name in ("available_land", "suitability", "snakemake_log"):
@@ -123,10 +122,10 @@ def _discover_scenarios_from_files(
     return sorted(scenarios)
 
 
-def _matching_files_in_folder(folder: Path, tech: str, scenario: str) -> List[Path]:
+def _matching_files_in_folder(folder: Path, tech: str, scenario: str) -> list[Path]:
     if not folder.exists():
         return []
-    matches: List[Path] = []
+    matches: list[Path] = []
     scenario_rx = re.compile(rf"(^|_){re.escape(scenario)}(_|\.|$)")
     tech_rx = re.compile(rf"(^|_){re.escape(tech)}(_|\.|$)") if tech else None
     for p in folder.rglob("*"):
@@ -142,17 +141,17 @@ def _matching_files_in_folder(folder: Path, tech: str, scenario: str) -> List[Pa
 
 
 def _collect_files_for_all_provinces(
-    root: Path, provinces: List[str], tech: str, scenario: str
-) -> List[Path]:
-    files: List[Path] = []
+    root: Path, provinces: list[str], tech: str, scenario: str
+) -> list[Path]:
+    files: list[Path] = []
     for prov in provinces:
         base = root / "data" / prov
         files += _matching_files_in_folder(base / "available_land", tech, scenario)
         files += _matching_files_in_folder(base / "suitability", tech, scenario)
         files += _matching_files_in_folder(base / "snakemake_log", tech, scenario)
     # Deduplicate while preserving order
-    seen: Set[Path] = set()
-    unique: List[Path] = []
+    seen: set[Path] = set()
+    unique: list[Path] = []
     for f in files:
         if f not in seen:
             unique.append(f)
@@ -174,7 +173,7 @@ def main() -> None:
     scenarios_by_tech, provinces_with_logs = _discover(args.root)
     provinces = _discover_provinces(args.root) or provinces_with_logs
 
-    techs: Set[str] = {t for t in scenarios_by_tech.keys() if t}
+    techs: set[str] = {t for t in scenarios_by_tech.keys() if t}
     techs.update({"onshorewind", "solar", "offshorewind"})
     scenarios = _discover_scenarios_from_files(args.root, provinces, techs)
 

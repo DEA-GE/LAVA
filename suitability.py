@@ -1,26 +1,27 @@
-import rasterio
-import numpy as np
-import pandas as pd
-import pickle
-import os
-import yaml
 import argparse
 import itertools
 import json
+import os
+import pickle
+
+import numpy as np
+import pandas as pd
+import rasterio
+import yaml
 from rasterio.warp import Resampling
+
 from utils.data_preprocessing import clean_region_name, rel_path
 from utils.raster_analysis import (
     align_to_reference,
+    area_filter,
+    diff,
     export_raster,
     filter,
-    area_filter,
-    union,
-    diff,
     overlap,
     rasterize,
+    union,
 )
 from utils.tech_config import load_tech_config
-
 
 # ------------------------------------------- Initialization -------------------------------------------
 dirname = os.getcwd()

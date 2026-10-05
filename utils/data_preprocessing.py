@@ -1,25 +1,24 @@
-import os
-import geopandas as gpd
+import io
 
 # import geonamescache
 import json
-import rasterio
-from rasterio.mask import mask
-from shapely.geometry import mapping
-from unidecode import unidecode
-from rasterio.warp import calculate_default_transform, reproject, Resampling
-import numpy as np
-from space2stats_client import Space2StatsClient
-
+import logging
+import os
 import zipfile
-import requests
-import io
-import fiona
-import pandas as pd
-import rasterstats
 from datetime import datetime, timedelta
 
-import logging
+import fiona
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import rasterio
+import rasterstats
+import requests
+from rasterio.mask import mask
+from rasterio.warp import Resampling, calculate_default_transform, reproject
+from shapely.geometry import mapping
+from space2stats_client import Space2StatsClient
+from unidecode import unidecode
 
 
 def download_admin_boundary_WB(
