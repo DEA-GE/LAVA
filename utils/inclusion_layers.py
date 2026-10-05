@@ -15,8 +15,8 @@ from rasterio.enums import Resampling
 from rasterio.mask import mask
 from rasterio.vrt import WarpedVRT
 from shapely.geometry import mapping
-from utils.data_preprocessing import geopandas_clip_reproject
 
+from utils.data_preprocessing import geopandas_clip_reproject
 
 MANIFEST_FILENAME = "manifest.json"
 SUPPORTED_COMBINE_MODES = {"all", "any"}

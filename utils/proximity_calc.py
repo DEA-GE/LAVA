@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: Matteo D'Andrea
 @date: 18-06-2025
@@ -18,11 +17,12 @@ distance raster is clipped after calculation to match the region shape.
 
 import os
 import time
-from shapely.geometry import shape
-import geopandas as gpd
+
 import distancerasters as dr
+import geopandas as gpd
 import rasterio
 from rasterio.mask import mask
+from shapely.geometry import shape
 
 
 def raster_conditional(rarray):

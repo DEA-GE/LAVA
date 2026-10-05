@@ -1,7 +1,8 @@
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 
-def _pick_value(entry: Any, area: Optional[str]) -> Optional[str]:
+def _pick_value(entry: Any, area: str | None) -> str | None:
     """
     Resolve a single config entry.
 
@@ -29,9 +30,9 @@ def resolve_selection(
     cfg: Mapping[str, Any],
     key: str,
     *,
-    area: Optional[str] = None,
-    region_group: Optional[str] = None,
-    region: Optional[str] = None,
+    area: str | None = None,
+    region_group: str | None = None,
+    region: str | None = None,
     normalize_area: bool = True,
 ) -> str:
     """

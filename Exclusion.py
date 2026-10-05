@@ -1,24 +1,26 @@
-import atlite
-from pyproj import CRS
-import time
-import numpy as np
-import json
-import pickle
-import os
 import argparse
+import json
+import os
+import pickle
+import time
+
+import atlite
 import geopandas as gpd
-from atlite.gis import shape_availability
+import numpy as np
 import rasterio
 import yaml
-from utils.data_preprocessing import clean_region_name, log_scenario_run
+from atlite.gis import shape_availability
+from pyproj import CRS
 from rasterstats import zonal_stats
-from utils.raster_analysis import area_filter, overlay_value_raster
+
+from utils.data_preprocessing import clean_region_name, log_scenario_run
 from utils.inclusion_layers import (
     apply_inclusion_layer_overrides,
     compute_combined_inclusion_mask,
     discover_processed_inclusion_layers,
     parse_inclusion_layer_settings,
 )
+from utils.raster_analysis import area_filter, overlay_value_raster
 from utils.tech_config import load_tech_config
 
 # Record the starting time
@@ -197,7 +199,7 @@ terrain_ruggedness_path = os.path.join(
 param = tech_config["max_terrain_ruggedness"]
 if os.path.isfile(terrain_ruggedness_path) and param is not None:
     excluder.add_raster(
-        terrain_ruggedness_path, codes=range(0, param), invert=True, crs=global_crs_obj
+        terrain_ruggedness_path, codes=range(param), invert=True, crs=global_crs_obj
     )
     info_list_exclusion.append(f"max terrain ruggedness: {param}")
 elif os.path.isfile(terrain_ruggedness_path) and param is None:
@@ -408,7 +410,7 @@ forestDensityPath = os.path.join(
 param = tech_config.get("max_forest_density")
 if os.path.isfile(forestDensityPath) and param is not None:
     excluder.add_raster(
-        forestDensityPath, codes=range(0, param), invert=True, crs=global_crs_obj
+        forestDensityPath, codes=range(param), invert=True, crs=global_crs_obj
     )
     info_list_exclusion.append(f"max forest density included: {param}")
 elif os.path.isfile(forestDensityPath) and param is None:
@@ -485,7 +487,7 @@ if os.path.exists(additional_exclusion_rasters_folderPath) and buffer_config:
             filepath = os.path.join(additional_exclusion_rasters_folderPath, filename)
             excluder.add_raster(
                 filepath,
-                codes=range(0, 1_000_000),
+                codes=range(1_000_000),
                 buffer=buffer_value,
                 crs=global_crs_obj,
             )

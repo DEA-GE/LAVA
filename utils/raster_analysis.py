@@ -1,12 +1,13 @@
-import numpy as np
-from scipy.ndimage import label
-import rasterio
-from rasterio.warp import reproject, Resampling
 import math
+
 import geopandas as gpd
+import numpy as np
+import rasterio
 from affine import Affine
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
+from rasterio.warp import Resampling, reproject
+from scipy.ndimage import label
 
 
 # area filter
@@ -239,7 +240,7 @@ def rasterize(
     crs,
     resolution: float,
     all_touched: bool = False,
-    fill_value: float | int = 0,
+    fill_value: float = 0,
     pad: float = 0.0,
 ):
     """
