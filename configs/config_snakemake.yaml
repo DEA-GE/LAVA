@@ -17,8 +17,8 @@ stages:
   exclusion: false
   suitability: false
   results_analysis: false
-  timeseries: false
-  weather_data_prep: true
-  weather_bias_adjust: true
-  energy_profiles: true
+  timeseries: true
+  weather_data_prep: false
+  weather_bias_adjust: false
+  energy_profiles: false
 scenarios: []

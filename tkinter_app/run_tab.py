@@ -75,6 +75,7 @@ def build_workflow_plan_rows(
     *,
     project_root: Path = PARENT_DIR,
     spatial_plan: Optional[Mapping[str, Any]] = None,
+    available_land_enabled: bool = False,
 ) -> List[Dict[str, str]]:
     """Expand the configured Snakemake targets into user-facing preview rows.
 
@@ -85,14 +86,16 @@ def build_workflow_plan_rows(
 
     selected_stages = list(dict.fromkeys(str(stage) for stage in stages if stage))
     requested_stages = set(selected_stages)
-    downstream_exclusion = {"suitability", "results_analysis"}
-    if requested_stages & downstream_exclusion:
+    requires_exclusion = bool(
+        requested_stages & {"exclusion", "suitability", "results_analysis"}
+    ) or ("timeseries" in requested_stages and available_land_enabled)
+    requires_spatial = requires_exclusion or "timeseries" in requested_stages
+    if requires_exclusion:
         if "exclusion" not in requested_stages:
             selected_stages.insert(0, "exclusion")
+    if requires_spatial:
         if "spatial_data_prep" not in requested_stages:
             selected_stages.insert(0, "spatial_data_prep")
-    elif "exclusion" in requested_stages and "spatial_data_prep" not in requested_stages:
-        selected_stages.insert(0, "spatial_data_prep")
 
     normalized_regions = list(dict.fromkeys(str(value) for value in regions if value))
     normalized_technologies = list(
@@ -3078,6 +3081,11 @@ class RunTab(ttk.Frame):
                 weather_years,
                 project_root=PARENT_DIR,
                 spatial_plan=report.get("spatial_prep_plan"),
+                available_land_enabled=self._preflight_enabled(
+                    (config.get("available_land") or {}).get("enable")
+                    if isinstance(config.get("available_land"), Mapping)
+                    else False
+                ),
             )
 
         execution_summary = "Single script"

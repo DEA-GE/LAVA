@@ -9,15 +9,22 @@ def timeseries_raster_input(wildcards):
     )
 
 
+def timeseries_weather_input(wildcards):
+    if stages.get("weather_data_prep"):
+        return logpath(
+            wildcards.region,
+            f"weather_data_prep_{wildcards.weather_year}.done",
+        ).as_posix()
+    return str(
+        Path(config_main["cutout_dir"])
+        / f"{config_main['cutout_name'].format(year=wildcards.weather_year)}.nc"
+    )
+
+
 rule timeseries:
     input:
-        shape=lambda wildcards: config_main["shapes_path"].format(
-            study_region_name=wildcards.region
-        ),
-        cutout=lambda wildcards: str(
-            Path(config_main["cutout_dir"])
-            / f"{config_main['cutout_name'].format(year=wildcards.weather_year)}.nc"
-        ),
+        spatial=Path("data") / "{region}" / "{region}_local_CRS.pkl",
+        weather=timeseries_weather_input,
         raster=timeseries_raster_input,
     output:
         profile=Path("data")

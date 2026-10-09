@@ -8,6 +8,39 @@ from tkinter_app.run_tab import build_workflow_plan_rows
 
 
 class WorkflowPlanPreviewTests(unittest.TestCase):
+    def test_timeseries_only_requires_exclusion_with_available_land(self) -> None:
+        base_arguments = (
+            ["Region"],
+            ["solar"],
+            {"solar": ["base"]},
+            ["timeseries"],
+            ["2020"],
+        )
+
+        without_mask = build_workflow_plan_rows(
+            *base_arguments,
+            project_root=Path("missing-workflow-preview-root"),
+            available_land_enabled=False,
+        )
+        self.assertEqual(
+            [row["stage"] for row in without_mask],
+            ["Spatial data preparation (dependency)", "Timeseries"],
+        )
+
+        with_mask = build_workflow_plan_rows(
+            *base_arguments,
+            project_root=Path("missing-workflow-preview-root"),
+            available_land_enabled=True,
+        )
+        self.assertEqual(
+            [row["stage"] for row in with_mask],
+            [
+                "Spatial data preparation (dependency)",
+                "Land exclusion (dependency)",
+                "Timeseries",
+            ],
+        )
+
     def test_expands_requested_targets_and_implicit_spatial_dependency(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             rows = build_workflow_plan_rows(

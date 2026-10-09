@@ -125,6 +125,13 @@ globals().update({
 # Exclusion uses spatial_data_prep as a checkpoint. Including the checkpoint
 # does not run it when its CRS output is present and up to date.
 included_stages = {name for name, enabled in stages.items() if enabled}
+if stages.get("timeseries"):
+    # Profiles always need the prepared study-area geometry.  They only need
+    # exclusion when their availability matrix is based on an exclusion raster.
+    included_stages.add("spatial_data_prep")
+    if config_main["available_land"]["enable"]:
+        included_stages.add("exclusion")
+
 if stages.get("exclusion") or stages.get("suitability") or stages.get("results_analysis"):
     included_stages.add("exclusion")
     included_stages.add("spatial_data_prep")
