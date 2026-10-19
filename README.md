@@ -54,10 +54,13 @@ In order to run the tool with the default data setup do the following:
 ## Quick start - Basic workflow
 The basic workflow identifies suitable areas for solar PV and onshore wind based on user-defined parameters. 
 1. Adjust configuration files (or use default values for test case).
-2. Data download and pre-processing: run the script `spatial_data_prep.py`. You can run from the terminal via<br>
-   `python spatial_data_prep.py`
-4. Exclusion of non-suitable land: run the script `exclusion.py`. Run from the terminal to select technology and name the scenario via<br>
-   `python exclusion.py --technology solar --scenario test`
+Run these commands from the repository root.
+No editable installation of `lava` is required; activate the project environment first so its dependencies are available.
+
+2. Data download and pre-processing: run the spatial data preparation module via<br>
+   `python -m lava.spatial_data_prep`
+4. Exclusion of non-suitable land: run the exclusion module to select technology and name the scenario via<br>
+   `python -m lava.exclusion --technology solar --scenario test`
 
 With the advanced workflow it is also possible to perform a suitability analysis and derive timeseries data for the available area.
 

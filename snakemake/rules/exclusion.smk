@@ -8,6 +8,6 @@ rule exclusion:
         method="snakemake"
     shell:
         (
-            "python Exclusion.py --region {wildcards.region} "
+            "python -m lava.exclusion --region {wildcards.region} "
             "--technology {wildcards.technology} --method {params.method} --scenario {wildcards.scenario}"
         )

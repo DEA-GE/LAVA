@@ -4,7 +4,7 @@ This section answers some frequently asked questions about the LAVA tool.
 
 ## Where are outputs stored?
 
-By default, all outputs from the pipeline are stored under the `data/` directory in the project. When the script spatial_data_prep.py is ran a folder with the name of the study area (variable study_region_name in the config.yaml file) is created. All outputs are then saved in this folder.
+By default, all outputs from the pipeline are stored under the `data/` directory in the project. When `python -m lava.spatial_data_prep` is run from the repository root, a folder with the name of the study area (variable `study_region_name` in `config.yaml`) is created. All outputs are then saved in this folder.
 
 ## How do I analyse a specific area to process?
 

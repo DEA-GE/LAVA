@@ -11,7 +11,7 @@ default).
 
 Usage::
 
-    python simple_results_analysis.py [--root PATH] [--output FILE] [--json-output FILE]
+    python -m lava.utils.results_analysis [--root PATH] [--output FILE] [--json-output FILE]
 
 By default ``--root`` is the directory containing this script, i.e. the
 repository root. ``--output`` sets the resulting GeoPackage path and
@@ -37,6 +37,8 @@ from rasterio.merge import merge
 from rasterio.vrt import WarpedVRT
 from shapely.geometry import shape
 from shapely.ops import unary_union
+
+from lava.project import PROJECT_ROOT
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +77,7 @@ def parse_info_json(path: Path) -> dict | None:
 
     Expected keys are ``technology``, ``scenario``, ``eligibility_share``
     (fractional), ``available_area_m2`` and ``power_potential_MW`` written in
-    ``Exclusion.py``. Returns ``None`` if the file is missing, cannot be
+    ``exclusion.py``. Returns ``None`` if the file is missing, cannot be
     decoded or lacks required keys.
     """
 
@@ -272,7 +274,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path(__file__).resolve().parent,
+        default=PROJECT_ROOT,
         help="Project root containing data directory",
     )
     parser.add_argument(

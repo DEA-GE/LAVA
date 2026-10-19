@@ -1000,7 +1000,7 @@ CONFIG_SNAKEMAKE_STAGE_FLAGS: List[Dict[str, str]] = [
     {
         "key": "exclusion",
         "label": "Land Exclusion",
-        "description": "Run Exclusion.py to derive available land.",
+        "description": "Run exclusion.py to derive available land.",
     },
     {
         "key": "suitability",

@@ -8,15 +8,16 @@ import os
 import json
 from pathlib import Path
 import yaml
-from utils.data_preprocessing import clean_region_name, rel_path
-import pickle
+from lava.utils.common import clean_region_name, rel_path
 import argparse
 import glob
-from utils.tech_config import load_tech_config
+from lava.utils.tech_config import load_tech_config
+from lava.utils.crs import crs_tag, load_crs
+from lava.project import PROJECT_ROOT, resolve_project_path
 
 # ------------------------------------------- Load configuration
-dirname = os.getcwd()
-with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
+dirname = str(PROJECT_ROOT)
+with open(PROJECT_ROOT / "configs" / "config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 region_name = config["study_region_name"]
@@ -63,19 +64,17 @@ if not os.path.exists(output_path):
 
 # Load the CRS
 # geo CRS
-with open(os.path.join(data_path, region_name + "_global_CRS.pkl"), "rb") as file:
-    global_crs_obj = pickle.load(file)
+global_crs_path = os.path.join(data_path, region_name + "_global_CRS.wkt")
+global_crs_obj = load_crs(global_crs_path)
 # projected CRS
-with open(os.path.join(data_path, region_name + "_local_CRS.pkl"), "rb") as file:
-    local_crs_obj = pickle.load(file)
+local_crs_path = os.path.join(data_path, region_name + "_local_CRS.wkt")
+local_crs_obj = load_crs(local_crs_path)
 
 print(f"geo CRS: {global_crs_obj}; projected CRS: {local_crs_obj}")
 
 # Extract tag for filename, e.g., 'EPSG3035' or 'ESRI102003'
-auth = global_crs_obj.to_authority()
-global_crs_tag = "".join(auth) if auth else global_crs_obj.to_string().replace(":", "_")
-auth = local_crs_obj.to_authority()
-local_crs_tag = "".join(auth) if auth else local_crs_obj.to_string().replace(":", "_")
+global_crs_tag = crs_tag(global_crs_obj, path=global_crs_path)
+local_crs_tag = crs_tag(local_crs_obj, path=local_crs_path)
 
 # load pixel size
 if tech_config["resolution_manual"] is not None:
@@ -110,7 +109,7 @@ else:
 
 # List all files in the weather data files (in case of multiple files per year)
 if config.get("weather_external_data_path"):
-    weather_data_path = os.path.abspath(config["weather_external_data_path"])
+    weather_data_path = str(resolve_project_path(config["weather_external_data_path"]))
 else:
     weather_data_path = os.path.join(dirname, "Raw_Spatial_Data", "Weather_data")
 cutout_files = glob.glob(os.path.join(weather_data_path, f"*{weather_year}*"))

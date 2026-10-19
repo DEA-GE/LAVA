@@ -42,7 +42,7 @@ rule spatial_data_prep:
     params:
         method="snakemake"
     shell:
-        "python spatial_data_prep.py --region {wildcards.region} --method {params.method}"
+        "python -m lava.spatial_data_prep --region {wildcards.region} --method {params.method}"
 
 rule exclusion:
     input:
@@ -54,6 +54,6 @@ rule exclusion:
         scenario=scenario 
     shell:
         (
-            "python Exclusion.py --region {wildcards.region} "
+            "python -m lava.exclusion --region {wildcards.region} "
             "--technology {wildcards.technology} --method {params.method} --scenario {params.scenario}"
         )

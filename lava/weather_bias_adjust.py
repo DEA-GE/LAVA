@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import yaml
 import glob
+from lava.project import PROJECT_ROOT, resolve_project_path
 
 
 def raster2grid(raster_path, target_grid, var_name, method):
@@ -87,8 +88,8 @@ def ds_bias_correction(ds_ref, ds_target, mean_dims):
 
 
 # ------------------------------------------- Initialization -------------------------------------------
-dirname = os.getcwd()
-with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
+dirname = str(PROJECT_ROOT)
+with open(PROJECT_ROOT / "configs" / "config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 country_code = config["country_code"]
@@ -96,7 +97,7 @@ country_name_solar_atlas = config["country_name_solar_atlas"]
 
 # Load the weather data (all years)
 if config.get("weather_external_data_path"):
-    weather_data_path = os.path.abspath(config["weather_external_data_path"])
+    weather_data_path = str(resolve_project_path(config["weather_external_data_path"]))
 else:
     weather_data_path = os.path.join(dirname, "Raw_Spatial_Data", "Weather_data")
 weather_data_files = glob.glob(os.path.join(weather_data_path, "*.nc"))

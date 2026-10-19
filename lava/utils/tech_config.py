@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import copy
 import os
+from pathlib import Path
 from typing import Any
 
 import yaml
+
+from lava.project import resolve_project_path
 
 
 def _deep_merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -17,7 +20,7 @@ def _deep_merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[st
     return merged
 
 
-def _load_yaml_file(file_path: str) -> dict[str, Any]:
+def _load_yaml_file(file_path: str | Path) -> dict[str, Any]:
     with open(file_path, "r", encoding="utf-8") as file:
         return yaml.load(file, Loader=yaml.FullLoader)
 
@@ -40,7 +43,9 @@ def _split_scenario_sections(
     return reference_scenario, base_config, additional_scenarios
 
 
-def load_tech_config_from_path(file_path: str, scenario: str | None) -> dict[str, Any]:
+def load_tech_config_from_path(
+    file_path: str | Path, scenario: str | None
+) -> dict[str, Any]:
     raw_config = _load_yaml_file(file_path)
     reference_scenario, base_config, additional_scenarios = _split_scenario_sections(
         raw_config
@@ -62,18 +67,18 @@ def load_tech_config_from_path(file_path: str, scenario: str | None) -> dict[str
 def load_tech_config(
     technology: str, scenario: str | None, config_dir: str = "configs"
 ) -> dict[str, Any]:
-    file_path = os.path.join(config_dir, f"{technology}.yaml")
+    file_path = resolve_project_path(config_dir) / f"{technology}.yaml"
     return load_tech_config_from_path(file_path, scenario)
 
 
-def get_tech_scenarios_from_path(file_path: str) -> list[str]:
+def get_tech_scenarios_from_path(file_path: str | Path) -> list[str]:
     raw_config = _load_yaml_file(file_path)
     reference_scenario, _, additional_scenarios = _split_scenario_sections(raw_config)
     return [reference_scenario, *additional_scenarios.keys()]
 
 
 def get_tech_scenarios(technology: str, config_dir: str = "configs") -> list[str]:
-    file_path = os.path.join(config_dir, f"{technology}.yaml")
+    file_path = resolve_project_path(config_dir) / f"{technology}.yaml"
     return get_tech_scenarios_from_path(file_path)
 
 

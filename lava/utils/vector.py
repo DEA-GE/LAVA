@@ -1,7 +1,32 @@
 import json
+
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, mapping
+from shapely.geometry import MultiPolygon, Polygon, mapping
 from shapely.ops import unary_union
+
+
+def geopandas_clip_reproject(geopandas_file, gdf, target_crs_obj):
+    """
+    Clip vector data to a GeoDataFrame and reproject it to a target CRS.
+
+    The input vector data is first reprojected to the clipping GeoDataFrame's
+    CRS so the geometries are compared in the same coordinate system.
+
+    :param geopandas_file: Vector data to clip.
+    :param gdf: The GeoPandas DataFrame to use for clipping the shapefile.
+    :param target_crs_obj: Target CRS for the returned data (e.g., 'EPSG:3035').
+    """
+    if geopandas_file.crs is None:
+        raise ValueError("Cannot clip vector data because its CRS is missing.")
+    if gdf.crs is None:
+        raise ValueError("Cannot clip vector data because the clipping CRS is missing.")
+
+    vector_in_clip_crs = geopandas_file
+    if geopandas_file.crs != gdf.crs:
+        vector_in_clip_crs = geopandas_file.to_crs(gdf.crs)
+
+    geopandas_clipped = gpd.clip(vector_in_clip_crs, gdf)
+    return geopandas_clipped.to_crs(target_crs_obj)
 
 
 def prepare_geometry(geom):

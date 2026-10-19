@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import re
 from pathlib import Path
+
+from lava.project import PROJECT_ROOT
 from typing import List, Set, Tuple
 
 
@@ -147,7 +149,7 @@ def main() -> None:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path.cwd(),
+        default=PROJECT_ROOT,
         help="Project root containing the data directory",
     )
     parser.add_argument(

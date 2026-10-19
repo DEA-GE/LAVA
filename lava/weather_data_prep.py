@@ -5,11 +5,13 @@ import atlite
 import os
 import logging
 import yaml
-from utils.data_preprocessing import clean_region_name, download_admin_boundary_WB
+from lava.project import PROJECT_ROOT, resolve_project_path
+from lava.datasets.study_area_polygon import download_admin_boundary_WB
+from lava.utils.common import clean_region_name
 
 logging.basicConfig(level=logging.INFO)
 
-dirname = os.getcwd()
+dirname = str(PROJECT_ROOT)
 
 with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -116,7 +118,7 @@ elif weather_data_extend not in (
 ):  # custom study area
     custom_study_area_filename = weather_data_extend  # weather_data_extend is then name of the custom area file in Raw_Spatial_Data/custom_study_area
     regionPath = os.path.join(
-        "Raw_Spatial_Data", "custom_study_area", custom_study_area_filename
+        dirname, "Raw_Spatial_Data", "custom_study_area", custom_study_area_filename
     )
     region = gpd.read_file(regionPath)
     logging.info(
@@ -126,7 +128,7 @@ elif weather_data_extend not in (
 # --------------------------------------------------------------
 
 # outout directory
-output_dir = os.path.join(dirname, weather_data_folder)
+output_dir = str(resolve_project_path(weather_data_folder))
 os.makedirs(output_dir, exist_ok=True)
 
 

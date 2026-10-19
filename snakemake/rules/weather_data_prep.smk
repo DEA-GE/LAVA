@@ -6,7 +6,7 @@ rule weather_data_prep:
         method="snakemake"
     shell:
         (
-            "python weather_data_prep.py --region {wildcards.region} "
+            "python -m lava.weather_data_prep --region {wildcards.region} "
             "--weather_year {wildcards.weather_year} "
             "--method {params.method} "
         )

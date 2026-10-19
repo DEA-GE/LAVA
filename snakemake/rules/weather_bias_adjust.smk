@@ -6,4 +6,4 @@ rule weather_bias_adjust:
     params:
         method="snakemake"
     shell:
-        "python weather_bias_adjust.py --region {wildcards.region} --method {params.method}"
+        "python -m lava.weather_bias_adjust --region {wildcards.region} --method {params.method}"

@@ -7,7 +7,7 @@ rule energy_profiles:
         method="snakemake"
     shell:
         (
-            "python energy_profiles.py --region {wildcards.region} "
+            "python -m lava.energy_profiles --region {wildcards.region} "
             "--technology {wildcards.technology} "
             "--weather_year {wildcards.weather_year} "
             "--method {params.method} "

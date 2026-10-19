@@ -1,9 +1,9 @@
 """Initialize config files from default templates or a country example.
 
 Usage:
-    python utils/initialization.py
-    python utils/initialization.py --source default
-    python utils/initialization.py --source example --country China
+    python -m lava.utils.initialization
+    python -m lava.utils.initialization --source default
+    python -m lava.utils.initialization --source example --country China
 """
 
 from __future__ import annotations
@@ -13,6 +13,8 @@ import shutil
 import sys
 from pathlib import Path
 from typing import List
+
+from lava.project import PROJECT_ROOT
 
 TEMPLATE_SUFFIX = "_template.yaml"
 EXAMPLE_TEMPLATE_TOKEN = "_template_"
@@ -211,7 +213,7 @@ def main() -> None:
     parser.add_argument(
         "--configs-dir",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "configs",
+        default=PROJECT_ROOT / "configs",
         help="Directory containing *_template.yaml files.",
     )
     parser.add_argument(

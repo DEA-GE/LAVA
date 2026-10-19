@@ -3,30 +3,31 @@ from pyproj import CRS
 import time
 import numpy as np
 import json
-import pickle
 import os
 import argparse
 import geopandas as gpd
 from atlite.gis import shape_availability
 import rasterio
 import yaml
-from utils.data_preprocessing import clean_region_name, log_scenario_run
+from lava.project import PROJECT_ROOT
+from lava.utils.common import clean_region_name, log_scenario_run
 from rasterstats import zonal_stats
-from utils.raster_analysis import area_filter, overlay_value_raster
-from utils.inclusion_layers import (
+from lava.utils.raster import area_filter, overlay_value_raster
+from lava.utils.inclusion_layers import (
     apply_inclusion_layer_overrides,
     compute_combined_inclusion_mask,
     discover_processed_inclusion_layers,
     parse_inclusion_layer_settings,
 )
-from utils.tech_config import load_tech_config
+from lava.utils.tech_config import load_tech_config
+from lava.utils.crs import crs_tag, load_crs
 
 # Record the starting time
 start_time = time.time()
 
-dirname = os.getcwd()
+dirname = str(PROJECT_ROOT)
 # main_dir = os.path.join(dirname, '..')
-config_file = os.path.join("configs", "config.yaml")
+config_file = os.path.join(PROJECT_ROOT, "configs", "config.yaml")
 # load the configuration file
 with open(config_file, "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -67,7 +68,7 @@ tech_config = load_tech_config(technology, scenario)
 resampled = ""  #'_resampled'
 
 # construct folder paths
-dirname = os.getcwd()
+dirname = str(PROJECT_ROOT)
 data_path = os.path.join(dirname, "data", region_name_clean)
 log_scenario_run(region_name_clean, technology, scenario, log_dir=data_path)
 data_path_OSM = os.path.join(dirname, "data", region_name_clean, "OSM_Infrastructure")
@@ -78,11 +79,11 @@ raw_data_path = os.path.join(dirname, "Raw_Spatial_Data")
 
 # Load the CRS
 # geo CRS
-with open(os.path.join(data_path, region_name_clean + "_global_CRS.pkl"), "rb") as file:
-    global_crs_obj = pickle.load(file)
+global_crs_path = os.path.join(data_path, region_name_clean + "_global_CRS.wkt")
+global_crs_obj = load_crs(global_crs_path)
 # projected CRS
-with open(os.path.join(data_path, region_name_clean + "_local_CRS.pkl"), "rb") as file:
-    local_crs_obj = pickle.load(file)
+local_crs_path = os.path.join(data_path, region_name_clean + "_local_CRS.wkt")
+local_crs_obj = load_crs(local_crs_path)
 # overwrite local CRS if specified in tech_config
 if tech_config["projection_manual"] is not None:
     local_crs_obj = CRS.from_user_input(tech_config["projection_manual"])
@@ -91,10 +92,8 @@ if tech_config["projection_manual"] is not None:
 print(f"geo CRS: {global_crs_obj}; projected CRS: {local_crs_obj}")
 
 # Extract tag for filename, e.g., 'EPSG3035' or 'ESRI102003'
-auth = global_crs_obj.to_authority()
-global_crs_tag = "".join(auth) if auth else global_crs_obj.to_string().replace(":", "_")
-auth = local_crs_obj.to_authority()
-local_crs_tag = "".join(auth) if auth else local_crs_obj.to_string().replace(":", "_")
+global_crs_tag = crs_tag(global_crs_obj, path=global_crs_path)
+local_crs_tag = crs_tag(local_crs_obj, path=local_crs_path)
 
 
 # load pixel size

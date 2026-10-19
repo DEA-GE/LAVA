@@ -14,4 +14,4 @@ rule suitability:
     params:
         method="snakemake"
     shell:
-        "python suitability.py --region {wildcards.region} --method {params.method} --scenario {wildcards.scenario}"
+        "python -m lava.suitability --region {wildcards.region} --method {params.method} --scenario {wildcards.scenario}"

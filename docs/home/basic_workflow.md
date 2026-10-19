@@ -8,9 +8,9 @@ tool on a new study region. The steps below assume that you have already cloned 
 ## Overview of the basic workflow
 
 1. Create the study-region configuration files in `configs/`.
-2. Run `spatial_data_prep.py` to download and prepare necessary data.
+2. Run `python -m lava.spatial_data_prep` to download and prepare necessary data.
 3. Inspect the pre-processed data (optional but recommended) with `data_explore.ipynb`.
-4. Run `Exclusion.py` for each technology to create available-land rasters.
+4. Run `python -m lava.exclusion` for each technology to create available-land rasters.
 
 ![Figure: Flowchart of the basic workflow](../assets/basic_workflow.jpg){ width="50%" }
 
@@ -30,13 +30,13 @@ The top-level values in each technology file define the reference scenario. Use 
 
 ## Prepare data
 
-Run the preprocessing script `spatial_data_prep.py` after having filled out `config.yaml`. It downloads data, clips the raw inputs to the
+Activate the environment containing the project dependencies; no editable install is required. Run `python -m lava.spatial_data_prep` from the repository root after having filled out `config.yaml`. It downloads data, clips the raw inputs to the
 study area, aligns rasters, and computes helper layers such as slope, terrain ruggedness, and
 proximity rasters. All outputs are written to a study region specific folder **data/{RegionName}/**.
 
-Click on the play button to run the script or run it from the terminal with the following command:
+Run it from the repository root with the following command:
 ```bash
-python spatial_data_prep.py
+python -m lava.spatial_data_prep
 ```
 
 When `landcover_source` is `openeo` the script will prompt for Copernicus Data Space credentials the first time it runs.
@@ -49,14 +49,14 @@ codes to support tuning of exclusion thresholds.
 
 ## Land eligibility exclusions
 
-Create technology-specific available-land rasters by running `Exclusion.py`. The command-line
+Create technology-specific available-land rasters by running `python -m lava.exclusion` from the repository root. The command-line
 flags must provide the study region, technology, and scenario so that single runs can be processed
 independently. There are configuration files for the land exclusion for wind onshore and utility-scale solar PV.
 ```bash
-python Exclusion.py --technology solar --scenario <ScenarioName> --region Odense
+python -m lava.exclusion --technology solar --scenario <ScenarioName> --region Odense
 ```
 ```bash
-python Exclusion.py --technology onshorewind --scenario <ScenarioName> --region Odense
+python -m lava.exclusion --technology onshorewind --scenario <ScenarioName> --region Odense
 ```
 
 The script loads the prepared rasters and vector layers, applies the filters defined in the

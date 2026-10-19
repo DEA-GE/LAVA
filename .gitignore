@@ -18,10 +18,14 @@
 !bias_correction_factors
 !bias_correction_factors/ERA5_wnd100m_bias.nc
 !timeseries.py
+!lava
+!lava/**
+lava/**/__pycache__/
+lava/**/.env
+lava/weather_data_prep_Ea.py
 # --- Supporting scripts ---
 !utils
 !utils/legends.py
-!utils/data_preprocessing.py
 !utils/proximity_calc.py
 !utils/fetch_OSM.py
 !utils/local_OSM_shp_files.py
@@ -36,6 +40,10 @@
 !utils/spatial_mapping.py
 !utils/tech_config.py
 !utils/inclusion_layers.py
+!tools
+!tools/**
+!tests
+!tests/**
 # --- Raw input data ---
 !Raw_Spatial_Data
 !Raw_Spatial_Data/landcover
@@ -97,6 +105,7 @@
 !snakemake/rules/energy_profiles.smk
 !snakemake/rules/weather_data_prep.smk
 !snakemake/rules/weather_bias_adjust.smk
+!snakemake/rules/timeseries.smk
 # --- MkDocs docs ---
 !mkdocs.yml
 !docs

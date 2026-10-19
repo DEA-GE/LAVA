@@ -13,12 +13,13 @@ import argparse
 from atlite.gis import ExclusionContainer
 import rasterio
 from pathlib import Path
-from utils.data_preprocessing import clean_region_name
+from lava.project import PROJECT_ROOT
+from lava.utils.common import clean_region_name
 
 
 logging.basicConfig(level=logging.INFO)
 
-dirname = os.getcwd()
+dirname = str(PROJECT_ROOT)
 
 
 # --- Helper function to load custom or atlite turbine/panel files ---

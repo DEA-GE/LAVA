@@ -1,15 +1,15 @@
 import rasterio
 import numpy as np
 import pandas as pd
-import pickle
 import os
 import yaml
 import argparse
 import itertools
 import json
 from rasterio.warp import Resampling
-from utils.data_preprocessing import clean_region_name, rel_path
-from utils.raster_analysis import (
+from lava.project import PROJECT_ROOT
+from lava.utils.common import clean_region_name, rel_path
+from lava.utils.raster import (
     align_to_reference,
     export_raster,
     filter,
@@ -19,16 +19,17 @@ from utils.raster_analysis import (
     overlap,
     rasterize,
 )
-from utils.tech_config import load_tech_config
+from lava.utils.tech_config import load_tech_config
+from lava.utils.crs import crs_tag, load_crs
 
 
 # ------------------------------------------- Initialization -------------------------------------------
-dirname = os.getcwd()
-with open(os.path.join("configs/config.yaml"), "r", encoding="utf-8") as f:
+dirname = str(PROJECT_ROOT)
+with open(PROJECT_ROOT / "configs" / "config.yaml", "r", encoding="utf-8") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Load suitability configuration
-suitability_config_file = os.path.join("configs", "suitability.yaml")
+suitability_config_file = PROJECT_ROOT / "configs" / "suitability.yaml"
 with open(suitability_config_file, "r", encoding="utf-8") as f:
     config_suitability = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -79,19 +80,17 @@ if not os.path.exists(output_path):
 
 # Load the CRS
 # geo CRS
-with open(os.path.join(data_path, region_name + "_global_CRS.pkl"), "rb") as file:
-    global_crs_obj = pickle.load(file)
+global_crs_path = os.path.join(data_path, region_name + "_global_CRS.wkt")
+global_crs_obj = load_crs(global_crs_path)
 # projected CRS
-with open(os.path.join(data_path, region_name + "_local_CRS.pkl"), "rb") as file:
-    local_crs_obj = pickle.load(file)
+local_crs_path = os.path.join(data_path, region_name + "_local_CRS.wkt")
+local_crs_obj = load_crs(local_crs_path)
 
 print(f"geo CRS: {global_crs_obj}; projected CRS: {local_crs_obj}")
 
 # Extract tag for filename, e.g., 'EPSG3035' or 'ESRI102003'
-auth = global_crs_obj.to_authority()
-global_crs_tag = "".join(auth) if auth else global_crs_obj.to_string().replace(":", "_")
-auth = local_crs_obj.to_authority()
-local_crs_tag = "".join(auth) if auth else local_crs_obj.to_string().replace(":", "_")
+global_crs_tag = crs_tag(global_crs_obj, path=global_crs_path)
+local_crs_tag = crs_tag(local_crs_obj, path=local_crs_path)
 
 # --- Resolution ---
 # Check all techs for a manual resolution
@@ -141,11 +140,11 @@ elif input_area == "study_region":
         potential[tech] = ref.read(1)
 
 
-GWAPath = os.path.join(data_path, f"wind_{region_name}_{local_crs_tag}.tif")
+GWAPath = os.path.join(data_path, f"wind_{region_name}_{global_crs_tag}.tif")
 GWA = rasterio.open(GWAPath)
 GWA_reproj = align_to_reference(GWA, ref, resampling=Resampling.bilinear)
 
-GSAPath = os.path.join(data_path, f"solar_{region_name}_{local_crs_tag}.tif")
+GSAPath = os.path.join(data_path, f"solar_{region_name}_{global_crs_tag}.tif")
 GSA = rasterio.open(GSAPath)
 GSA_reproj = align_to_reference(GSA, ref, resampling=Resampling.bilinear)
 

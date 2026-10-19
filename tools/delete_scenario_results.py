@@ -167,7 +167,7 @@ def main() -> None:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path.cwd(),
+        default=Path(__file__).resolve().parents[1],
         help="Project root containing data directory",
     )
     args = parser.parse_args()

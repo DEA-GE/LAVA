@@ -15,7 +15,7 @@ from rasterio.enums import Resampling
 from rasterio.mask import mask
 from rasterio.vrt import WarpedVRT
 from shapely.geometry import mapping
-from utils.data_preprocessing import geopandas_clip_reproject
+from lava.utils.vector import geopandas_clip_reproject
 
 
 MANIFEST_FILENAME = "manifest.json"
@@ -357,7 +357,7 @@ def discover_processed_inclusion_layers(
     if not os.path.isfile(manifest_path):
         raise FileNotFoundError(
             f"Inclusion-layer manifest not found: {manifest_path}. "
-            "Run spatial_data_prep.py again."
+            "Run `python -m lava.spatial_data_prep` again from the repository root."
         )
 
     with open(manifest_path, "r", encoding="utf-8") as file:

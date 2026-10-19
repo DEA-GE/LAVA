@@ -70,7 +70,7 @@ from data_loader import (  # type: ignore  # noqa: E402
     stringify_list_value,
     validate_configuration_documents,
 )
-from utils.initialization import (  # noqa: E402
+from lava.utils.initialization import (  # noqa: E402
     available_example_countries,
     initialize_config_templates,
     preview_config_templates,
@@ -5551,6 +5551,9 @@ class RunTab(ttk.Frame):
             PARENT_DIR / script_name,
             CURRENT_DIR / script_name,
             PARENT_DIR / "scripts" / script_name,
+            PARENT_DIR / "lava" / script_name,
+            PARENT_DIR / "lava" / "utils" / script_name,
+            PARENT_DIR / "tools" / script_name,
         ]
         for candidate in candidates:
             if candidate.exists():
@@ -5591,16 +5594,7 @@ class RunTab(ttk.Frame):
 
     def _build_single_command(self) -> Tuple[List[str], Path]:
         script_id = self.selected_script.get()
-        script = next(
-            (item for item in self.available_scripts if item["id"] == script_id), None
-        )
-        script_name = script["name"] if script else f"{script_id}.py"
-        script_path = self._resolve_script_path(script_name)
-        command = [sys.executable, str(script_path)]
-        config_path = self.config_tab.get_config_path()
-        if config_path and Path(config_path).exists():
-            command.extend(["--config", str(config_path)])
-        return command, script_path.parent
+        return [sys.executable, "-m", f"lava.{script_id}"], PARENT_DIR
 
     def _build_snakemake_command(self) -> Tuple[List[str], Path, Optional[Path]]:
         snakefile_setting, cores_value = self._load_snakemake_settings()
@@ -7003,6 +6997,9 @@ class ResultsTab(ttk.Frame):
             PARENT_DIR / script_name,
             CURRENT_DIR / script_name,
             PARENT_DIR / "scripts" / script_name,
+            PARENT_DIR / "lava" / script_name,
+            PARENT_DIR / "lava" / "utils" / script_name,
+            PARENT_DIR / "tools" / script_name,
         ]
         for candidate in candidates:
             if candidate.exists():
@@ -7029,7 +7026,7 @@ class ResultsTab(ttk.Frame):
             self._append_log("error", message)
             messagebox.showerror("Execution Error", message)
             return
-        self.expected_output_dir = script_path.parent
+        self.expected_output_dir = PARENT_DIR
         self.status = "running"
         self.stop_requested = False
         self.progress.set(0)
@@ -7041,13 +7038,19 @@ class ResultsTab(ttk.Frame):
         self._update_status_labels()
         self._start_spinner()
         self._start_duration_timer()
-        command = [sys.executable, "-u", str(script_path)]
+        command = [
+            sys.executable,
+            "-u",
+            str(script_path),
+            "--root",
+            str(PARENT_DIR),
+        ]
         self._append_log("info", f"Starting process: {self._format_command(command)}")
         try:
             self.runner.run(
                 self,
                 [str(part) for part in command],
-                cwd=self.expected_output_dir,
+                cwd=PARENT_DIR,
                 on_line=self._handle_process_output,
                 on_exit=self._handle_process_exit,
             )
@@ -7177,12 +7180,18 @@ class ResultsTab(ttk.Frame):
             self._delete_append_log("error", message)
             messagebox.showerror("Execution Error", message)
             return
-        self.delete_expected_dir = script_path.parent
+        self.delete_expected_dir = PARENT_DIR
         self.delete_status = "running"
         self._set_delete_running_state(True)
         self._update_delete_status()
         self._delete_clear_log()
-        command = [sys.executable, "-u", str(script_path)]
+        command = [
+            sys.executable,
+            "-u",
+            str(script_path),
+            "--root",
+            str(PARENT_DIR),
+        ]
         self._delete_append_log(
             "info", f"Starting process: {self._format_command(command)}"
         )
@@ -7190,7 +7199,7 @@ class ResultsTab(ttk.Frame):
             self.delete_runner.run(
                 self,
                 [str(part) for part in command],
-                cwd=self.delete_expected_dir,
+                cwd=PARENT_DIR,
                 on_line=self._handle_delete_output,
                 on_exit=self._handle_delete_exit,
             )
