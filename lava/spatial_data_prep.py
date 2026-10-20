@@ -185,10 +185,6 @@ if custom_study_area_filename:
         raw_spatial_data_folder, "custom_study_area", custom_study_area_filename
     )
     region = get_study_area_polygon(
-        source=adm_source,
-        country_code=country_code,
-        level=adm_level,
-        region_name=adm_region_name,
         custom_polygon_path=custom_study_area_filepath,
     )
     logging.info("using custom polygon for study area")
@@ -197,7 +193,7 @@ else:
         source=adm_source,
         country_code=country_code,
         level=adm_level,
-        region_name=adm_region_name,
+        admin_name=adm_region_name,
     )
     if adm_source == "gadm" and adm_level == 0:
         logging.info("using whole country as study area (source: GADM)")

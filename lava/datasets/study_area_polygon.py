@@ -3,10 +3,10 @@ import pygadm
 from space2stats_client import Space2StatsClient
 
 
-def download_admin_boundary_wb(
+def _download_admin_boundary_wb(
     country_code: str,
     level: int | None = 0,
-    region_name: str | None = None,
+    admin_name: str | None = None,
     source: str = "WB",
 ) -> gpd.GeoDataFrame:
     """
@@ -22,7 +22,7 @@ def download_admin_boundary_wb(
         - 0: Country boundary (entire country)
         - 1: Level 1 subdivisions (NAM_1) - e.g., states, provinces
         - 2: Level 2 subdivisions (NAM_2) - e.g., districts, counties
-    region_name : str, optional
+    admin_name : str, optional
         Name of specific region to filter (NAM_1 or NAM_2 value).
         If None, returns all regions at the specified level.
     source : {'WB', 'GB'}, default='WB'
@@ -42,10 +42,10 @@ def download_admin_boundary_wb(
     level1_regions = download_admin_boundary_wb('KEN', level=1)
 
     # Get specific level 1 region
-    nairobi = download_admin_boundary_wb('KEN', level=1, region_name='Nairobi')
+    nairobi = download_admin_boundary_wb('KEN', level=1, admin_name='Nairobi')
 
     # Get specific level 2 region
-    specific_district = download_admin_boundary_wb('KEN', level=2, region_name='Mombasa')
+    specific_district = download_admin_boundary_wb('KEN', level=2, admin_name='Mombasa')
     """
 
     source = source.upper()
@@ -81,9 +81,9 @@ def download_admin_boundary_wb(
         boundaries = client.fetch_admin_boundaries(country_code, adm_string)
 
     # Filter by region name if specified
-    if region_name is not None:
+    if admin_name is not None:
         if level == 0:
-            print("Warning: region_name is ignored when level=0 (country boundary)")
+            print("Warning: admin_name is ignored when level=0 (country boundary)")
         else:
             # Column name varies between API versions
             if "shapeName" in boundaries.columns:
@@ -96,17 +96,17 @@ def download_admin_boundary_wb(
                 )
 
             available = boundaries[name_col].unique().tolist()
-            boundaries = boundaries[boundaries[name_col] == region_name]
+            boundaries = boundaries[boundaries[name_col] == admin_name]
 
             if boundaries.empty:
-                print(f"Warning: No region found with {name_col}='{region_name}'")
+                print(f"Warning: No region found with {name_col}='{admin_name}'")
                 print(f"Available regions: {available}")
 
     return boundaries
 
 
-def download_admin_boundary_gadm(
-    country_code: str, level: int | None, region_name: str | None = None
+def _download_admin_boundary_gadm(
+    country_code: str, level: int | None, admin_name: str | None = None
 ) -> gpd.GeoDataFrame:
     """
     Download GADM administrative boundaries using pygadm.
@@ -118,46 +118,52 @@ def download_admin_boundary_gadm(
     level : int or None
         Administrative level: 0 for the whole country, 1 or higher for
         subdivisions (matched against the NAME_<level> column).
-    region_name : str, optional
-        Name of the region to select at the given level. Required when
-        level > 0; ignored when level=0.
+    admin_name : str, optional
+        Name of the region to select at the given level. If None, returns all
+        subdivisions; ignored when level=0.
 
     Returns:
     --------
     gpd.GeoDataFrame
         GeoDataFrame containing the requested boundaries in EPSG:4326.
-        Empty if no region matches region_name.
+        Empty if no region matches admin_name.
     """
     if level == 0:
         region = pygadm.Items(admin=country_code)
     else:
         region = pygadm.Items(admin=country_code, content_level=level)
         name_column = f"NAME_{level}"
-        region = region.loc[region[name_column] == region_name].copy()
+        if admin_name is not None:
+            region = region.loc[region[name_column] == admin_name].copy()
     return region.set_crs("EPSG:4326", allow_override=True)
 
 
 def get_study_area_polygon(
-    source: str,
-    country_code: str,
-    level: int | None,
-    region_name: str | None,
+    source: str | None = None,
+    country_code: str | None = None,
+    level: int | None = None,
+    admin_name: str | None = None,
     custom_polygon_path: str | None = None,
 ) -> gpd.GeoDataFrame:
     """
     Retrieve the custom or administrative study boundary in EPSG:4326.
 
+    If custom_polygon_path is given, all other arguments are ignored and
+    can be omitted.
+
     Parameters:
     -----------
-    source : {'gadm', 'wb', 'gb'}
+    source : {'gadm', 'wb', 'gb'}, optional
         Administrative boundary source (GADM, World Bank, geoBoundaries).
-        Ignored if custom_polygon_path is given.
-    country_code : str
-        ISO 3166-1 alpha-3 country code (e.g., 'KEN', 'TUR', 'DEU')
-    level : int or None
+        Required unless custom_polygon_path is given.
+    country_code : str, optional
+        ISO 3166-1 alpha-3 country code (e.g., 'KEN', 'TUR', 'DEU').
+        Required unless custom_polygon_path is given.
+    level : int or None, optional
         Administrative level (0 = country). Required for 'wb' and 'gb'.
-    region_name : str or None
-        Name of the region to select at the given level.
+    admin_name : str or None, optional
+        Name of the administrative area to select at the given level.
+        If None, returns all boundaries at the specified level.
     custom_polygon_path : str, optional
         Path to a custom polygon file; dissolved into a single geometry.
 
@@ -178,13 +184,23 @@ def get_study_area_polygon(
                 f"Custom study-area polygon has no CRS: {custom_polygon_path}"
             )
         region = region.to_crs("EPSG:4326")
-    elif source == "gadm":
-        region = download_admin_boundary_gadm(country_code, level, region_name)
+        if region.empty:
+            raise ValueError(
+                f"Custom study-area polygon is empty: {custom_polygon_path}"
+            )
+        return region
+
+    if source is None or country_code is None:
+        raise ValueError(
+            "'source' and 'country_code' are required when no custom_polygon_path is given."
+        )
+    if source == "gadm":
+        region = _download_admin_boundary_gadm(country_code, level, admin_name)
     elif source in {"wb", "gb"}:
-        region = download_admin_boundary_wb(
+        region = _download_admin_boundary_wb(
             country_code=country_code,
             level=level,
-            region_name=region_name,
+            admin_name=admin_name,
             source=source,
         )
         if not region.empty:
@@ -197,6 +213,6 @@ def get_study_area_polygon(
     if region.empty:
         raise ValueError(
             f"No administrative boundary found for {country_code} at level {level} "
-            f"with name '{region_name}'"
+            f"with name '{admin_name}'"
         )
     return region
