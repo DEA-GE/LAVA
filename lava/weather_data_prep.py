@@ -6,7 +6,7 @@ import os
 import logging
 import yaml
 from lava.project import PROJECT_ROOT, resolve_project_path
-from lava.datasets.study_area_polygon import download_admin_boundary_WB
+from lava.datasets.study_area_polygon import download_admin_boundary_wb
 from lava.utils.common import clean_region_name
 
 logging.basicConfig(level=logging.INFO)
@@ -94,7 +94,7 @@ if weather_data_extend == "gadm_country":
     region_name = country_code
 elif weather_data_extend == "wb_country":
     country_code = config["country_code"]
-    region = download_admin_boundary_WB(iso3_code=country_code)
+    region = download_admin_boundary_wb(country_code=country_code)
     if region.empty:
         raise ValueError(f"No administrative boundary found for {country_code}")
     logging.info("using admin area within country as study area (source: World Bank)")
