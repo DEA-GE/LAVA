@@ -227,10 +227,10 @@ elif adm_source == "gadm":
             "epsg:4326", inplace=True
         )  # pygadm lib extracts information from the GADM dataset as GeoPandas GeoDataFrame. GADM.org provides files in coordinate reference system is longitude/latitude and the WGS84 datum.
         logging.info("using admin area within country as study area (source: GADM)")
-elif adm_source == "wb":
+elif adm_source in ("wb", "gb"):
     # Use World Bank boundaries via Space2Stats client
     region = download_admin_boundary_WB(
-        iso3_code=country_code, level=adm_level, region_name=adm_region_name
+        iso3_code=country_code, level=adm_level, region_name=adm_region_name, source=adm_source
     )
     if region.empty:
         raise ValueError(
@@ -238,7 +238,7 @@ elif adm_source == "wb":
         )
     logging.info("using admin area within country as study area (source: World Bank)")
 else:
-    raise ValueError(f"ADM_source must be 'gadm' or 'wb', got: {adm_source}")
+    raise ValueError(f"ADM_source must be 'gadm', 'wb' or 'gb', got: {adm_source}")
 
 # simplify polygon of study area (openeo can only handle polygons up to a certain size)
 try:
@@ -1134,46 +1134,38 @@ if consider_wind_atlas == 1:
 # global solar atlas (no check whether file already exists)
 if consider_solar_atlas == 1:
     print("\nprocessing global solar atlas")
-    country_name_solar_atlas = config["country_name_solar_atlas"]
-    solar_atlas_folder_path = os.path.join(
-        wind_solar_atlas_folder, f"{country_name_solar_atlas}_solar_atlas"
-    )
+    solar_atlas_folder_path = os.path.join(wind_solar_atlas_folder, "World_solar_atlas")
 
-    solar_atlas_data_exists = False
+    solar_raster_filePath = None
     for root, dirs, files in os.walk(solar_atlas_folder_path):
         if "PVOUT.tif" in files:
-            solar_atlas_data_exists = True
+            solar_raster_filePath = os.path.join(root, "PVOUT.tif")
             break  # Stop searching once found
 
-    if not solar_atlas_data_exists:
-        solar_atlas_measure = config["solar_atlas_measure"]
-        solar_atlas_folder_name = download_global_solar_atlas(
-            country_name=country_name_solar_atlas,
-            data_path=data_path,
-            measure=solar_atlas_measure,
-        )
+    if solar_raster_filePath is None:
+        download_global_solar_atlas(data_path=data_path)
+        for root, dirs, files in os.walk(solar_atlas_folder_path):
+            if "PVOUT.tif" in files:
+                solar_raster_filePath = os.path.join(root, "PVOUT.tif")
+                break
     else:
         print("Global solar atlas data already downloaded")
 
-    solar_raster_filePath = os.path.join(
-        wind_solar_atlas_folder,
-        solar_atlas_folder_path,
-        os.listdir(solar_atlas_folder_path)[0],
-        "PVOUT.tif",
-    )
-    # clip raster
-    # clip_raster(solar_raster_filePath, region_name_clean, region, output_dir, 'solar')
-    # clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
-    clip_reproject_raster(
-        solar_raster_filePath,
-        region_name_clean,
-        region,
-        "solar",
-        local_crs_obj,
-        "bilinear",
-        "float32",
-        output_dir,
-    )
+    if solar_raster_filePath is None:
+        logging.error("PVOUT.tif was not found in the extracted world solar atlas folder.")
+    else:
+        # clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
+        clip_reproject_raster(
+            solar_raster_filePath,
+            region_name_clean,
+            region,
+            "solar",
+            local_crs_obj,
+            "bilinear",
+            "float32",
+            output_dir,
+            scale_factor=365,
+        )
     # co-register raster to land cover
     # solar_raster_clipped_reprojected_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}.tif')
     # solar_raster_co_registered_filePath = os.path.join(output_dir, f'solar_{region_name_clean}_{local_crs_tag}_resampled.tif')

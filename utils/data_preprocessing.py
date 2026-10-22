@@ -14,7 +14,6 @@ import zipfile
 import requests
 import io
 import fiona
-import urllib.parse
 import pandas as pd
 import rasterstats
 from datetime import datetime, timedelta
@@ -25,10 +24,11 @@ from utils.region_names import canonical_region_name
 
 
 def download_admin_boundary_WB(
-    iso3_code: str, level: int = 0, region_name: str = None
+    iso3_code: str, level: int = 0, region_name: str = None, source: str = "WB"
 ) -> gpd.GeoDataFrame:
     """
     Download administrative boundaries using Space2Stats client (WorldBank).
+    https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63
 
     Parameters:
     -----------
@@ -42,6 +42,8 @@ def download_admin_boundary_WB(
     region_name : str, optional
         Name of specific region to filter (NAM_1 or NAM_2 value).
         If None, returns all regions at the specified level.
+    source : {'WB', 'GB'}, default='WB'
+        Boundary source: 'WB' for World Bank or 'GB' for geoBoundaries.
 
     Returns:
     --------
@@ -62,6 +64,10 @@ def download_admin_boundary_WB(
     # Get specific level 2 region
     specific_district = download_admin_boundary('KEN', level=2, region_name='Mombasa')
     """
+    source = source.upper()
+    if source not in {"WB", "GB"}:
+        raise ValueError(f"source must be 'WB' or 'GB'. Got {source!r}")
+
     client = Space2StatsClient()
 
     # Map level to ADM string
@@ -74,8 +80,19 @@ def download_admin_boundary_WB(
     else:
         raise ValueError(f"Level must be 0, 1, or 2. Got {level}")
 
-    # Fetch boundaries from Space2Stats
-    boundaries = client.fetch_admin_boundaries(iso3_code, adm_string)
+    # Fetch boundaries from Space2Stats.
+    # Older space2stats_client versions don't accept a `source` kwarg, so fall back if needed.
+    try:
+        boundaries = client.fetch_admin_boundaries(iso3_code, adm_string, source=source)
+    except TypeError as e:
+        if "source" not in str(e):
+            raise
+        if source != "WB":
+            print(
+                f"Warning: installed space2stats_client version does not support source={source!r}; "
+                "falling back to default source (WB)."
+            )
+        boundaries = client.fetch_admin_boundaries(iso3_code, adm_string)
 
     # Filter by region name if specified
     if region_name is not None:
@@ -391,6 +408,7 @@ def clip_reproject_raster(
     resampling_method,
     dtype,
     output_dir,
+    scale_factor=1,
 ):
     """
     Reads a TIFF raster, clips it to the extent of a GeoPandas DataFrame, reprojects it to a given CRS considerung the set resampling method,
@@ -403,6 +421,7 @@ def clip_reproject_raster(
     :param target_crs: The target CRS to reproject the raster to (e.g., 'EPSG:3035').
     :param resampling_method: resampling method to be used (string)
     :param output_dir: output directory (defined in main script)
+    :param scale_factor: Multiply clipped pixel values by this factor before saving/reprojection.
     """
 
     # get CRS tag as clean string
@@ -433,6 +452,12 @@ def clip_reproject_raster(
         out_image, out_transform = mask(
             src, gdf.geometry.apply(mapping), crop=True, all_touched=True
         )
+        if scale_factor != 1:
+            # Apply scaling and cast back to the dtype defined for this function call.
+            target_dtype = dtype_options[dtype]
+            out_image = (out_image.astype(np.float32) * float(scale_factor)).astype(
+                target_dtype, copy=False
+            )
         # Copy the metadata from the source raster
         out_meta = src.meta.copy()
         # Update the metadata for the clipped raster
@@ -755,37 +780,24 @@ def download_global_wind_atlas(country_code: str, height: int, data_path: str = 
 
 
 # download global solar atlas
-def download_global_solar_atlas(
-    country_name: str, data_path: str, measure="LTAym_YearlyMonthlyTotals"
-):
+def download_global_solar_atlas(data_path: str):
     """
-    Downloads and extracts the GIS data (GeoTIFF) ZIP file for the specified country from https://globalsolaratlas.info/download.
+    Downloads and extracts the world PVOUT GeoTIFF ZIP file from Global Solar Atlas.
 
     Parameters:
-        country_name (str): Name of the country as used in the URL (e.g., "benin").
-        save_path (str): Directory where the files will be saved. Defaults to current directory.
+        data_path (str): Base raw spatial data directory.
 
+    Returns:
+        str | None: Extraction folder path if successful, otherwise None.
     """
 
-    # Encode the country name to handle spaces and special characters in the URL
-    encoded_country_name = urllib.parse.quote(country_name)
-    # Replace spaces with hyphens for the URL format
-    country_name_with_hyphens = country_name.replace(" ", "-")
-
-    # Construct the download URL
-    # single country
-    url = f"https://api.globalsolaratlas.info/download/{encoded_country_name}/{country_name_with_hyphens}_GISdata_{measure}_GlobalSolarAtlas-v2_GEOTIFF.zip"
-    timeout = 300  # 5 Minutes
-    # or whole world
-    if country_name == "world":
-        url = "https://api.globalsolaratlas.info/download/World/World_GHI_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip"
-        print("Attention: solar atlas whole world is a very big file! (ca. 350MB)")
-        timeout = 900  # 15 Minutes
-    print(f"Downloading solar data for '{country_name}' from: {url}")
+    url = "https://api.globalsolaratlas.info/download/World/World_PVOUT_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas-v2_GEOTIFF.zip"
+    timeout = 900  # world file is large
+    print(f"Downloading world solar data from: {url}")
 
     # Define the full extraction path
     extract_folder = os.path.join(
-        data_path, "global_solar_wind_atlas", f"{country_name}_solar_atlas"
+        data_path, "global_solar_wind_atlas", "World_solar_atlas"
     )
     os.makedirs(extract_folder, exist_ok=True)
 
@@ -804,13 +816,14 @@ def download_global_solar_atlas(
             folder_name = zip_ref.namelist()[0].split("/")[0]  # top-level folder name
             return folder_name
         else:
-            print(
-                f"Failed to download data for '{country_name}'. Status code: {response.status_code}"
+            logging.error(
+                f"Failed to download world solar atlas data. Status code: {response.status_code}"
             )
+            return None
 
     except requests.Timeout:
         logging.warning(
-            f"Download solar atlas data timed out after {timeout} seconds for '{country_name}'."
+            f"Download world solar atlas data timed out after {timeout} seconds."
         )
         return None
     except Exception as e:
