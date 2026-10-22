@@ -7,6 +7,7 @@ Includes rebuilding ``scenario_runs.log`` files from existing province outputs.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from pathlib import Path
 from typing import List, Set, Tuple
@@ -42,6 +43,19 @@ def _pairs_from_available_land(
             continue
         rest = stem[len(prov_prefix) :]
 
+        # Current and legacy exclusion-info filenames both carry authoritative
+        # technology/scenario values in their JSON content.
+        if p.name.endswith("_exclusion_info.json"):
+            try:
+                payload = json.loads(p.read_text(encoding="utf-8"))
+                tech = str(payload["technology"]).strip()
+                scenario = str(payload["scenario"]).strip()
+            except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                continue
+            if tech in techs and scenario:
+                pairs.add((tech, scenario))
+                continue
+
         # Pattern: <province>_<scenario>_<tech>_exclusion_info.*
         m = rx_exclusion.match(rest)
         if m:
@@ -49,7 +63,7 @@ def _pairs_from_available_land(
             continue
 
         # Pattern: <province>_<tech>_<scenario>_available_land_*
-        marker = "_available_land_"
+        marker = "_available_land"
         if marker not in rest:
             continue
         left = rest.split(marker, 1)[0]

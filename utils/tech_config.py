@@ -77,6 +77,21 @@ def get_tech_scenarios(technology: str, config_dir: str = "configs") -> list[str
     return get_tech_scenarios_from_path(file_path)
 
 
+def resolve_selected_scenarios(
+    technology: str,
+    scenarios: list[str] | None,
+    technology_scenarios: dict[str, list[str]] | None = None,
+) -> list[str]:
+    """Resolve a technology's explicit scenarios or the global fallback."""
+    mapping = technology_scenarios or {}
+    selected: Any = mapping.get(technology, scenarios or [])
+    if isinstance(selected, str):
+        selected = [selected]
+    if not isinstance(selected, (list, tuple)):
+        return []
+    return [str(name).strip() for name in selected if str(name).strip()]
+
+
 def validate_selected_scenarios(
     technologies: list[str],
     scenarios: list[str] | None,
@@ -84,10 +99,16 @@ def validate_selected_scenarios(
     technology_scenarios: dict[str, list[str]] | None = None,
 ) -> None:
     invalid: dict[str, list[str]] = {}
+    unselected: list[str] = []
     technology_scenarios = technology_scenarios or {}
 
     for technology in technologies:
-        selected_scenarios = technology_scenarios.get(technology, scenarios or [])
+        selected_scenarios = resolve_selected_scenarios(
+            technology, scenarios, technology_scenarios
+        )
+        if not selected_scenarios:
+            unselected.append(technology)
+            continue
         available_scenarios = set(get_tech_scenarios(technology, config_dir=config_dir))
         missing = [
             scenario
@@ -97,12 +118,49 @@ def validate_selected_scenarios(
         if missing:
             invalid[technology] = missing
 
-    if invalid:
+    if unselected or invalid:
+        messages: list[str] = []
+        if unselected:
+            messages.append(
+                "No Snakemake scenarios selected for technologies: "
+                + ", ".join(unselected)
+                + "."
+            )
+        if not invalid:
+            raise ValueError("\n".join(messages))
         lines = [
             f"{technology}: missing scenarios {missing}"
             for technology, missing in invalid.items()
         ]
-        raise ValueError(
+        messages.append(
             "Selected Snakemake scenarios are not defined in the technology configs:\n"
             + "\n".join(lines)
         )
+        raise ValueError("\n".join(messages))
+
+
+def validate_shared_scenarios(
+    technologies: list[str],
+    scenarios: list[str] | None,
+    technology_scenarios: dict[str, list[str]] | None = None,
+) -> None:
+    """Require identical scenario sets when technologies are combined."""
+    selections = {
+        technology: set(
+            resolve_selected_scenarios(
+                technology, scenarios, technology_scenarios
+            )
+        )
+        for technology in technologies
+    }
+    distinct = {frozenset(names) for names in selections.values()}
+    if len(distinct) <= 1:
+        return
+    details = "; ".join(
+        f"{technology}: {', '.join(sorted(names)) or '<none>'}"
+        for technology, names in selections.items()
+    )
+    raise ValueError(
+        "Suitability requires the same scenario set for every selected technology "
+        f"({details})."
+    )

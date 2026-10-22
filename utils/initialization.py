@@ -146,14 +146,25 @@ def _country_templates(configs_dir: Path, country: str) -> List[tuple[Path, Path
 
 
 def _default_templates(configs_dir: Path) -> List[tuple[Path, Path]]:
-    """Return (source, target) pairs for default templates."""
+    """Return (source, target) pairs for default templates at any config depth."""
     matches: List[tuple[Path, Path]] = []
-    for template_path in sorted(configs_dir.glob(f"*{TEMPLATE_SUFFIX}")):
+    for template_path in sorted(configs_dir.rglob(f"*{TEMPLATE_SUFFIX}")):
+        if EXAMPLES_SUBDIR in template_path.relative_to(configs_dir).parts:
+            continue
         target_name = template_path.name.removesuffix(TEMPLATE_SUFFIX) + ".yaml"
         target_path = template_path.with_name(target_name)
         matches.append((template_path, target_path))
 
     return matches
+
+
+def _shared_nested_templates(configs_dir: Path) -> List[tuple[Path, Path]]:
+    """Return nested default templates shared by every initialization source."""
+    return [
+        (template_path, target_path)
+        for template_path, target_path in _default_templates(configs_dir)
+        if template_path.parent != configs_dir
+    ]
 
 
 def _template_pairs(configs_dir: Path, country: str | None) -> List[tuple[Path, Path]]:
@@ -165,7 +176,7 @@ def _template_pairs(configs_dir: Path, country: str | None) -> List[tuple[Path, 
                 f"No country example templates found for '{country}' in "
                 f"{configs_dir / EXAMPLES_SUBDIR}."
             )
-        return country_templates
+        return [*country_templates, *_shared_nested_templates(configs_dir)]
 
     return _default_templates(configs_dir)
 

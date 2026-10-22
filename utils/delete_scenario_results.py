@@ -1,246 +1,172 @@
 #!/usr/bin/env python3
-"""Delete outputs for a chosen scenario.
-
-Builds scenario choices primarily from existing files under the target output
-folders. If none are found, falls back to ``data/<province>/scenario_runs.log``
-entries. Prompts the user to pick a scenario. Shows the files that would be
-deleted in these folders for every province, then deletes upon confirmation:
-
-- ``data/<province>/available_land``
-- ``data/<province>/suitability``
-- ``data/<province>/snakemake_log``
-
-Files are matched using exact scenario token boundaries in filenames, so
-selecting ``incForest`` does not also match ``incForest1500rugg``.
-"""
+"""Preview and delete generated outputs for one exact scenario name."""
 
 from __future__ import annotations
 
 import argparse
-import csv
+import json
 import re
+import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from utils.results_handling import sync_scenario_logs
 
 
-def _discover(root: Path) -> Tuple[Dict[str, Set[str]], List[str]]:
-    """Return (scenarios_by_tech, provinces_with_logs).
+RESULT_FOLDERS = ("available_land", "suitability", "snakemake_log")
+AGGREGATED_PATTERN = "aggregated_available_land*"
 
-    Parses every ``data/<province>/scenario_runs.log`` assuming CSV lines with
-    three fields: province, technology, scenario.
-    """
-    scenarios_by_tech: Dict[str, Set[str]] = {}
-    provinces: Set[str] = set()
 
+class ResultsDeletionError(RuntimeError):
+    """A user-actionable problem while discovering or deleting results."""
+
+
+def discover_scenarios(root: Path) -> list[str]:
+    """Return scenario names from output metadata and scenario logs."""
+    scenarios: set[str] = set()
     data_dir = root / "data"
-    for log_path in data_dir.glob("*/scenario_runs.log"):
-        province = log_path.parent.name
-        provinces.add(province)
-        with log_path.open(newline="") as fh:
-            reader = csv.reader(fh)
-            for row in reader:
-                if not row:
-                    continue
-                if len(row) == 3:
-                    _, tech, scenario = [part.strip() for part in row]
-                elif len(row) >= 2:
-                    tech, scenario = row[-2].strip(), row[-1].strip()
-                else:
-                    # Only one token; treat as scenario without tech.
-                    tech, scenario = "", row[0].strip()
-                if not scenario:
-                    continue
-                if tech not in scenarios_by_tech:
-                    scenarios_by_tech[tech] = set()
-                scenarios_by_tech[tech].add(scenario)
-
-    return scenarios_by_tech, sorted(provinces)
-
-
-def _discover_provinces(root: Path) -> List[str]:
-    data_dir = root / "data"
-    if not data_dir.exists():
+    if not data_dir.is_dir():
         return []
-    return sorted([p.name for p in data_dir.iterdir() if p.is_dir()])
 
-
-def _extract_scenario_from_filename(
-    name: str, province: str, techs: Set[str]
-) -> str | None:
-    """Extract scenario from known output filename patterns."""
-    stem = Path(name).stem
-
-    # snakemake_log: exclusion_<tech>_<scenario>.done
-    if stem.startswith("exclusion_"):
-        rest = stem[len("exclusion_") :]
-        for tech in sorted(techs, key=len, reverse=True):
-            prefix = f"{tech}_"
-            if rest.startswith(prefix):
-                scenario = rest[len(prefix) :].strip()
-                return scenario or None
-
-    # Files prefixed by province in available_land/suitability patterns.
-    prov_prefix = f"{province}_"
-    if not stem.startswith(prov_prefix):
-        return None
-    rest = stem[len(prov_prefix) :]
-
-    # <scenario>_<tech>_exclusion_info
-    m = re.match(r"^(?P<left>.+)_(?P<tech>[^_]+)_exclusion_info$", rest)
-    if m and m.group("tech") in techs:
-        scenario = m.group("left").strip()
-        return scenario or None
-
-    # <tech>_<scenario>_available_land_...
-    marker = "_available_land_"
-    if marker in rest:
-        left = rest.split(marker, 1)[0]
-        for tech in sorted(techs, key=len, reverse=True):
-            prefix = f"{tech}_"
-            if left.startswith(prefix):
-                scenario = left[len(prefix) :].strip()
-                return scenario or None
-
-    return None
-
-
-def _discover_scenarios_from_files(
-    root: Path, provinces: List[str], techs: Set[str]
-) -> List[str]:
-    scenarios: Set[str] = set()
-    for prov in provinces:
-        base = root / "data" / prov
-        for folder_name in ("available_land", "suitability", "snakemake_log"):
-            folder = base / folder_name
-            if not folder.exists():
-                continue
-            for p in folder.rglob("*"):
-                if not p.is_file():
-                    continue
-                scenario = _extract_scenario_from_filename(p.name, prov, techs)
-                if scenario:
-                    scenarios.add(scenario)
-    return sorted(scenarios)
-
-
-def _matching_files_in_folder(folder: Path, tech: str, scenario: str) -> List[Path]:
-    if not folder.exists():
-        return []
-    matches: List[Path] = []
-    scenario_rx = re.compile(rf"(^|_){re.escape(scenario)}(_|\.|$)")
-    tech_rx = re.compile(rf"(^|_){re.escape(tech)}(_|\.|$)") if tech else None
-    for p in folder.rglob("*"):
-        if not p.is_file():
-            continue
-        name = p.name
-        if not scenario_rx.search(name):
-            continue
-        if tech_rx and not tech_rx.search(name):
-            continue
-        matches.append(p)
-    return matches
-
-
-def _collect_files_for_all_provinces(
-    root: Path, provinces: List[str], tech: str, scenario: str
-) -> List[Path]:
-    files: List[Path] = []
-    for prov in provinces:
-        base = root / "data" / prov
-        files += _matching_files_in_folder(base / "available_land", tech, scenario)
-        files += _matching_files_in_folder(base / "suitability", tech, scenario)
-        files += _matching_files_in_folder(base / "snakemake_log", tech, scenario)
-    # Deduplicate while preserving order
-    seen: Set[Path] = set()
-    unique: List[Path] = []
-    for f in files:
-        if f not in seen:
-            unique.append(f)
-            seen.add(f)
-    return unique
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Delete available land files by scenario run from scenario_runs.log"
-    )
-    parser.add_argument(
-        "--root",
-        type=Path,
-        default=Path.cwd(),
-        help="Project root containing data directory",
-    )
-    args = parser.parse_args()
-    scenarios_by_tech, provinces_with_logs = _discover(args.root)
-    provinces = _discover_provinces(args.root) or provinces_with_logs
-
-    techs: Set[str] = {t for t in scenarios_by_tech.keys() if t}
-    techs.update({"onshorewind", "solar", "offshorewind"})
-    scenarios = _discover_scenarios_from_files(args.root, provinces, techs)
-
-    if not scenarios and scenarios_by_tech:
-        # Fallback to log-derived scenarios if no parseable scenarios are found in files.
-        scenarios_set = set()
-        for sset in scenarios_by_tech.values():
-            scenarios_set.update(sset)
-        scenarios = sorted(scenarios_set)
-        print(
-            "No scenarios parsed from existing files. Falling back to scenario_runs.log."
-        )
-
-    if not scenarios:
-        print("No scenarios found in current files or scenario_runs.log.")
-        return
-
-    while True:
-        print("Scenarios:")
-        for i, s in enumerate(scenarios, 1):
-            print(f"{i}. {s}")
-        while True:
-            raw = input("Choose scenario [number]: ").strip()
-            try:
-                si = int(raw)
-                if 1 <= si <= len(scenarios):
-                    break
-            except ValueError:
-                pass
-            print("Invalid selection. Try again.")
-        scenario = scenarios[si - 1]
-
-        files = _collect_files_for_all_provinces(args.root, provinces, "", scenario)
-        if not files:
-            print("No files found matching the selected technology and scenario.")
-        else:
-            print("The following files will be deleted:")
-            for p in files:
-                try:
-                    rel = p.relative_to(args.root)
-                except Exception:
-                    rel = p
-                print(f" - {rel}")
-            print(f"Total files: {len(files)}")
-
-            confirm = (
-                input("Proceed with deletion? Type 'yes' to confirm: ").strip().lower()
+    for path in sorted(data_dir.glob("*/available_land/*_exclusion_info.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            scenario = payload["scenario"]
+        except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise ResultsDeletionError(
+                f"Cannot read the scenario from exclusion metadata {path}: {exc}"
+            ) from exc
+        if not isinstance(scenario, str) or not scenario.strip():
+            raise ResultsDeletionError(
+                f"Exclusion metadata has an invalid scenario value: {path}"
             )
-            if confirm != "yes":
-                print("Deletion aborted.")
-            else:
-                deleted = 0
-                for path in files:
-                    try:
-                        path.unlink()
-                        deleted += 1
-                    except FileNotFoundError:
-                        pass
-                    except PermissionError:
-                        print(f"Permission denied: {path}")
-                print(f"Deleted {deleted} files for scenario '{scenario}'.")
+        scenarios.add(scenario.strip())
 
-        again = input("Delete another scenario? [y/N]: ").strip().lower()
-        if again not in {"y", "yes"}:
-            break
+    for path in sorted(data_dir.glob("*/scenario_runs.log")):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            raise ResultsDeletionError(f"Cannot read {path}: {exc}") from exc
+        for line in lines:
+            fields = [field.strip() for field in line.split(",")]
+            if len(fields) >= 3 and fields[-1]:
+                scenarios.add(fields[-1])
+    return sorted(scenarios, key=str.casefold)
+
+
+def collect_scenario_files(root: Path, scenario: str) -> list[Path]:
+    """Collect files for a scenario without confusing longer scenario names."""
+    scenario = scenario.strip()
+    if not scenario:
+        raise ResultsDeletionError("A non-empty scenario name is required.")
+    data_dir = root / "data"
+    known_scenarios = set(discover_scenarios(root))
+    known_scenarios.add(scenario)
+    tokens = {
+        name: re.compile(rf"(^|_){re.escape(name)}(?=_|\.|$)")
+        for name in known_scenarios
+    }
+    matches: list[Path] = []
+    if not data_dir.is_dir():
+        return matches
+    for province_dir in sorted(path for path in data_dir.iterdir() if path.is_dir()):
+        for folder_name in RESULT_FOLDERS:
+            folder = province_dir / folder_name
+            if not folder.is_dir():
+                continue
+            for path in sorted(folder.rglob("*")):
+                if not path.is_file():
+                    continue
+                matching_names = [
+                    name for name, token in tokens.items() if token.search(path.name)
+                ]
+                if scenario in matching_names and len(scenario) == max(
+                    map(len, matching_names)
+                ):
+                    matches.append(path)
+    return sorted(set(matches))
+
+
+def aggregated_result_files(root: Path) -> list[Path]:
+    """Return default aggregate files, which become stale after any deletion."""
+    allowed = {".gpkg", ".json", ".csv"}
+    return sorted(
+        path
+        for path in root.glob(AGGREGATED_PATTERN)
+        if path.is_file() and path.suffix.lower() in allowed
+    )
+
+
+def delete_scenario_outputs(root: Path, scenario: str) -> tuple[list[Path], list[Path]]:
+    """Delete one scenario, invalidate aggregates, and rebuild scenario logs."""
+    files = collect_scenario_files(root, scenario)
+    if not files:
+        raise ResultsDeletionError(
+            f"No generated files match scenario '{scenario}' below {root / 'data'}."
+        )
+    deleted: list[Path] = []
+    for path in files:
+        try:
+            path.unlink()
+            deleted.append(path)
+        except OSError as exc:
+            raise ResultsDeletionError(f"Could not delete {path}: {exc}") from exc
+
+    invalidated: list[Path] = []
+    for path in aggregated_result_files(root):
+        try:
+            path.unlink()
+            invalidated.append(path)
+        except OSError as exc:
+            raise ResultsDeletionError(
+                f"Scenario files were deleted, but stale aggregate {path} could not be removed: {exc}"
+            ) from exc
+    sync_scenario_logs(root)
+    return deleted, invalidated
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Preview or delete one scenario's results")
+    parser.add_argument("--root", type=Path, default=Path.cwd())
+    parser.add_argument("--scenario", help="Exact scenario name")
+    parser.add_argument("--list", action="store_true", help="List available scenarios")
+    parser.add_argument("--yes", action="store_true", help="Perform deletion after preview")
+    args = parser.parse_args()
+    root = args.root.resolve()
+    try:
+        if args.list:
+            scenarios = discover_scenarios(root)
+            if not scenarios:
+                print(f"No scenario results were found below {root / 'data'}.")
+                return 1
+            print("\n".join(scenarios))
+            return 0
+        if not args.scenario:
+            raise ResultsDeletionError("Specify --scenario NAME, or use --list.")
+        files = collect_scenario_files(root, args.scenario)
+        if not files:
+            raise ResultsDeletionError(
+                f"No generated files match scenario '{args.scenario}'."
+            )
+        print(f"Files selected for scenario '{args.scenario}':")
+        for path in files:
+            print(f" - {path.relative_to(root)}")
+        print(f"Total files: {len(files)}")
+        if not args.yes:
+            raise ResultsDeletionError(
+                "Preview only; no files were deleted. Re-run with --yes to confirm."
+            )
+        deleted, invalidated = delete_scenario_outputs(root, args.scenario)
+        print(f"Deleted {len(deleted)} scenario file(s).")
+        print(f"Invalidated {len(invalidated)} aggregate result file(s).")
+        return 0
+    except ResultsDeletionError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

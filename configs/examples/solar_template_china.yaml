@@ -62,8 +62,8 @@ additional_exclusion_polygons_buffer: [] #list of buffers in meters in the order
 min_solar_production: 1000 #kWh/kW/year
 max_solar_production: null #kWh/kW/year
 
-# inclusion filter
-# EITHER use substations OR transmission OR roads (meters)
+# inclusion filters
+# additional polygons and rasters are enabled separately and can be combined with all/any.
 additional_inclusion_polygons:
   enabled: false
   combine: all # all = intersection; any = union of these polygons
@@ -75,8 +75,8 @@ additional_inclusion_rasters:
   combine: all # all = intersection; any = union of these rasters
   defaults:
     buffer: 0 # meters
-    codes: [1] # raster values that indicate eligible land
-    nodata: 0
+    codes: [1, 2] # integer raster values that indicate eligible land
+    nodata: 0 # raster value treated as NoData
   overrides: {} # optional settings keyed by original source filename
 substations_inclusion_buffer: 100000
 transmission_inclusion_buffer: 100000

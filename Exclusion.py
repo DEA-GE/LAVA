@@ -10,7 +10,8 @@ import geopandas as gpd
 from atlite.gis import shape_availability
 import rasterio
 import yaml
-from utils.data_preprocessing import clean_region_name, log_scenario_run
+from utils.data_preprocessing import log_scenario_run
+from utils.region_names import canonical_region_name
 from rasterstats import zonal_stats
 from utils.raster_analysis import area_filter, overlay_value_raster
 from utils.inclusion_layers import (
@@ -43,7 +44,7 @@ parser.add_argument("--scenario", required=True, help="scenario name")
 parser.add_argument("--technology", required=True, help="technology")
 args = parser.parse_args()
 
-region_name_clean = clean_region_name(args.region)
+region_name_clean = canonical_region_name(args.region)
 technology = args.technology
 scenario = args.scenario
 
@@ -794,6 +795,8 @@ info_data = {
     "min_pixels_connected": int(min_pixels_connected),
     "info_list": info_list_exclusion,
     "eligibility_share": float(eligible_share),
+    "study_area_m2": float(region.geometry.item().area),
+    "available_area_m2": float(available_area),
     "available_area_km2": float(available_area_km2),
     "power_potential_MW": float(power_potential),
 }

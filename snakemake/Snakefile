@@ -7,16 +7,33 @@ PROJECT_ROOT = Path.cwd()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from utils.tech_config import validate_selected_scenarios
+from utils.tech_config import (
+    resolve_selected_scenarios,
+    validate_selected_scenarios,
+    validate_shared_scenarios,
+)
+from utils.region_names import canonical_region_name
 
 
 
 with open("configs/config_snakemake.yaml", "r", encoding="utf-8") as f:
     config_snakemake = yaml.load(f, Loader=yaml.FullLoader)
 
+with open("configs/config.yaml", "r", encoding="utf-8") as f:
+    config_main = yaml.load(f, Loader=yaml.FullLoader)
+
 
 #define parameters , keep them in list as it iterates, multiple input can be included. 
-regions = config_snakemake["study_region_name"]
+configured_regions = config_snakemake["study_region_name"]
+if isinstance(configured_regions, str):
+    configured_regions = [configured_regions]
+region_names = {
+    canonical_region_name(region): region
+    for region in configured_regions
+}
+if len(region_names) != len(configured_regions):
+    raise ValueError("Study region names must remain unique after filename cleaning.")
+regions = list(region_names)
 technologies = config_snakemake["technologies"]
 scenarios = config_snakemake.get("scenarios", [])
 technology_scenarios = config_snakemake.get("technology_scenarios", {})
@@ -24,7 +41,47 @@ weather_years = config_snakemake["weather_years"]
 
 
 def get_scenarios_for_technology(technology):
-    return technology_scenarios.get(technology, scenarios)
+    return resolve_selected_scenarios(
+        technology,
+        scenarios,
+        technology_scenarios,
+    )
+
+
+def configured_region_name(cleaned_region):
+    return region_names[cleaned_region]
+
+
+def exclusion_result_targets():
+    """Return the exact exclusion rasters required by downstream result stages."""
+    targets = []
+    for technology in technologies:
+        targets += expand(
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_available_land.tif",
+            region=regions,
+            technology=[technology],
+            scenario=get_scenarios_for_technology(technology),
+        )
+    return targets
+
+
+def exclusion_metadata_targets():
+    """Return the exclusion JSON metrics consumed by results analysis."""
+    targets = []
+    for technology in technologies:
+        targets += expand(
+            Path("data")
+            / "{region}"
+            / "available_land"
+            / "{region}_{technology}_{scenario}_exclusion_info.json",
+            region=regions,
+            technology=[technology],
+            scenario=get_scenarios_for_technology(technology),
+        )
+    return targets
 
 
 validate_selected_scenarios(
@@ -50,6 +107,13 @@ to use a specific Snakefile, use the --snakefile option
 # ---- Stage configuration ----
 stages = config_snakemake.get("stages", {})
 
+if stages.get("suitability"):
+    validate_shared_scenarios(
+        technologies,
+        scenarios,
+        technology_scenarios=technology_scenarios,
+    )
+
 # ---- Create the global functions ----
 globals().update({
     f"DO_{k.upper()}": v
@@ -58,34 +122,38 @@ globals().update({
 
 
 # ---- Compact includes ----
-for stage_name, enabled in stages.items():
-    if enabled:
+# Exclusion uses spatial_data_prep as a checkpoint. Including the checkpoint
+# does not run it when its CRS output is present and up to date.
+included_stages = {name for name, enabled in stages.items() if enabled}
+if stages.get("timeseries"):
+    # Profiles always need the prepared study-area geometry.  They only need
+    # exclusion when their availability matrix is based on an exclusion raster.
+    included_stages.add("spatial_data_prep")
+    if config_main["available_land"]["enable"]:
+        included_stages.add("exclusion")
+
+if stages.get("exclusion") or stages.get("suitability") or stages.get("results_analysis"):
+    included_stages.add("exclusion")
+    included_stages.add("spatial_data_prep")
+
+for stage_name in stages:
+    if stage_name in included_stages:
         include: f"rules/{stage_name}.smk"
 
 
 # ---- Build 'all' targets (explicit form for clarity) ----
 ALL_TARGETS = []
 
-if DO_SPATIAL_DATA_PREP:
+if stages.get("spatial_data_prep"):
     ALL_TARGETS += expand(
-        logpath("{region}", "spatial_data_prep.done"),
+        Path("data") / "{region}" / "{region}_local_CRS.pkl",
         region=regions,
     )
 
-if DO_EXCLUSION:
-    for technology in technologies:
-        tech_scenarios = get_scenarios_for_technology(technology)
-        ALL_TARGETS += expand(
-            Path("data")
-            / "{region}"
-            / "available_land"
-            / "{region}_{technology}_{scenario}_available_land.tif",
-            region=regions,
-            technology=[technology],
-            scenario=tech_scenarios,
-        )
+if stages.get("exclusion"):
+    ALL_TARGETS += exclusion_result_targets()
 
-if DO_SUITABILITY:
+if stages.get("suitability"):
     suitability_scenarios = list(
         dict.fromkeys(
             [scenario for technology in technologies for scenario in get_scenarios_for_technology(technology)]
@@ -97,7 +165,7 @@ if DO_SUITABILITY:
         scenario=suitability_scenarios,
     )
 
-if DO_TIMESERIES:
+if stages.get("timeseries"):
     for technology in technologies:
         tech_scenarios = get_scenarios_for_technology(technology)
         ALL_TARGETS += expand(
@@ -109,20 +177,20 @@ if DO_TIMESERIES:
         )
 
 
-if DO_WEATHER_DATA_PREP:
+if stages.get("weather_data_prep"):
     ALL_TARGETS += expand(
         logpath("{region}", "weather_data_prep_{weather_year}.done"),
         region=regions,
         weather_year=weather_years,
     )
 
-if DO_WEATHER_BIAS_ADJUST:
+if stages.get("weather_bias_adjust"):
     ALL_TARGETS += expand(
         logpath("{region}", "weather_bias_adjust.done"),
         region=regions,
     )
 
-if DO_ENERGY_PROFILES:
+if stages.get("energy_profiles"):
     for technology in technologies:
         tech_scenarios = get_scenarios_for_technology(technology)
         ALL_TARGETS += expand(
@@ -132,6 +200,13 @@ if DO_ENERGY_PROFILES:
             technology=[technology],
             weather_year=weather_years,
         )
+
+if stages.get("results_analysis"):
+    ALL_TARGETS += [
+        Path("aggregated_available_land.gpkg"),
+        Path("aggregated_available_land.json"),
+        Path("aggregated_available_land.csv"),
+    ]
 
 rule all:
     input:

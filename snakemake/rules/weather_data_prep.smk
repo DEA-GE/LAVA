@@ -7,6 +7,6 @@ rule weather_data_prep:
     shell:
         (
             "python weather_data_prep.py --region {wildcards.region} "
-            "--weather_year {wildcards.weather_year} "
+            "--weather_years {wildcards.weather_year} "
             "--method {params.method} "
         )

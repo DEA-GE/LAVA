@@ -56,14 +56,41 @@ with open(os.path.join(dirname, "configs/config.yaml"), "r", encoding="utf-8") a
 parser = argparse.ArgumentParser()
 parser.add_argument("--region", default=config["study_region_name"])
 parser.add_argument("--weather_year", default=config["weather_year"], type=int)
-parser.add_argument("--scenario", required=True)
-parser.add_argument("--technology", required=True)
+parser.add_argument(
+    "--scenario",
+    default=config.get("scenario"),
+    help="Exclusion scenario (defaults to the 'scenario' value in config.yaml).",
+)
+parser.add_argument(
+    "--technology",
+    default=config.get("technology"),
+    help=(
+        "Workflow technology whose available-land raster and timeseries resource "
+        "should be used (for example onshorewind or solar). Defaults to the "
+        "'technology' value in config.yaml."
+    ),
+)
 args = parser.parse_args()
+
+if args.scenario is None:
+    parser.error("Provide --scenario or set 'scenario' in config.yaml.")
+if args.technology is None:
+    parser.error("Provide --technology or set 'technology' in config.yaml.")
 
 study_region_name = clean_region_name(args.region)
 year = int(args.weather_year)
 scenario = args.scenario
 technology_exclusion = args.technology
+
+# Workflow/exclusion technology names are not always the same as the keys used
+# by atlite in the timeseries section of config.yaml.
+technology_aliases = {
+    "onshorewind": "onwind",
+    "offshorewind": "offwind",
+}
+profile_technology = technology_aliases.get(
+    technology_exclusion, technology_exclusion
+)
 
 logging.info(
     f"region={study_region_name}, year={year}, scenario={scenario}, technology={technology_exclusion}"
@@ -81,9 +108,13 @@ output_dir = os.path.join(dirname, "data", study_region_name, "0_profiles")
 os.makedirs(output_dir, exist_ok=True)
 show_progress = config["show_progress"]
 technologies = config["technologies"]
-enabled_techs = technologies.pop(
-    "enable", list(technologies.keys())
-)  # Extract enable list, default to all
+if profile_technology not in technologies:
+    configured = sorted(key for key in technologies if key != "enable")
+    raise ValueError(
+        f"Technology '{technology_exclusion}' maps to '{profile_technology}', "
+        f"which is not defined in config.yaml. Available definitions: {configured}"
+    )
+enabled_techs = [profile_technology]
 
 # Resolve available_land raster path with placeholders
 available_land_raster_template = config["available_land"]["raster"]
@@ -96,38 +127,49 @@ available_land_raster = os.path.join(
     ),
 )
 
-logging.info(f"  Technologies to process: {enabled_techs}")
+logging.info(f"  Timeseries technology to process: {profile_technology}")
 
 # --- Load region shapes ---
 logging.info(f"Loading shapes from {shapes_path}")
 shapes = gpd.read_file(shapes_path)
 name_col = config.get("shapes_name_column", "name")
-shapes = shapes.set_index(name_col).rename_axis("region")
+if name_col in shapes.columns:
+    shapes = shapes.set_index(name_col).rename_axis("region")
+elif len(shapes) == 1:
+    # Spatial preparation writes one feature per study region. Custom regions
+    # may use their own attribute schema, so their filename/CLI region is the
+    # reliable profile label.
+    shapes.index = pd.Index([study_region_name], name="region")
+else:
+    available_columns = [column for column in shapes.columns if column != "geometry"]
+    raise KeyError(
+        f"Shape name column '{name_col}' is missing from {shapes_path}. "
+        f"Available columns: {available_columns}"
+    )
 regions = shapes.geometry
 logging.info(f"  {len(regions)} regions loaded")
-
-# --- Build time snapshots ---
-snapshots_config = {
-    "start": f"{year}-01-01",
-    "end": f"{year + 1}-01-01",
-    "inclusive": "left",
-}
-sns = pd.date_range(
-    start=snapshots_config["start"],
-    end=snapshots_config["end"],
-    freq="h",
-    inclusive=snapshots_config["inclusive"],
-)
-if drop_leap_day:
-    sns = sns[~((sns.month == 2) & (sns.day == 29))]
-if test_mode:
-    sns = sns[:168]  # first week only
 
 # --- Load ERA5 cutout from local folder ---
 if not os.path.exists(cutout_path):
     raise FileNotFoundError(f"Cutout file not found: {cutout_path}")
 logging.info(f"  Loading cutout: {cutout_path}")
 cutout = atlite.Cutout(cutout_path)
+
+# Use the actual timestamps in the input cutout.  A cutout may cover a full
+# year, a season, or arbitrary selected periods; it is the source of truth for
+# the profile timeline.
+sns = pd.DatetimeIndex(cutout.data.indexes["time"])
+if sns.empty:
+    raise ValueError(
+        f"The cutout has no timestamps: {cutout_path}."
+    )
+if drop_leap_day:
+    sns = sns[~((sns.month == 2) & (sns.day == 29))]
+if test_mode:
+    sns = sns[:168]  # first 168 available hours
+if sns.empty:
+    raise ValueError("No timestamps remain after applying time filters.")
+logging.info("  Using %d cutout timestamps from %s to %s", len(sns), sns.min(), sns.max())
 cutout.data = cutout.data.sel(time=sns)
 
 
@@ -215,7 +257,10 @@ for tech_name in enabled_techs:
         df = df * max_wind_speed
     ####
 
-    out_file = os.path.join(output_dir, f"profile_{tech_name}_{year}.csv")
+    out_file = os.path.join(
+        output_dir,
+        f"{study_region_name}_{technology_exclusion}_{scenario}_profile_{year}.csv",
+    )
     df.to_csv(out_file)
 
     logging.info(
@@ -227,11 +272,19 @@ for tech_name in enabled_techs:
 logging.info("Done — all profiles generated.")
 
 # --- Save technologies dictionary, shapes filename, and cutout name to a text file ---
-tech_file = os.path.join(output_dir, f"technologies_{year}.txt")
+tech_file = os.path.join(
+    output_dir,
+    f"technologies_{technology_exclusion}_{scenario}_{year}.txt",
+)
 with open(tech_file, "w", encoding="utf-8") as f:
     f.write(f"shapes_file: {os.path.basename(shapes_path)}\n")
     f.write(f"cutout_file: {os.path.basename(cutout_path)}\n\n")
     f.write("technologies:\n")
     import yaml
 
-    yaml.dump(technologies, f, allow_unicode=True, default_flow_style=False)
+    yaml.dump(
+        {profile_technology: technologies[profile_technology]},
+        f,
+        allow_unicode=True,
+        default_flow_style=False,
+    )

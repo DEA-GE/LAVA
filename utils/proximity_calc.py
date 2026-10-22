@@ -108,7 +108,7 @@ def generate_distance_raster(
 # Example usage
 if __name__ == "__main__":
     region_demo = gpd.read_file(
-        "Raw_Spatial_Data/custom_study_area/gadm41_CHN_1_NeiMongol.geojson"
+        "Raw_Spatial_Data/custom_study_area/gadm_areas/NeiMongol.geojson"
     )
     generate_distance_raster(
         shapefile_path="data/NeiMongol/OSM_Infrastructure/substations.gpkg",
