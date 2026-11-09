@@ -6,7 +6,7 @@ This section will guide you through setting up the LAVA project on your local sy
 
 Before installing and running **LAVA**, ensure you have the following:
 
-- [Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) (recommendation: Miniconda) or [Pixi](https://pixi.prefix.dev/latest/) to manage the python packages. 
+- [Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) (recommendation: Miniconda) or [Pixi](https://pixi.prefix.dev/latest/) to manage the python packages.
 
 !!! note
     Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH (search for the following folders in your machine).
