@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from utils.results_handling import sync_scenario_logs
+from utils.results_handling import sync_scenario_logs  # noqa: E402
 
 
 RESULT_FOLDERS = ("available_land", "suitability", "snakemake_log")
@@ -129,11 +129,15 @@ def delete_scenario_outputs(root: Path, scenario: str) -> tuple[list[Path], list
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Preview or delete one scenario's results")
+    parser = argparse.ArgumentParser(
+        description="Preview or delete one scenario's results"
+    )
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--scenario", help="Exact scenario name")
     parser.add_argument("--list", action="store_true", help="List available scenarios")
-    parser.add_argument("--yes", action="store_true", help="Perform deletion after preview")
+    parser.add_argument(
+        "--yes", action="store_true", help="Perform deletion after preview"
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     try:

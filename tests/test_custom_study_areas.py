@@ -12,9 +12,7 @@ from utils.spatial_prep_plan import resolve_custom_study_area_path
 
 
 def test_nested_collection_path_is_preferred(tmp_path):
-    collection = (
-        tmp_path / "Raw_Spatial_Data" / "custom_study_area" / "denmark_adm1"
-    )
+    collection = tmp_path / "Raw_Spatial_Data" / "custom_study_area" / "denmark_adm1"
     collection.mkdir(parents=True)
     expected = collection / "Sjælland.geojson"
     expected.write_text("{}", encoding="utf-8")

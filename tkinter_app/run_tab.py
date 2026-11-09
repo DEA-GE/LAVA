@@ -140,7 +140,10 @@ def build_workflow_plan_rows(
                     str(raw_record.get("configured_region", "")),
                     str(raw_record.get("region", "")),
                 }
-                if region not in aliases and canonical_region_name(region) not in aliases:
+                if (
+                    region not in aliases
+                    and canonical_region_name(region) not in aliases
+                ):
                     continue
                 if raw_record.get("blocking"):
                     return "Blocked by spatial inputs", "blocked"
@@ -217,7 +220,10 @@ def build_workflow_plan_rows(
                                     status=("Blocked: incomplete selection", "blocked"),
                                 )
                                 continue
-                            if stage in {"timeseries", "energy_profiles"} and not weather_year:
+                            if (
+                                stage in {"timeseries", "energy_profiles"}
+                                and not weather_year
+                            ):
                                 add_row(
                                     stage,
                                     region=region,
@@ -556,15 +562,11 @@ class PreflightDialog(tk.Toplevel):
                 severity = str(issue.get("severity", "warning"))
                 if index:
                     checks_text.insert("end", "\n\n")
-                checks_text.insert(
-                    "end", f"{severity.title()}: ", (severity,)
-                )
+                checks_text.insert("end", f"{severity.title()}: ", (severity,))
                 checks_text.insert("end", str(issue.get("message", "")))
         else:
             checks_text.insert("end", "Passed: ", ("passed",))
-            checks_text.insert(
-                "end", "No problems found by the available checks."
-            )
+            checks_text.insert("end", "No problems found by the available checks.")
         checks_text.configure(state="disabled")
         if issues:
             details.select(checks_frame)
@@ -897,9 +899,7 @@ class RunTab(ttk.Frame):
                 textvariable=variable,
                 state="normal",
             )
-            input_widget.grid(
-                row=row_index, column=1, sticky="ew", padx=(8, 0), pady=2
-            )
+            input_widget.grid(row=row_index, column=1, sticky="ew", padx=(8, 0), pady=2)
             self.single_input_rows[name] = (input_label, input_widget)
         technology_widget = self.single_input_rows["technology"][1]
         technology_widget.bind(
@@ -1131,9 +1131,7 @@ class RunTab(ttk.Frame):
         self.results_tab.set_workflow_active(is_running)
         self.run_button.configure(state="disabled" if is_running else "normal")
         dry_run_enabled = not is_running and self.execution_mode.get() == "snakemake"
-        self.dry_run_button.configure(
-            state="normal" if dry_run_enabled else "disabled"
-        )
+        self.dry_run_button.configure(state="normal" if dry_run_enabled else "disabled")
 
     def _on_script_change(self, _event: tk.Event) -> None:
         index = self.script_combo.current()
@@ -1189,7 +1187,9 @@ class RunTab(ttk.Frame):
             for technology in technologies:
                 scenarios.extend(self._technology_scenarios(str(technology)))
         else:
-            scenarios = self._technology_scenarios(self.run_technology_var.get().strip())
+            scenarios = self._technology_scenarios(
+                self.run_technology_var.get().strip()
+            )
         config = self._load_run_input_mapping(
             self.config_tab.get_config_path() or (CONFIGS_DIR / "config.yaml")
         )
@@ -1282,7 +1282,9 @@ class RunTab(ttk.Frame):
         script = next(
             (item for item in self.available_scripts if item["id"] == script_id), None
         )
-        self.script_description_var.set(str(script.get("description", "")) if script else "")
+        self.script_description_var.set(
+            str(script.get("description", "")) if script else ""
+        )
 
     def _load_run_history(self) -> List[Dict[str, Any]]:
         if not RUN_HISTORY_PATH.is_file():
@@ -1383,9 +1385,7 @@ class RunTab(ttk.Frame):
             "id": run_id,
             "started_at": now.isoformat(timespec="seconds"),
             "finished_at": None,
-            "mode": (
-                "dry run" if is_dry_run else self.execution_mode.get()
-            ),
+            "mode": ("dry run" if is_dry_run else self.execution_mode.get()),
             "dry_run": is_dry_run,
             "script_id": script_id,
             "stages": stages,
@@ -1494,9 +1494,7 @@ class RunTab(ttk.Frame):
     def _open_full_log(self) -> None:
         self._open_full_log_for_record(self._selected_or_latest_run_record())
 
-    def _open_full_log_for_record(
-        self, record: Optional[Mapping[str, Any]]
-    ) -> None:
+    def _open_full_log_for_record(self, record: Optional[Mapping[str, Any]]) -> None:
         log_path = (
             self._resolve_preflight_path(record.get("log_file")) if record else None
         )
@@ -1571,7 +1569,9 @@ class RunTab(ttk.Frame):
             self._open_path_in_file_manager(folder)
         except OSError as exc:
             messagebox.showerror(
-                "Output Folder", f"Could not open the output folder:\n{exc}", parent=self
+                "Output Folder",
+                f"Could not open the output folder:\n{exc}",
+                parent=self,
             )
 
     def _open_selected_history_log(self, _event: Optional[tk.Event] = None) -> None:
@@ -1678,13 +1678,9 @@ class RunTab(ttk.Frame):
             for start, end in zip(ranges[0::2], ranges[1::2]):
                 target.tag_add(tag, str(start), str(end))
             if tag in self.output_url_targets:
-                self._bind_output_url_tag(
-                    target, tag, self.output_url_targets[tag]
-                )
+                self._bind_output_url_tag(target, tag, self.output_url_targets[tag])
             elif tag in self.issue_link_targets:
-                self._bind_issue_setting_tag(
-                    target, tag, self.issue_link_targets[tag]
-                )
+                self._bind_issue_setting_tag(target, tag, self.issue_link_targets[tag])
         target.configure(state="disabled")
         target.see("end")
 
@@ -1836,9 +1832,9 @@ class RunTab(ttk.Frame):
             text="This is a live view. Closing it does not stop the current run.",
             foreground="#555555",
         ).pack(side="left")
-        ttk.Button(
-            footer, text="Close", command=self._close_run_feedback_dialog
-        ).pack(side="right")
+        ttk.Button(footer, text="Close", command=self._close_run_feedback_dialog).pack(
+            side="right"
+        )
 
         self._copy_run_text_widget(self.log_text, expanded_log)
         self._copy_run_text_widget(self.issue_text, expanded_issues)
@@ -1917,9 +1913,7 @@ class RunTab(ttk.Frame):
                 parent=self,
             )
 
-    def _insert_text_with_urls(
-        self, widget: tk.Text, text: str, base_tag: str
-    ) -> None:
+    def _insert_text_with_urls(self, widget: tk.Text, text: str, base_tag: str) -> None:
         """Insert text and make every HTTP(S) URL behave like a hyperlink."""
         for segment, url in self._split_text_urls(text):
             if not url:
@@ -2368,7 +2362,10 @@ class RunTab(ttk.Frame):
                     f"Select a {display_name} before running {script_name}."
                 )
             command.extend([flag, value])
-        return command, PARENT_DIR if script_id == "results_analysis" else script_path.parent
+        return (
+            command,
+            PARENT_DIR if script_id == "results_analysis" else script_path.parent,
+        )
 
     def _build_snakemake_command(
         self, *, dry_run: bool = False
@@ -2828,10 +2825,7 @@ class RunTab(ttk.Frame):
                 report, "error", f"Configuration validation could not run: {exc}"
             )
         for issue in validation_issues:
-            if (
-                mode != "snakemake"
-                and issue.get("file") == "config_snakemake.yaml"
-            ):
+            if mode != "snakemake" and issue.get("file") == "config_snakemake.yaml":
                 continue
             self._add_preflight_issue(
                 report,
@@ -3005,9 +2999,7 @@ class RunTab(ttk.Frame):
 
         try:
             if mode == "snakemake":
-                command, cwd, temp_path = self._build_snakemake_command(
-                    dry_run=dry_run
-                )
+                command, cwd, temp_path = self._build_snakemake_command(dry_run=dry_run)
             else:
                 command, cwd = self._build_single_command()
                 temp_path = None
@@ -3057,11 +3049,7 @@ class RunTab(ttk.Frame):
                     command = report.get("command")
                     if isinstance(command, list) and "--forcerun" not in command:
                         force_targets = [
-                            str(
-                                Path("data")
-                                / region
-                                / f"{region}_local_CRS.pkl"
-                            )
+                            str(Path("data") / region / f"{region}_local_CRS.pkl")
                             for region in spatial_plan.get("invalid_regions") or []
                         ]
                         command.extend(["--forcerun", *force_targets])
@@ -3090,9 +3078,7 @@ class RunTab(ttk.Frame):
 
         execution_summary = "Single script"
         if mode == "snakemake":
-            execution_summary = (
-                "Snakemake dry run" if dry_run else "Snakemake workflow"
-            )
+            execution_summary = "Snakemake dry run" if dry_run else "Snakemake workflow"
         report["summary"] = {
             "Execution": execution_summary,
             "Regions": ", ".join(regions) if regions else "Not configured",
@@ -3186,10 +3172,15 @@ class RunTab(ttk.Frame):
             unique.append(compact)
         if len(unique) > limit:
             remaining = len(unique) - limit
-            return [*unique[:limit], f"{remaining} additional message(s); see the full log."]
+            return [
+                *unique[:limit],
+                f"{remaining} additional message(s); see the full log.",
+            ]
         return unique
 
-    def _group_run_diagnostics(self, *, successful: bool) -> Tuple[List[str], List[str]]:
+    def _group_run_diagnostics(
+        self, *, successful: bool
+    ) -> Tuple[List[str], List[str]]:
         warnings: List[str] = []
         errors: List[str] = []
         if self.current_run_overpass_retries:
@@ -3212,9 +3203,8 @@ class RunTab(ttk.Frame):
             lower = message.lower()
             if not message:
                 continue
-            if (
-                "following data was not found in data folder" in lower
-                or ("overpass query failed" in lower and "retrying" in lower)
+            if "following data was not found in data folder" in lower or (
+                "overpass query failed" in lower and "retrying" in lower
             ):
                 continue
             if lower.startswith("spatial preparation check:"):
@@ -3237,9 +3227,7 @@ class RunTab(ttk.Frame):
         warnings = self._unique_summary_messages(warnings)
         errors = self._unique_summary_messages(errors)
         if successful and errors:
-            warnings.extend(
-                f"Recovered/non-fatal: {message}" for message in errors
-            )
+            warnings.extend(f"Recovered/non-fatal: {message}" for message in errors)
             errors = []
             warnings = self._unique_summary_messages(warnings)
         return warnings, errors
@@ -3270,7 +3258,9 @@ class RunTab(ttk.Frame):
             status_text = "Dry run completed with warnings"
         elif outcome == "dry_run_completed":
             heading = "Dry run completed successfully"
-            subtitle = "Snakemake validated and planned the workflow; no jobs were executed."
+            subtitle = (
+                "Snakemake validated and planned the workflow; no jobs were executed."
+            )
             color = "#1A7F37"
             status_text = "Dry run completed"
         elif outcome == "completed" and warnings:
@@ -3280,7 +3270,9 @@ class RunTab(ttk.Frame):
             status_text = "Completed with warnings"
         elif outcome == "completed":
             heading = f"{subject} completed successfully"
-            subtitle = "All requested work finished without detected warnings or errors."
+            subtitle = (
+                "All requested work finished without detected warnings or errors."
+            )
             color = "#1A7F37"
             status_text = "Completed"
         elif outcome == "stopped":
@@ -3295,7 +3287,9 @@ class RunTab(ttk.Frame):
             status_text = "Reset"
         else:
             heading = f"{subject} failed"
-            subtitle = "The workflow did not complete. Review the error summary and full log."
+            subtitle = (
+                "The workflow did not complete. Review the error summary and full log."
+            )
             color = "#B42318"
             status_text = "Failed"
 
@@ -3355,7 +3349,10 @@ class RunTab(ttk.Frame):
             sections.append(("Completed work", completed_items))
         elif self.completed_jobs:
             sections.append(
-                ("Completed work", [f"{self.completed_jobs} job(s) completed before the run ended."])
+                (
+                    "Completed work",
+                    [f"{self.completed_jobs} job(s) completed before the run ended."],
+                )
             )
         if warnings:
             sections.append(("Warnings", warnings))
@@ -3363,7 +3360,12 @@ class RunTab(ttk.Frame):
             sections.append(("Errors", errors))
         elif not successful and outcome == "failed":
             sections.append(
-                ("Errors", [f"The process exited with code {return_code}; see the full log for details."])
+                (
+                    "Errors",
+                    [
+                        f"The process exited with code {return_code}; see the full log for details."
+                    ],
+                )
             )
         if not sections:
             sections.append(("Result", ["No additional diagnostics were recorded."]))
@@ -3540,9 +3542,7 @@ class RunTab(ttk.Frame):
                 )
             else:
                 action_name = "Dry run" if dry_run else "Run"
-                self.add_log(
-                    "info", f"{action_name} cancelled after preflight review."
-                )
+                self.add_log("info", f"{action_name} cancelled after preflight review.")
             return
         cmd = report.get("command")
         cwd = report.get("cwd")

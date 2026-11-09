@@ -358,9 +358,9 @@ class ResultsTab(ttk.Frame):
         ttk.Button(controls, text="Compare", command=self._update_comparison).grid(
             row=0, column=8, padx=(0, 6)
         )
-        ttk.Button(controls, text="Export CSV", command=self._export_comparison_csv).grid(
-            row=0, column=9, padx=(0, 6)
-        )
+        ttk.Button(
+            controls, text="Export CSV", command=self._export_comparison_csv
+        ).grid(row=0, column=9, padx=(0, 6))
         ttk.Button(
             controls, text="Export Excel", command=self._export_comparison_excel
         ).grid(row=0, column=10)
@@ -408,11 +408,13 @@ class ResultsTab(ttk.Frame):
             self.comparison_tree.heading(
                 column,
                 text=comparison_headings[column],
-                command=lambda selected=column, is_numeric=numeric: self._sort_tree_column(
-                    self.comparison_tree,
-                    selected,
-                    numeric=is_numeric,
-                    reverse_state=self.comparison_sort_reverse,
+                command=lambda selected=column, is_numeric=numeric: (
+                    self._sort_tree_column(
+                        self.comparison_tree,
+                        selected,
+                        numeric=is_numeric,
+                        reverse_state=self.comparison_sort_reverse,
+                    )
                 ),
             )
             self.comparison_tree.column(
@@ -459,8 +461,12 @@ class ResultsTab(ttk.Frame):
             width=24,
         )
         chart_metric.pack(side="left", padx=(5, 0))
-        chart_group.bind("<<ComboboxSelected>>", lambda _event: self._draw_comparison_chart())
-        chart_metric.bind("<<ComboboxSelected>>", lambda _event: self._draw_comparison_chart())
+        chart_group.bind(
+            "<<ComboboxSelected>>", lambda _event: self._draw_comparison_chart()
+        )
+        chart_metric.bind(
+            "<<ComboboxSelected>>", lambda _event: self._draw_comparison_chart()
+        )
 
         chart_frame = ttk.LabelFrame(frame, text="Scenario B minus Scenario A")
         chart_frame.grid(row=4, column=0, sticky="nsew")
@@ -575,7 +581,9 @@ class ResultsTab(ttk.Frame):
         return " ".join(cmd)
 
     def _set_running_state(self, running: bool) -> None:
-        blocked = running or self.delete_runner.is_running() or self.external_workflow_active
+        blocked = (
+            running or self.delete_runner.is_running() or self.external_workflow_active
+        )
         self.run_button.configure(state="disabled" if blocked else "normal")
         self.stop_button.configure(state="normal" if running else "disabled")
         self._set_delete_running_state(self.delete_runner.is_running())
@@ -821,15 +829,27 @@ class ResultsTab(ttk.Frame):
 
     def _refresh_comparison_options(self) -> None:
         scenarios = sorted(
-            {str(row.get("Scenario", "")) for row in self.current_aggregated_rows if row.get("Scenario")},
+            {
+                str(row.get("Scenario", ""))
+                for row in self.current_aggregated_rows
+                if row.get("Scenario")
+            },
             key=str.casefold,
         )
         technologies = sorted(
-            {str(row.get("Technology", "")) for row in self.current_aggregated_rows if row.get("Technology")},
+            {
+                str(row.get("Technology", ""))
+                for row in self.current_aggregated_rows
+                if row.get("Technology")
+            },
             key=str.casefold,
         )
         regions = sorted(
-            {str(row.get("Region", "")) for row in self.current_aggregated_rows if row.get("Region")},
+            {
+                str(row.get("Region", ""))
+                for row in self.current_aggregated_rows
+                if row.get("Region")
+            },
             key=lambda value: (value != "ALL", value.casefold()),
         )
         if self.baseline_scenario_combo:
@@ -898,25 +918,37 @@ class ResultsTab(ttk.Frame):
                 for column in self.comparison_columns:
                     value = row.get(column)
                     if isinstance(value, float):
-                        rendered = f"{value:+.4f}" if column.startswith("difference_") else f"{value:.4f}"
+                        rendered = (
+                            f"{value:+.4f}"
+                            if column.startswith("difference_")
+                            else f"{value:.4f}"
+                        )
                         value = rendered.rstrip("0").rstrip(".")
                     values.append("" if value is None else value)
                 self.comparison_tree.insert("", "end", values=values)
         complete_rows = sum(
             1
             for row in rows
-            if all(row.get(f"baseline_{metric}") is not None for metric in RESULT_METRICS)
-            and all(row.get(f"comparison_{metric}") is not None for metric in RESULT_METRICS)
+            if all(
+                row.get(f"baseline_{metric}") is not None for metric in RESULT_METRICS
+            )
+            and all(
+                row.get(f"comparison_{metric}") is not None for metric in RESULT_METRICS
+            )
         )
         if rows:
             suffix = ""
             if complete_rows != len(rows):
-                suffix = f" {len(rows) - complete_rows} row(s) exist in only one scenario."
+                suffix = (
+                    f" {len(rows) - complete_rows} row(s) exist in only one scenario."
+                )
             self.comparison_status_var.set(
                 f"Comparing {comparison} minus {baseline}: {len(rows)} row(s).{suffix}"
             )
         else:
-            self.comparison_status_var.set("No matching technology and region rows were found.")
+            self.comparison_status_var.set(
+                "No matching technology and region rows were found."
+            )
         self._draw_comparison_chart()
 
     def _comparison_chart_values(self) -> List[Tuple[str, float]]:
@@ -928,11 +960,15 @@ class ResultsTab(ttk.Frame):
         group_column = self.chart_group_var.get()
         candidate_rows = self.current_comparison_rows
         if group_column == "Technology":
-            aggregated_rows = [row for row in candidate_rows if row.get("Region") == "ALL"]
+            aggregated_rows = [
+                row for row in candidate_rows if row.get("Region") == "ALL"
+            ]
             if aggregated_rows:
                 candidate_rows = aggregated_rows
         else:
-            candidate_rows = [row for row in candidate_rows if row.get("Region") != "ALL"]
+            candidate_rows = [
+                row for row in candidate_rows if row.get("Region") != "ALL"
+            ]
         grouped: Dict[str, List[float]] = {}
         for row in candidate_rows:
             label = str(row.get(group_column, ""))
@@ -1021,7 +1057,10 @@ class ResultsTab(ttk.Frame):
             ("Region", "Region"),
             (f"{baseline} eligibility share (%)", "baseline_eligibility_share_%"),
             (f"{comparison} eligibility share (%)", "comparison_eligibility_share_%"),
-            ("Difference eligibility (percentage points)", "difference_eligibility_share_pp"),
+            (
+                "Difference eligibility (percentage points)",
+                "difference_eligibility_share_pp",
+            ),
             (f"{baseline} available area (km²)", "baseline_available_area_km2"),
             (f"{comparison} available area (km²)", "comparison_available_area_km2"),
             ("Difference available area (km²)", "difference_available_area_km2"),
@@ -1032,17 +1071,23 @@ class ResultsTab(ttk.Frame):
 
     def _comparison_export_path(self, extension: str) -> Optional[Path]:
         if not self.current_comparison_rows:
-            messagebox.showwarning("Export Comparison", "Create a scenario comparison first.")
+            messagebox.showwarning(
+                "Export Comparison", "Create a scenario comparison first."
+            )
             return None
         baseline = re.sub(r"[^A-Za-z0-9_.-]+", "_", self.baseline_scenario_var.get())
-        comparison = re.sub(r"[^A-Za-z0-9_.-]+", "_", self.comparison_scenario_var.get())
+        comparison = re.sub(
+            r"[^A-Za-z0-9_.-]+", "_", self.comparison_scenario_var.get()
+        )
         filename = filedialog.asksaveasfilename(
             title="Export scenario comparison",
             initialdir=str(PARENT_DIR),
             initialfile=f"{baseline}_vs_{comparison}_comparison.{extension}",
             defaultextension=f".{extension}",
             filetypes=[
-                ("CSV files", "*.csv") if extension == "csv" else ("Excel workbooks", "*.xlsx"),
+                ("CSV files", "*.csv")
+                if extension == "csv"
+                else ("Excel workbooks", "*.xlsx"),
                 ("All files", "*.*"),
             ],
         )
@@ -1098,7 +1143,9 @@ class ResultsTab(ttk.Frame):
                 sheet.column_dimensions[column_cells[0].column_letter].width = width
             workbook.save(path)
         except Exception as exc:
-            messagebox.showerror("Export Comparison", f"Could not write Excel file:\n{exc}")
+            messagebox.showerror(
+                "Export Comparison", f"Could not write Excel file:\n{exc}"
+            )
             return
         messagebox.showinfo("Export Comparison", f"Saved comparison to:\n{path}")
 

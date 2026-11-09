@@ -1823,10 +1823,9 @@ def validate_configuration_documents(
                 "custom_study_area_filename",
                 "The custom study area overrides the configured GADM region.",
             )
-        if (
-            custom_area
-            and Path(str(config.get("custom_study_area_filename"))).parent == Path(".")
-        ):
+        if custom_area and Path(
+            str(config.get("custom_study_area_filename"))
+        ).parent == Path("."):
             add(
                 "warning",
                 "config.yaml",
@@ -2073,7 +2072,9 @@ def validate_configuration_documents(
                 )
                 available_scenarios = {reference_scenario, *additional_names}
                 invalid_scenarios = [
-                    name for name in selected_scenarios if name not in available_scenarios
+                    name
+                    for name in selected_scenarios
+                    if name not in available_scenarios
                 ]
                 if invalid_scenarios:
                     add(

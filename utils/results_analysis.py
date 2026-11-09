@@ -47,7 +47,9 @@ def _required_number(data: dict, key: str, path: Path) -> float:
     try:
         value = float(data[key])
     except KeyError as exc:
-        raise ResultsAnalysisError(f"{path} is missing required field '{key}'.") from exc
+        raise ResultsAnalysisError(
+            f"{path} is missing required field '{key}'."
+        ) from exc
     except (TypeError, ValueError) as exc:
         raise ResultsAnalysisError(f"{path} has a non-numeric '{key}' value.") from exc
     return value
@@ -58,13 +60,17 @@ def parse_info_json(path: Path) -> dict:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise ResultsAnalysisError(f"Exclusion metadata file not found: {path}") from exc
+        raise ResultsAnalysisError(
+            f"Exclusion metadata file not found: {path}"
+        ) from exc
     except json.JSONDecodeError as exc:
         raise ResultsAnalysisError(
             f"Exclusion metadata is not valid JSON: {path} ({exc})"
         ) from exc
     except OSError as exc:
-        raise ResultsAnalysisError(f"Could not read exclusion metadata {path}: {exc}") from exc
+        raise ResultsAnalysisError(
+            f"Could not read exclusion metadata {path}: {exc}"
+        ) from exc
     if not isinstance(data, dict):
         raise ResultsAnalysisError(f"Exclusion metadata must be a JSON object: {path}")
 
@@ -192,7 +198,9 @@ def _array_to_gdf(data, transform, nodata, crs) -> gpd.GeoDataFrame:
         if nodata is None or value != nodata
     ]
     if not geoms:
-        raise ResultsAnalysisError("An available-land raster contains no eligible pixels.")
+        raise ResultsAnalysisError(
+            "An available-land raster contains no eligible pixels."
+        )
     return gpd.GeoDataFrame({"geometry": geoms}, crs=crs)
 
 
@@ -258,7 +266,9 @@ def _run_for_subset(
                 driver="GPKG",
                 mode="w" if index == 0 else "a",
             )
-            print(f"Written temporary layer {layer} from {len(paths)} region raster(s).")
+            print(
+                f"Written temporary layer {layer} from {len(paths)} region raster(s)."
+            )
 
             regions = {}
             for region, _, info in items:
@@ -332,7 +342,9 @@ def main() -> int:
         default=Path(__file__).resolve().parents[1],
         help="Project root containing the data directory",
     )
-    parser.add_argument("--output", type=Path, default=Path("aggregated_available_land.gpkg"))
+    parser.add_argument(
+        "--output", type=Path, default=Path("aggregated_available_land.gpkg")
+    )
     parser.add_argument(
         "--json-output", type=Path, default=Path("aggregated_available_land.json")
     )

@@ -230,7 +230,10 @@ elif adm_source == "gadm":
 elif adm_source in ("wb", "gb"):
     # Use World Bank boundaries via Space2Stats client
     region = download_admin_boundary_WB(
-        iso3_code=country_code, level=adm_level, region_name=adm_region_name, source=adm_source
+        iso3_code=country_code,
+        level=adm_level,
+        region_name=adm_region_name,
+        source=adm_source,
     )
     if region.empty:
         raise ValueError(
@@ -779,7 +782,9 @@ if config["landcover_source"] == "openeo":
             requested_resolution=None,
             expected_crs=local_crs_obj,
         )
-        refresh_local_landcover = download_landcover or not local_landcover["compatible"]
+        refresh_local_landcover = (
+            download_landcover or not local_landcover["compatible"]
+        )
         try:
             with open(pixel_size_path, "r", encoding="utf-8") as stream:
                 recorded_pixel_size = float(json.load(stream))
@@ -1152,7 +1157,9 @@ if consider_solar_atlas == 1:
         print("Global solar atlas data already downloaded")
 
     if solar_raster_filePath is None:
-        logging.error("PVOUT.tif was not found in the extracted world solar atlas folder.")
+        logging.error(
+            "PVOUT.tif was not found in the extracted world solar atlas folder."
+        )
     else:
         # clip and reproject to local CRS (also saves file which is only clipped but not reprojected)
         clip_reproject_raster(

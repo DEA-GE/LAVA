@@ -88,9 +88,7 @@ technology_aliases = {
     "onshorewind": "onwind",
     "offshorewind": "offwind",
 }
-profile_technology = technology_aliases.get(
-    technology_exclusion, technology_exclusion
-)
+profile_technology = technology_aliases.get(technology_exclusion, technology_exclusion)
 
 logging.info(
     f"region={study_region_name}, year={year}, scenario={scenario}, technology={technology_exclusion}"
@@ -160,16 +158,16 @@ cutout = atlite.Cutout(cutout_path)
 # the profile timeline.
 sns = pd.DatetimeIndex(cutout.data.indexes["time"])
 if sns.empty:
-    raise ValueError(
-        f"The cutout has no timestamps: {cutout_path}."
-    )
+    raise ValueError(f"The cutout has no timestamps: {cutout_path}.")
 if drop_leap_day:
     sns = sns[~((sns.month == 2) & (sns.day == 29))]
 if test_mode:
     sns = sns[:168]  # first 168 available hours
 if sns.empty:
     raise ValueError("No timestamps remain after applying time filters.")
-logging.info("  Using %d cutout timestamps from %s to %s", len(sns), sns.min(), sns.max())
+logging.info(
+    "  Using %d cutout timestamps from %s to %s", len(sns), sns.min(), sns.max()
+)
 cutout.data = cutout.data.sel(time=sns)
 
 

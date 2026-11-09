@@ -68,7 +68,9 @@ class ResultsWorkflowTests(unittest.TestCase):
             }
         else:
             info_path = folder / f"{region}_{technology}_{scenario}_exclusion_info.json"
-            raster_path = folder / f"{region}_{technology}_{scenario}_available_land.tif"
+            raster_path = (
+                folder / f"{region}_{technology}_{scenario}_available_land.tif"
+            )
             payload = {
                 "technology": technology,
                 "scenario": scenario,
@@ -83,8 +85,12 @@ class ResultsWorkflowTests(unittest.TestCase):
 
     def test_metadata_supports_current_and_legacy_output_names(self):
         self._write_result(
-            "Region_with_underscores", "solar", "scenario_with_underscores",
-            available=500_000, study_area=1_000_000, legacy=True
+            "Region_with_underscores",
+            "solar",
+            "scenario_with_underscores",
+            available=500_000,
+            study_area=1_000_000,
+            legacy=True,
         )
         groups = _build_groups(self.root)
         items = groups[("solar", "scenario_with_underscores")]
@@ -100,9 +106,7 @@ class ResultsWorkflowTests(unittest.TestCase):
         self._write_result(
             "Large", "onshorewind", "shared", available=900, study_area=1_000
         )
-        self._write_result(
-            "Small", "solar", "shared", available=25, study_area=100
-        )
+        self._write_result("Small", "solar", "shared", available=25, study_area=100)
         gpkg = self.root / "aggregated_available_land.gpkg"
         metrics = self.root / "aggregated_available_land.json"
         csv_path = self.root / "aggregated_available_land.csv"
@@ -131,9 +135,7 @@ class ResultsWorkflowTests(unittest.TestCase):
             self.assertEqual(path.read_text(encoding="utf-8"), "last-success")
 
     def test_deletion_uses_exact_scenario_boundaries_and_invalidates_aggregates(self):
-        self._write_result(
-            "Region", "solar", "base", available=50, study_area=100
-        )
+        self._write_result("Region", "solar", "base", available=50, study_area=100)
         _, longer_raster = self._write_result(
             "Region", "solar", "base_extended", available=50, study_area=100
         )

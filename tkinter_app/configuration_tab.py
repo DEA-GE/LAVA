@@ -19,25 +19,49 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 if __package__:
     from .data_loader import (
-        CONFIG_SNAKEMAKE_STAGE_FLAGS, GADM_SOURCE_OPTIONS, INPUT_AREA_OPTIONS,
-        LANDCOVER_SOURCE_OPTIONS, OSM_SOURCE_OPTIONS, POPULATION_SOURCE_OPTIONS,
-        PROTECTED_AREAS_SOURCE_OPTIONS, WEATHER_DATA_EXTEND_OPTIONS, cast_value,
-        load_custom_study_area_names, load_offshore_sections,
-        load_onshore_sections, load_snakemake_sections, load_solar_sections,
-        round_trip_available, save_mapping_round_trip, save_sections_round_trip,
-        stringify_list_value, validate_configuration_documents,
+        CONFIG_SNAKEMAKE_STAGE_FLAGS,
+        GADM_SOURCE_OPTIONS,
+        INPUT_AREA_OPTIONS,
+        LANDCOVER_SOURCE_OPTIONS,
+        OSM_SOURCE_OPTIONS,
+        POPULATION_SOURCE_OPTIONS,
+        PROTECTED_AREAS_SOURCE_OPTIONS,
+        WEATHER_DATA_EXTEND_OPTIONS,
+        cast_value,
+        load_custom_study_area_names,
+        load_offshore_sections,
+        load_onshore_sections,
+        load_snakemake_sections,
+        load_solar_sections,
+        round_trip_available,
+        save_mapping_round_trip,
+        save_sections_round_trip,
+        stringify_list_value,
+        validate_configuration_documents,
     )
     from .flag_mapper import make_path, ui_bool_to_numeric, yaml_numeric_to_ui_bool
     from .widgets import TextSyntaxHighlighter, Tooltip
 else:
     from data_loader import (  # type: ignore
-        CONFIG_SNAKEMAKE_STAGE_FLAGS, GADM_SOURCE_OPTIONS, INPUT_AREA_OPTIONS,
-        LANDCOVER_SOURCE_OPTIONS, OSM_SOURCE_OPTIONS, POPULATION_SOURCE_OPTIONS,
-        PROTECTED_AREAS_SOURCE_OPTIONS, WEATHER_DATA_EXTEND_OPTIONS, cast_value,
-        load_custom_study_area_names, load_offshore_sections,
-        load_onshore_sections, load_snakemake_sections, load_solar_sections,
-        round_trip_available, save_mapping_round_trip, save_sections_round_trip,
-        stringify_list_value, validate_configuration_documents,
+        CONFIG_SNAKEMAKE_STAGE_FLAGS,
+        GADM_SOURCE_OPTIONS,
+        INPUT_AREA_OPTIONS,
+        LANDCOVER_SOURCE_OPTIONS,
+        OSM_SOURCE_OPTIONS,
+        POPULATION_SOURCE_OPTIONS,
+        PROTECTED_AREAS_SOURCE_OPTIONS,
+        WEATHER_DATA_EXTEND_OPTIONS,
+        cast_value,
+        load_custom_study_area_names,
+        load_offshore_sections,
+        load_onshore_sections,
+        load_snakemake_sections,
+        load_solar_sections,
+        round_trip_available,
+        save_mapping_round_trip,
+        save_sections_round_trip,
+        stringify_list_value,
+        validate_configuration_documents,
     )
     from flag_mapper import make_path, ui_bool_to_numeric, yaml_numeric_to_ui_bool  # type: ignore
     from widgets import TextSyntaxHighlighter, Tooltip  # type: ignore
@@ -50,39 +74,56 @@ except ImportError:  # pragma: no cover - optional dependency
 CURRENT_DIR = Path(__file__).resolve().parent
 PARENT_DIR = CURRENT_DIR.parent
 CONFIGS_DIR = PARENT_DIR / "configs"
-CONFIG_ADVANCED_SETTINGS_PATH = CONFIGS_DIR / "advanced_settings" / "advanced_data_prep_settings.yaml"
+CONFIG_ADVANCED_SETTINGS_PATH = (
+    CONFIGS_DIR / "advanced_settings" / "advanced_data_prep_settings.yaml"
+)
 SNAKEMAKE_GLOBAL_PATH = PARENT_DIR / "snakemake" / "Snakefile"
 SNAKEFILE_TEMPLATE = """"""
 SNAKEMAKE_STAGE_KEYS = [stage["key"] for stage in CONFIG_SNAKEMAKE_STAGE_FLAGS]
 CONFIGURATION_CATEGORIES = (
-    "General", "Technology exclusions", "Suitability", "Workflow",
-    "Advanced settings", "Snakefile",
+    "General",
+    "Technology exclusions",
+    "Suitability",
+    "Workflow",
+    "Advanced settings",
+    "Snakefile",
 )
 DOCUMENT_CATEGORIES = {
-    "config.yaml": "General", "onshorewind.yaml": "Technology exclusions",
-    "solar.yaml": "Technology exclusions", "offshorewind.yaml": "Technology exclusions",
-    "suitability.yaml": "Suitability", "config_snakemake.yaml": "Workflow",
-    "advanced_data_prep_settings.yaml": "Advanced settings", "Snakefile": "Snakefile",
+    "config.yaml": "General",
+    "onshorewind.yaml": "Technology exclusions",
+    "solar.yaml": "Technology exclusions",
+    "offshorewind.yaml": "Technology exclusions",
+    "suitability.yaml": "Suitability",
+    "config_snakemake.yaml": "Workflow",
+    "advanced_data_prep_settings.yaml": "Advanced settings",
+    "Snakefile": "Snakefile",
 }
 PARAMETER_CHOICES: Dict[str, List[str]] = {
-    "GADM_source": list(GADM_SOURCE_OPTIONS), "landcover_source": list(LANDCOVER_SOURCE_OPTIONS),
-    "OSM_source": list(OSM_SOURCE_OPTIONS), "population_source": list(POPULATION_SOURCE_OPTIONS),
+    "GADM_source": list(GADM_SOURCE_OPTIONS),
+    "landcover_source": list(LANDCOVER_SOURCE_OPTIONS),
+    "OSM_source": list(OSM_SOURCE_OPTIONS),
+    "population_source": list(POPULATION_SOURCE_OPTIONS),
     "protected_areas_source": list(PROTECTED_AREAS_SOURCE_OPTIONS),
-    "input_area": list(INPUT_AREA_OPTIONS), "weather_data_extend": list(WEATHER_DATA_EXTEND_OPTIONS),
+    "input_area": list(INPUT_AREA_OPTIONS),
+    "weather_data_extend": list(WEATHER_DATA_EXTEND_OPTIONS),
     "technology": ["onshorewind", "solar", "offshorewind"],
 }
 PARAMETER_PICKERS: Dict[str, str] = {
     "custom_study_area_filename": "custom_study_area_file",
     "landcover_filename": "filename",
-    "DEM_filename": "filename", "buildings_filename": "filename",
+    "DEM_filename": "filename",
+    "buildings_filename": "filename",
     "protected_areas_filename": "filename",
-    "forest_density_filename": "filename", "model_areas_filename": "filename",
-    "weather_data_extend": "filename", "weather_external_data_path": "directory",
+    "forest_density_filename": "filename",
+    "model_areas_filename": "filename",
+    "weather_data_extend": "filename",
+    "weather_external_data_path": "directory",
     "additional_exclusion_polygons_folder_name": "folder_name",
     "additional_exclusion_rasters_folder_name": "folder_name",
     "additional_inclusion_polygons_folder_name": "folder_name",
     "additional_inclusion_rasters_folder_name": "folder_name",
-    "OSM_folder_name": "folder_name", "snakefile": "project_file",
+    "OSM_folder_name": "folder_name",
+    "snakefile": "project_file",
 }
 PARAMETER_FOLDER_ROOTS: Dict[str, Path] = {
     "additional_exclusion_polygons_folder_name": (
@@ -99,17 +140,35 @@ PARAMETER_FOLDER_ROOTS: Dict[str, Path] = {
     ),
 }
 PARAMETER_UNITS: Dict[str, str] = {
-    "deployment_density": "MW/km2", "resolution_manual": "m", "resolution_landcover": "degrees",
-    "max_elevation": "m", "max_slope": "degrees", "max_buildings_footprint": "sqm",
-    "buildings_buffer": "m", "max_population": "people/pixel", "max_forest_density": "%",
+    "deployment_density": "MW/km2",
+    "resolution_manual": "m",
+    "resolution_landcover": "degrees",
+    "max_elevation": "m",
+    "max_slope": "degrees",
+    "max_buildings_footprint": "sqm",
+    "buildings_buffer": "m",
+    "max_population": "people/pixel",
+    "max_forest_density": "%",
     "railways_buffer": "m",
-    "roads_buffer": "m", "airports_buffer": "m", "waterbodies_buffer": "m",
-    "military_buffer": "m", "coastlines_buffer": "m", "protectedAreas_buffer": "m",
-    "transmission_lines_buffer": "m", "generators_buffer": "m", "plants_buffer": "m",
-    "substations_inclusion_buffer": "m", "transmission_inclusion_buffer": "m",
-    "roads_inclusion_buffer": "m", "min_wind_speed": "m/s", "max_wind_speed": "m/s",
-    "min_solar_production": "kWh/kW/year", "max_solar_production": "kWh/kW/year",
-    "min_area_distributed": "km2", "min_area_rg": "km2", "weather_year": "year",
+    "roads_buffer": "m",
+    "airports_buffer": "m",
+    "waterbodies_buffer": "m",
+    "military_buffer": "m",
+    "coastlines_buffer": "m",
+    "protectedAreas_buffer": "m",
+    "transmission_lines_buffer": "m",
+    "generators_buffer": "m",
+    "plants_buffer": "m",
+    "substations_inclusion_buffer": "m",
+    "transmission_inclusion_buffer": "m",
+    "roads_inclusion_buffer": "m",
+    "min_wind_speed": "m/s",
+    "max_wind_speed": "m/s",
+    "min_solar_production": "kWh/kW/year",
+    "max_solar_production": "kWh/kW/year",
+    "min_area_distributed": "km2",
+    "min_area_rg": "km2",
+    "weather_year": "year",
     "population_year": "year",
 }
 
@@ -161,8 +220,6 @@ def _mousewheel_scroll_units(event: tk.Event) -> int:
         return -1 if delta > 0 else 1
     steps = max(1, abs(delta) // 120)
     return -steps if delta > 0 else steps
-
-
 
 
 def _coerce_list_value(param_type: str, value: Any) -> List[Any]:
@@ -253,10 +310,14 @@ def rebuild_from_widgets(
             # save left string values in the YAML list. Trusting the first
             # existing item as the type sample would otherwise save the
             # corrected comma-separated editor input as quoted strings again.
-            if key == "codes" and child_path.endswith("additional_inclusion_rasters.defaults.codes"):
+            if key == "codes" and child_path.endswith(
+                "additional_inclusion_rasters.defaults.codes"
+            ):
                 var = registry.get(child_path)
                 if var is not None:
-                    tokens = [item.strip() for item in var.get().split(",") if item.strip()]
+                    tokens = [
+                        item.strip() for item in var.get().split(",") if item.strip()
+                    ]
                     try:
                         result[key] = type(value)(int(item) for item in tokens)
                     except ValueError:
@@ -384,8 +445,6 @@ def yaml_to_sections(
     return updated, None
 
 
-
-
 class ConfigurationTab(ttk.Frame):
     """Configuration management tab."""
 
@@ -462,9 +521,7 @@ class ConfigurationTab(ttk.Frame):
             command=self._show_validation_results_dialog,
             state="disabled",
         )
-        self.expand_validation_button.grid(
-            row=0, column=3, sticky="e", padx=(6, 0)
-        )
+        self.expand_validation_button.grid(row=0, column=3, sticky="e", padx=(6, 0))
         ttk.Label(
             validation_frame,
             text="Errors block saving and running; warnings are advisory.",
@@ -1672,9 +1729,7 @@ class ConfigurationTab(ttk.Frame):
 
             def add_item() -> None:
                 text = add_var.get().strip()
-                existing = {
-                    str(listbox.get(index)) for index in range(listbox.size())
-                }
+                existing = {str(listbox.get(index)) for index in range(listbox.size())}
                 if text and text not in existing:
                     listbox.insert("end", text)
                     add_var.set("")
@@ -1690,9 +1745,7 @@ class ConfigurationTab(ttk.Frame):
                 return "break"
 
             def add_all_items() -> None:
-                existing = {
-                    str(listbox.get(index)) for index in range(listbox.size())
-                }
+                existing = {str(listbox.get(index)) for index in range(listbox.size())}
                 for item in available:
                     text = str(item).strip()
                     if text and text not in existing:
@@ -2127,9 +2180,7 @@ class ConfigurationTab(ttk.Frame):
                     info["param_controls"].append(ctrl_info)
                     continue
 
-                row = ttk.LabelFrame(
-                    section_frame, text=label_text, padding=(8, 6)
-                )
+                row = ttk.LabelFrame(section_frame, text=label_text, padding=(8, 6))
                 row.pack(fill="x", pady=(3, 7), padx=6)
                 row.columnconfigure(0, weight=1)
                 if desc_text:
@@ -2732,9 +2783,7 @@ class ConfigurationTab(ttk.Frame):
                 elif param_type == "mapping":
                     parsed_mapping = cast_value("mapping", value)
                     param["value"] = (
-                        parsed_mapping
-                        if isinstance(parsed_mapping, MappingABC)
-                        else {}
+                        parsed_mapping if isinstance(parsed_mapping, MappingABC) else {}
                     )
                 elif param_type == "array":
                     param["value"] = self._coerce_sequence_value(value)
@@ -3044,11 +3093,7 @@ class ConfigurationTab(ttk.Frame):
         sections_data: Optional[List[Dict[str, Any]]] = info.get("sections")
         has_structured_sections = sections_data is not None
         mode_var: Optional[tk.StringVar] = info.get("mode_var")
-        if (
-            has_structured_sections
-            and mode_var is not None
-            and mode_var.get() != "raw"
-        ):
+        if has_structured_sections and mode_var is not None and mode_var.get() != "raw":
             self._update_extra_sections_from_controls(label)
             info["dirty"] = not self._editor_states_equal(
                 info.get("sections"), info.get("sections_baseline")
@@ -3454,9 +3499,7 @@ class ConfigurationTab(ttk.Frame):
                 param["_template"] = template
                 param_path = make_path(section["name"], key)
                 param["_base_path"] = param_path
-                frame = ttk.LabelFrame(
-                    self.param_inner, text=key, padding=(8, 6)
-                )
+                frame = ttk.LabelFrame(self.param_inner, text=key, padding=(8, 6))
                 frame.grid(
                     row=row_pointer,
                     column=0,
@@ -3508,9 +3551,7 @@ class ConfigurationTab(ttk.Frame):
                     ).pack(anchor="w", padx=6, pady=(2, 3))
                 row_pointer += 1
                 continue
-            setting_frame = ttk.LabelFrame(
-                self.param_inner, text=key, padding=(8, 6)
-            )
+            setting_frame = ttk.LabelFrame(self.param_inner, text=key, padding=(8, 6))
             setting_frame.grid(
                 row=row_pointer,
                 column=0,
@@ -3629,9 +3670,7 @@ class ConfigurationTab(ttk.Frame):
                 self._attach_tooltip(widget, description)
             if description or comment_hint or inline_issues:
                 help_frame = ttk.Frame(setting_frame)
-                help_frame.grid(
-                    row=1, column=0, sticky="ew", pady=(6, 0)
-                )
+                help_frame.grid(row=1, column=0, sticky="ew", pady=(6, 0))
                 if description:
                     help_label = ttk.Label(
                         help_frame,
@@ -4088,6 +4127,7 @@ class ConfigurationTab(ttk.Frame):
 
     def _enable_mousewheel(self, canvas: tk.Canvas) -> None:
         """Enable cross-platform mousewheel scrolling on a Canvas."""
+
         def _on_mousewheel(event):
             units = _mousewheel_scroll_units(event)
             if units:
@@ -4104,9 +4144,7 @@ class ConfigurationTab(ttk.Frame):
         canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
 
     @staticmethod
-    def _redirect_mousewheel_to_canvas(
-        widget: tk.Widget, canvas: tk.Canvas
-    ) -> None:
+    def _redirect_mousewheel_to_canvas(widget: tk.Widget, canvas: tk.Canvas) -> None:
         """Scroll the pane without letting input widgets alter their values."""
 
         def _on_mousewheel(event: tk.Event) -> str:

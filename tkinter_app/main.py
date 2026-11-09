@@ -30,6 +30,7 @@ from data_loader import (  # type: ignore  # noqa: E402
     load_initial_sections,
     load_sample_results,
 )
+
 if __package__:
     from .configuration_tab import ConfigurationTab  # noqa: E402
     from .documentation_tab import DocumentationTab  # noqa: E402
@@ -49,6 +50,7 @@ from utils.gadm_levels_to_geojson import (  # noqa: E402
     GADMExtractionResult,
     extract_gadm_levels,
 )
+
 REQUIRED_ACTIVE_CONFIGS = (
     "config.yaml",
     "onshorewind.yaml",
@@ -58,6 +60,7 @@ OPTIONAL_ACTIVE_CONFIGS = (
     "suitability.yaml",
     "config_snakemake.yaml",
 )
+
 
 def missing_active_configs(configs_dir: Path = CONFIGS_DIR) -> List[Path]:
     """Return initialized configuration files required by the main UI."""
@@ -75,16 +78,6 @@ def missing_optional_configs(configs_dir: Path = CONFIGS_DIR) -> List[Path]:
         for name in OPTIONAL_ACTIVE_CONFIGS
         if not (configs_dir / name).exists()
     ]
-
-
-
-
-
-
-
-
-
-
 
 
 class ConfigurationSetupDialog(tk.Toplevel):
@@ -105,10 +98,7 @@ class ConfigurationSetupDialog(tk.Toplevel):
         self.gadm_level_var = tk.IntVar(value=1)
         self.gadm_output_var = tk.StringVar(
             value=str(
-                PARENT_DIR
-                / "Raw_Spatial_Data"
-                / "custom_study_area"
-                / "gadm_areas"
+                PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area" / "gadm_areas"
             )
         )
         self.gadm_overwrite_var = tk.BooleanVar(value=False)
@@ -370,15 +360,12 @@ class ConfigurationSetupDialog(tk.Toplevel):
         if level < 0:
             raise ValueError("Administrative level must be a non-negative integer.")
         output_path = self._resolve_setup_path(output_text)
-        custom_root = (
-            PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area"
-        ).resolve()
+        custom_root = (PARENT_DIR / "Raw_Spatial_Data" / "custom_study_area").resolve()
         try:
             relative_output = output_path.relative_to(custom_root)
         except ValueError as exc:
             raise ValueError(
-                "The output must be a named collection folder below "
-                f"{custom_root}."
+                f"The output must be a named collection folder below {custom_root}."
             ) from exc
         if relative_output == Path("."):
             raise ValueError(
@@ -527,9 +514,7 @@ class ConfigurationSetupDialog(tk.Toplevel):
             self._study_area_failed(str(item[1]))
             return
         _, result, country, overwrite_configs, pairs = item
-        self._complete_initialization(
-            country, overwrite_configs, pairs, result
-        )
+        self._complete_initialization(country, overwrite_configs, pairs, result)
 
     def _study_area_failed(self, detail: str) -> None:
         self._setup_running = False
@@ -609,8 +594,6 @@ class ConfigurationSetupRequiredTab(ttk.Frame):
             card, text=f"Missing: {missing_names}", foreground="#8A5A00", wraplength=620
         ).pack(pady=(0, 16))
         ttk.Button(card, text="Start Configuration Setup", command=open_setup).pack()
-
-
 
 
 class PythonScriptManagerApp(tk.Tk):
