@@ -57,10 +57,12 @@ def _validate_layer_options(
         else:
             raise ValueError(f"{context}.codes must be an integer or a non-empty list")
         if not all(
-            isinstance(code, int) and not isinstance(code, bool) for code in codes
+            isinstance(code, (int, np.integer))
+            and not isinstance(code, (bool, np.bool_))
+            for code in codes
         ):
             raise ValueError(f"{context}.codes must contain integers")
-        normalized["codes"] = codes
+        normalized["codes"] = [int(code) for code in codes]
 
         nodata = normalized["nodata"]
         if not isinstance(nodata, Real) or isinstance(nodata, bool):

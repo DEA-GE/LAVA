@@ -1,22 +1,24 @@
 # General
 #region parameters.
 
-study_region_name: [Odense]
-technologies: [solar, onshorewind]
+study_region_name: [Chennai_North, Chennai_South, Coimbatore, Erode, Madurai, Tirunelveli, Trichy, Vellore, Villupuram]
+technologies: [onshorewind, solar]
 technology_scenarios:
-  solar: [ref]
-  onshorewind: [ref]
-
-#snakemake specific parameters
+  solar:
+    - 9BA
+  onshorewind:
+    - 9BA
 cores: 4
 snakefile: snakemake/Snakefile
-weather_years: [2019]
+weather_years: [2025]
 
 stages:
   spatial_data_prep: false
-  exclusion: true
+  exclusion: false
   suitability: false
-  timeseries: false
+  results_analysis: false
+  timeseries: true
   weather_data_prep: false
   weather_bias_adjust: false
   energy_profiles: false
+scenarios: []

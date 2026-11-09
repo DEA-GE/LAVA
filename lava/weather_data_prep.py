@@ -6,8 +6,9 @@ import os
 import logging
 import yaml
 from lava.project import PROJECT_ROOT, resolve_project_path
-from lava.datasets.study_area_polygon import download_admin_boundary_wb
+from lava.datasets.study_area_polygon import get_study_area_polygon
 from lava.utils.common import clean_region_name
+from lava.utils.spatial_prep_plan import resolve_custom_study_area_path
 
 logging.basicConfig(level=logging.INFO)
 
@@ -94,7 +95,7 @@ if weather_data_extend == "gadm_country":
     region_name = country_code
 elif weather_data_extend == "wb_country":
     country_code = config["country_code"]
-    region = download_admin_boundary_wb(country_code=country_code)
+    region = get_study_area_polygon(source="wb", country_code=country_code, level=0)
     if region.empty:
         raise ValueError(f"No administrative boundary found for {country_code}")
     logging.info("using admin area within country as study area (source: World Bank)")
@@ -116,15 +117,23 @@ elif weather_data_extend not in (
     "bbox",
     "downloaded_region",
 ):  # custom study area
-    custom_study_area_filename = weather_data_extend  # weather_data_extend is then name of the custom area file in Raw_Spatial_Data/custom_study_area
-    regionPath = os.path.join(
-        dirname, "Raw_Spatial_Data", "custom_study_area", custom_study_area_filename
+    custom_study_area_filename = weather_data_extend
+    regionPath, used_legacy_study_area_path = resolve_custom_study_area_path(
+        configured_region=study_region_name,
+        filename_template=custom_study_area_filename,
+        project_root=dirname,
     )
     region = gpd.read_file(regionPath)
     logging.info(
         f"download weather data for custom_study_area: {custom_study_area_filename}"
     )
-    region_name = os.path.splitext(custom_study_area_filename)[0]
+    if used_legacy_study_area_path:
+        logging.warning(
+            "Using a legacy flat or cleaned custom study-area path: %s. "
+            "Move it into a named collection folder when convenient.",
+            regionPath,
+        )
+    region_name = regionPath.stem
 # --------------------------------------------------------------
 
 # outout directory

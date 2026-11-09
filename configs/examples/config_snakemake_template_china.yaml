@@ -14,6 +14,7 @@ stages:
   spatial_data_prep: true
   exclusion: true
   suitability: true
+  results_analysis: false
   weather_data_prep: true
   weather_bias_adjust: true
   energy_profiles: true
@@ -22,4 +23,4 @@ stages:
 #         "Anhui", "Beijing", "Chongqing", "Fujian", "Gansu", "Guangdong", "Guangxi", "Guizhou",
 #         "Hainan", "Hebei", "Heilongjiang", "Henan", "Hubei", "Hunan", "Jiangsu","Jiangxi",
 #         "Jilin", "Liaoning", "West-InnerMongolia", "East-InnerMongolia", "Ningxia", "Qinghai", "Shaanxi", "Shandong", "Shanghai",
-#         "Shanxi", "Sichuan", "Tianjin", "Xinjiang", "Xizang", "Yunnan", "Zhejiang" 
+#         "Shanxi", "Sichuan", "Tianjin", "Xinjiang", "Xizang", "Yunnan", "Zhejiang"

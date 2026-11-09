@@ -78,7 +78,7 @@ additional_inclusion_rasters:
   combine: all # all = intersection; any = union of these rasters
   defaults:
     buffer: 0 # meters
-    codes: [1] # raster values that indicate eligible land
+    codes: [1, 2] # integer raster values that indicate eligible land
     nodata: 0
   overrides: {} # optional settings keyed by original source filename
 substations_inclusion_buffer: null

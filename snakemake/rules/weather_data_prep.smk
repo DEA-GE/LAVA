@@ -7,6 +7,6 @@ rule weather_data_prep:
     shell:
         (
             "python -m lava.weather_data_prep --region {wildcards.region} "
-            "--weather_year {wildcards.weather_year} "
+            "--weather_years {wildcards.weather_year} "
             "--method {params.method} "
         )
