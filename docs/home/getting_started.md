@@ -12,11 +12,11 @@ Before installing and running **LAVA**, ensure you have the following:
     Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH.
     Open **Anaconda Prompt** (or **Miniconda Prompt**) from the Start menu and run the line for the shell you use:
     ```console
-        conda init powershell
+    conda init powershell
     ```
     or
     ```console
-        conda init cmd.exe
+    conda init cmd.exe
     ```
     If you use more than one shell, run the line for each.
 
