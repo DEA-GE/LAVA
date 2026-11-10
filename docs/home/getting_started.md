@@ -9,13 +9,16 @@ Before installing and running **LAVA**, ensure you have the following:
 - [Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) (recommendation: Miniconda) or [Pixi](https://pixi.prefix.dev/latest/) to manage the python packages.
 
 !!! note
-    Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH (search for the following folders in your machine).
-
+    Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH.
+    Open **Anaconda Prompt** (or **Miniconda Prompt**) from the Start menu and run the line for the shell you use:
     ```console
-    # add to system PATH ("users" might differ on your machine)
-    set PATH=C:\users\miniconda
-    set PATH=C:\users\miniconda\Scripts
+        conda init powershell
     ```
+    or
+    ```console
+        conda init cmd.exe
+    ```
+    If you use more than one shell, run the line for each.
 
 - [Git](https://git-scm.com/install/) (optional, but recommended) if you plan to clone the repository using Git. Git is a version control system.
 - [VSCode](https://code.visualstudio.com/download) or another code editor for editing configuration files and scripts. In VSCode you should link the command prompt to the terminal by doing the following: a) Press *Ctrl + Shift + P* to show all commands. b) Type *Select Terminal: Select Default Profile* and click it. c) Click on "Command Prompt".
