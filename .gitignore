@@ -146,9 +146,5 @@ lava/weather_data_prep_Ea.py
 !tkinter_app/run_tab.py
 !tkinter_app/widgets.py
 !tkinter_app/_init__.py
-!tests
-!tests/test_results_workflow.py
-!tests/test_results_comparison.py
-!tests/test_workflow_plan_preview.py
 # --- pre-commit config ---
 !.pre-commit-config.yaml
