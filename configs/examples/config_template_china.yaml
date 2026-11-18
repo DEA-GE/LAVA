@@ -44,7 +44,6 @@ coastlines: 1
 wind_atlas: 1
 solar_atlas: 1
 country_name_solar_atlas: China # name of country, check https://globalsolaratlas.info/download  
-solar_atlas_measure: LTAym_YearlyMonthlyTotals # check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
 
 # protected areas
 protected_areas_source: file #WDPA or file or 0

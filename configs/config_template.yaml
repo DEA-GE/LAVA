@@ -52,7 +52,6 @@ population_year: 2020 #[situational][integer] year of population data (2015-2030
 wind_atlas: 1
 solar_atlas: 1
 country_name_solar_atlas: Denmark #[mandatory][string] name of country, check https://globalsolaratlas.info/download  
-solar_atlas_measure: LTAym_YearlyMonthlyTotals #[situational][string] check if this measures exists under "GIS Data" on https://globalsolaratlas.info/download for your country
 
 # protected areas
 protected_areas_source: WDPA #[mandatory][WDPA/file/0]

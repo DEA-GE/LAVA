@@ -386,11 +386,6 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
                 "type": "string",
                 "description": "Country name for Solar Atlas.",
             },
-            {
-                "key": "solar_atlas_measure",
-                "type": "string",
-                "description": "Solar Atlas measure id.",
-            },
         ],
     },
     {
@@ -1961,14 +1956,6 @@ def validate_configuration_documents(
                     "country_name_solar_atlas",
                     "Country name is required when Solar Atlas is enabled.",
                 )
-            if not nonempty(config.get("solar_atlas_measure")):
-                add(
-                    "error",
-                    "config.yaml",
-                    "solar_atlas_measure",
-                    "A Solar Atlas measure is required when Solar Atlas is enabled.",
-                )
-
     snakemake = as_mapping("config_snakemake.yaml")
     if "config_snakemake.yaml" in documents:
         if not nonempty(snakemake.get("study_region_name")):
