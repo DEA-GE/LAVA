@@ -5,12 +5,16 @@ country_name_solar_atlas: Denmark #[mandatory][string] name of country, check ht
 
 
 #--define study region----------------------------------------------------------------------
-# use ADM boundary 
-GADM_source: gadm #[mandatory][string: gadm/wb/gb], gadm: https://gadm.org/maps.html, wb (worldbank) or gb (geoboundaries): https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (downloaded via space2stats client, which can access worldbank and geoboundaries data) or "{region_name}" when looping with Snakemake
-GADM_region_name: Odense #[situational][string] exact name as in GADM file (NAME_{ADM_level}) or on WorldBank https://www.arcgis.com/apps/mapviewer/index.html?layers=d1b630859ed84e92a3782fed6a612b63 (NAM_{ADM_level}) or "{region_name}" when looping with Snakemake
-GADM_level: 2 #[situational][integer]
-# or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: #[situational][string] path relative to Raw_Spatial_Data/custom_study_area; keep GeoJSON files in a named collection folder, e.g. gadm_areas/{region_name}.geojson
+study_area:
+    source: adm 
+    # adm
+    GADM_source: gadm # gadm, wb (World Bank), or gb (geoBoundaries)
+    GADM_region_name: Odense # exact administrative name, or {region_name} for Snakemake
+    GADM_level: 2 # 0 for country, 1 or higher for subdivisions
+    # custom
+    custom_study_area_filename: # relative to Raw_Spatial_Data/custom_study_area, e.g. gadm_areas/{region_name}.geojson
+    # bbox
+    bbox: [9.8828, 54.9881, 10.8767, 55.7809] # [xmin, ymin, xmax, ymax] in EPSG:4326
 
 
 #--data retrieval----------------------------------------------------------------------

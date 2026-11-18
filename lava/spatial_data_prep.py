@@ -107,15 +107,11 @@ OSM_folder_name = config[
 ]  # usually same as country_code, only needed if OSM is to be considered
 DEM_filename = config["DEM_filename"]
 
-# use ADM boundary
-adm_source = config.get("GADM_source", "gadm")  # gadm or wb (WorldBank via space2stats)
-adm_region_name = config.get(
-    "GADM_region_name"
-)  # if country is studied, then use country name
+study_area_config = config.get("study_area")
+study_area_source = study_area_config.get("source", "")
+adm_region_name = study_area_config.get("GADM_region_name")
 country_code = config["country_code"]
-adm_level = config.get("GADM_level")
-# or use custom region
-custom_study_area_filename = config.get("custom_study_area_filename", None)
+custom_study_area_filename = study_area_config.get("custom_study_area_filename")
 
 # Initialize parser for command line arguments and define arguments
 parser = argparse.ArgumentParser()
@@ -174,35 +170,33 @@ if adm_region_name and "{region_name}" in adm_region_name:
 
 # get region boundary
 custom_study_area_filepath = None
-if custom_study_area_filename:
-    # check if dynamic filename is used
-    if "{region_name}" in custom_study_area_filename:
-        custom_study_area_filename = custom_study_area_filename.format(
-            region_name=region_name_clean
-        )
+if study_area_source == "custom" and custom_study_area_filename:
     print(f"\nUsing custom study area filename: {custom_study_area_filename}")
-    custom_study_area_filepath = os.path.join(
-        raw_spatial_data_folder, "custom_study_area", custom_study_area_filename
-    )
-    region = get_study_area_polygon(
-        custom_polygon_path=custom_study_area_filepath,
-    )
-    logging.info("using custom polygon for study area")
-else:
-    region = get_study_area_polygon(
-        source=adm_source,
-        country_code=country_code,
-        level=adm_level,
-        admin_name=adm_region_name,
-    )
-    if adm_source == "gadm" and adm_level == 0:
-        logging.info("using whole country as study area (source: GADM)")
-    elif adm_source == "gadm":
-        logging.info("using admin area within country as study area (source: GADM)")
-    else:
-        logging.info(
-            "using admin area within country as study area (source: World Bank)"
+    try:
+        custom_filename = custom_study_area_filename.format(region_name=args.region)
+    except (KeyError, ValueError) as exc:
+        raise ValueError(
+            f"Invalid custom study-area filename template {custom_study_area_filename!r}: {exc}"
+        ) from exc
+    custom_path = Path(custom_filename)
+    if custom_path.is_absolute() or ".." in custom_path.parts:
+        raise ValueError(
+            "Custom study-area paths must be relative to "
+            "Raw_Spatial_Data/custom_study_area and cannot contain '..'."
         )
+    custom_study_area_filepath = (
+        PROJECT_ROOT / "Raw_Spatial_Data" / "custom_study_area" / custom_path
+    )
+region = get_study_area_polygon(
+    source=study_area_source,
+    adm_source=study_area_config.get("GADM_source"),
+    country_code=country_code,
+    level=study_area_config.get("GADM_level"),
+    admin_name=adm_region_name,
+    custom_polygon_path=custom_study_area_filepath,
+    bbox=study_area_config.get("bbox"),
+)
+logging.info("using %s study area", study_area_source)
 
 # simplify polygon of study area (openeo can only handle polygons up to a certain size)
 try:
@@ -341,7 +335,7 @@ if population_data == "file":
 # landcover
 if config["landcover_source"] == "openeo":
     # use region file in EPSG 4326 because openeo default file is in 4326
-    if custom_study_area_filename:
+    if study_area_source == "custom":
         landcover_aoi_path = custom_study_area_filepath
     else:
         landcover_aoi_path = os.path.join(

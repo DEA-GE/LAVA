@@ -337,6 +337,16 @@ def rebuild_from_widgets(
         if not stripped:
             return type(original)()
         items = [item.strip() for item in stripped.split(",") if item.strip()]
+        if path.endswith("study_area.bbox"):
+            converted = []
+            for item in items:
+                try:
+                    converted.append(float(item))
+                except ValueError:
+                    converted.append(item)
+            sequence = type(original)()
+            sequence.extend(converted)
+            return sequence
         sample = next((item for item in original if item is not None), None)
 
         def _convert(item: str) -> Any:
@@ -372,6 +382,11 @@ def rebuild_from_widgets(
     stripped = value.strip()
     if stripped == "" or stripped.lower() == "null":
         return None
+    if path.endswith("study_area.GADM_level"):
+        try:
+            return int(stripped)
+        except ValueError:
+            return stripped
     if isinstance(original, bool):
         return stripped.lower() in {"1", "true", "yes", "on"}
     if isinstance(original, int) and not isinstance(original, bool):
@@ -3758,8 +3773,28 @@ class ConfigurationTab(ttk.Frame):
             var = tk.StringVar(value=initial)
             registry[path] = var
             var.trace_add("write", lambda *_: on_change())
-            entry = ttk.Entry(row, textvariable=var, width=row_width)
-            entry.pack(side="left", fill="x", expand=True)
+            if path.endswith("study_area.source"):
+                widget = ttk.Combobox(
+                    row,
+                    textvariable=var,
+                    values=("adm", "custom", "bbox"),
+                    state="readonly",
+                )
+            elif path.endswith("study_area.GADM_source"):
+                widget = ttk.Combobox(
+                    row, textvariable=var, values=GADM_SOURCE_OPTIONS, state="readonly"
+                )
+            else:
+                widget = ttk.Entry(row, textvariable=var, width=row_width)
+            widget.pack(side="left", fill="x", expand=True)
+            if path.endswith("study_area.custom_study_area_filename"):
+                ttk.Button(
+                    row,
+                    text="Browse",
+                    command=lambda variable=var: self._browse_for_parameter(
+                        "custom_study_area_filename", variable
+                    ),
+                ).pack(side="left", padx=(6, 0))
 
     def _on_mapping_param_change(self, section_index: int, param_index: int) -> None:
         registry = self.mapping_registries.get((section_index, param_index))

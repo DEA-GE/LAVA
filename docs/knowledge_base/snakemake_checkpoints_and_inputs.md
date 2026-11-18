@@ -236,7 +236,7 @@ If authentication, downloading, transformation, or validation fails:
 Other regions whose checkpoints and inputs are valid remain independently
 trackable.
 
-## Region names and backward compatibility
+## Region names and custom study areas
 
 The configured original name identifies the GADM or custom source boundary,
 while a shared canonical name identifies generated paths. For example,
@@ -246,10 +246,11 @@ generated files.
 
 Custom study-area GeoJSON files should be grouped in named collection folders,
 for example `Raw_Spatial_Data/custom_study_area/gadm_areas/SjÃ¦lland.geojson`,
-and `custom_study_area_filename` should contain the relative path
-`gadm_areas/{region_name}.geojson`. Older flat files and files using the
-canonical cleaned filename remain accepted as fallbacks. Existing prepared
-caches without the newer land-cover metadata can also be reused when their real
+set `study_area.source` to `custom`, and set
+`study_area.custom_study_area_filename` to the relative path
+`gadm_areas/{region_name}.geojson`. The configured path must match the source
+file; there is no fallback to a flat path or cleaned filename. Existing prepared
+caches without the newer land-cover metadata can still be reused when their real
 raster properties match the current request.
 
 ## Inspect the decision outside the UI

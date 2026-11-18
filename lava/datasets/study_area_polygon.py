@@ -1,6 +1,12 @@
+import math
+from pathlib import Path
+
 import geopandas as gpd
 import pygadm
+from shapely.geometry import box
 from space2stats_client import Space2StatsClient
+
+from lava.project import PROJECT_ROOT
 
 
 def _download_admin_boundary_wb(
@@ -139,23 +145,23 @@ def _download_admin_boundary_gadm(
 
 
 def get_study_area_polygon(
-    source: str | None = None,
+    source: str,
+    adm_source: str | None = None,
     country_code: str | None = None,
     level: int | None = None,
     admin_name: str | None = None,
-    custom_polygon_path: str | None = None,
+    custom_polygon_path: str | Path | None = None,
+    bbox: list[float] | tuple[float, ...] | None = None,
 ) -> gpd.GeoDataFrame:
     """
-    Retrieve the custom or administrative study boundary in EPSG:4326.
-
-    If custom_polygon_path is given, all other arguments are ignored and
-    can be omitted.
+    Retrieve an administrative, custom, or bounding-box boundary in EPSG:4326.
 
     Parameters:
     -----------
-    source : {'gadm', 'wb', 'gb'}, optional
-        Administrative boundary source (GADM, World Bank, geoBoundaries).
-        Required unless custom_polygon_path is given.
+    source : {'adm', 'custom', 'bbox'}
+        Study-area selection method.
+    adm_source : {'gadm', 'wb', 'gb'}, optional
+        Administrative boundary provider, required for 'adm'.
     country_code : str, optional
         ISO 3166-1 alpha-3 country code (e.g., 'KEN', 'TUR', 'DEU').
         Required unless custom_polygon_path is given.
@@ -166,6 +172,8 @@ def get_study_area_polygon(
         If None, returns all boundaries at the specified level.
     custom_polygon_path : str, optional
         Path to a custom polygon file; dissolved into a single geometry.
+    bbox : sequence of four floats, optional
+        Bounding box [xmin, ymin, xmax, ymax] in EPSG:4326.
 
     Returns:
     --------
@@ -177,38 +185,61 @@ def get_study_area_polygon(
     ValueError
         If the source is unknown, a CRS is missing, or no boundary is found.
     """
-    if custom_polygon_path:
-        region = gpd.read_file(custom_polygon_path).dissolve()
-        if region.crs is None:
-            raise ValueError(
-                f"Custom study-area polygon has no CRS: {custom_polygon_path}"
-            )
-        region = region.to_crs("EPSG:4326")
-        if region.empty:
-            raise ValueError(
-                f"Custom study-area polygon is empty: {custom_polygon_path}"
-            )
-        return region
+    if source == "custom":
+        if not custom_polygon_path:
+            raise ValueError("custom_polygon_path is required when source='custom'.")
 
-    if source is None or country_code is None:
-        raise ValueError(
-            "'source' and 'country_code' are required when no custom_polygon_path is given."
+        polygon_file = (
+            PROJECT_ROOT
+            / "Raw_Spatial_Data"
+            / "custom_study_area"
+            / custom_polygon_path
         )
-    if source == "gadm":
+        region = gpd.read_file(polygon_file)
+        if region.crs is None:
+            raise ValueError(f"Custom study-area polygon has no CRS: {polygon_file}")
+        if region.empty:
+            raise ValueError(f"Custom study-area polygon is empty: {polygon_file}")
+        return region.dissolve().to_crs("EPSG:4326")
+
+    if source == "bbox":
+        if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+            raise ValueError("bbox must contain [xmin, ymin, xmax, ymax].")
+        try:
+            xmin, ymin, xmax, ymax = (float(value) for value in bbox)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("bbox coordinates must be numbers.") from exc
+        if not all(math.isfinite(value) for value in (xmin, ymin, xmax, ymax)) or not (
+            -180 <= xmin < xmax <= 180 and -90 <= ymin < ymax <= 90
+        ):
+            raise ValueError(
+                "bbox coordinates must be ordered and within EPSG:4326 bounds."
+            )
+        return gpd.GeoDataFrame(geometry=[box(xmin, ymin, xmax, ymax)], crs="EPSG:4326")
+
+    if source != "adm":
+        raise ValueError(f"source must be 'adm', 'custom' or 'bbox', got: {source!r}")
+    if not country_code:
+        raise ValueError("country_code is required when source='adm'.")
+    if not isinstance(level, int) or isinstance(level, bool) or level < 0:
+        raise ValueError("GADM_level must be a non-negative integer.")
+    if adm_source == "gadm":
         region = _download_admin_boundary_gadm(country_code, level, admin_name)
-    elif source in {"wb", "gb"}:
+    elif adm_source in {"wb", "gb"}:
         region = _download_admin_boundary_wb(
             country_code=country_code,
             level=level,
             admin_name=admin_name,
-            source=source,
+            source=adm_source,
         )
         if not region.empty:
             if region.crs is None:
                 raise ValueError("Downloaded administrative boundary has no CRS.")
             region = region.to_crs("EPSG:4326")
     else:
-        raise ValueError(f"ADM_source must be 'gadm', 'wb' or 'gb', got: {source}")
+        raise ValueError(
+            f"GADM_source must be 'gadm', 'wb' or 'gb', got: {adm_source!r}"
+        )
 
     if region.empty:
         raise ValueError(

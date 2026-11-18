@@ -91,14 +91,8 @@ def resolve_custom_study_area_path(
     configured_region: str,
     filename_template: str,
     project_root: str | Path = PROJECT_ROOT,
-) -> tuple[Path, bool]:
-    """Resolve a custom study area inside a named collection folder.
-
-    The name supplied by the workflow/GADM selection is authoritative.  A
-    cleaned-name candidate and the former flat-file layout are accepted as
-    backward-compatible fallbacks. The boolean return value tells callers
-    whether a legacy fallback was selected.
-    """
+) -> Path:
+    """Resolve the configured study-area filename using the original region name."""
     root = Path(project_root)
     custom_directory = root / "Raw_Spatial_Data" / "custom_study_area"
     try:
@@ -113,15 +107,35 @@ def resolve_custom_study_area_path(
             "Custom study-area paths must be relative to "
             "Raw_Spatial_Data/custom_study_area and cannot contain '..'."
         )
-    original_path = custom_directory / relative_original
+    return custom_directory / relative_original
+
+
+def resolve_custom_weather_area_path(
+    *,
+    configured_region: str,
+    filename_template: str,
+    project_root: str | Path = PROJECT_ROOT,
+) -> tuple[Path, bool]:
+    """Resolve weather extent paths, including their legacy filename fallbacks."""
+    root = Path(project_root)
+    custom_directory = root / "Raw_Spatial_Data" / "custom_study_area"
+    original_path = resolve_custom_study_area_path(
+        configured_region=configured_region,
+        filename_template=filename_template,
+        project_root=root,
+    )
+    relative_original = original_path.relative_to(custom_directory)
     uses_collection_folder = relative_original.parent != Path(".")
     if original_path.is_file():
         return original_path, not uses_collection_folder
 
     cleaned_region = canonical_region_name(configured_region)
-    cleaned_name = filename_template.format(region_name=cleaned_region)
-    relative_cleaned = Path(cleaned_name)
-    cleaned_path = custom_directory / relative_cleaned
+    cleaned_path = resolve_custom_study_area_path(
+        configured_region=cleaned_region,
+        filename_template=filename_template,
+        project_root=root,
+    )
+    relative_cleaned = cleaned_path.relative_to(custom_directory)
     if cleaned_path != original_path and cleaned_path.is_file():
         return cleaned_path, True
 
@@ -417,6 +431,18 @@ def build_spatial_prep_plan(
     if not isinstance(scenario_mapping, dict):
         scenario_mapping = {}
 
+    study_area = config.get("study_area")
+    if not isinstance(study_area, Mapping):
+        raise ValueError("config.yaml must contain a study_area mapping.")
+    if study_area.get("source") not in ("adm", "custom", "bbox"):
+        raise ValueError("study_area.source must be 'adm', 'custom' or 'bbox'.")
+    if study_area.get("source") == "custom" and not study_area.get(
+        "custom_study_area_filename"
+    ):
+        raise ValueError(
+            "study_area.custom_study_area_filename is required for custom source."
+        )
+
     for configured_region in configured_regions:
         region = canonical_region_name(configured_region)
         data_directory = root / "data" / region
@@ -430,18 +456,19 @@ def build_spatial_prep_plan(
             "issues": [],
             "components": {},
         }
-        custom_template = str(config.get("custom_study_area_filename") or "").strip()
+        custom_template = (
+            str(study_area.get("custom_study_area_filename") or "").strip()
+            if study_area["source"] == "custom"
+            else ""
+        )
         if custom_template:
             try:
-                study_area_path, used_legacy_name = resolve_custom_study_area_path(
+                study_area_path = resolve_custom_study_area_path(
                     configured_region=configured_region,
                     filename_template=custom_template,
                     project_root=root,
                 )
-                region_plan["study_area"] = {
-                    "path": str(study_area_path),
-                    "legacy_cleaned_name": used_legacy_name,
-                }
+                region_plan["study_area"] = {"path": str(study_area_path)}
                 if not study_area_path.is_file():
                     issue = {
                         "path": str(study_area_path),

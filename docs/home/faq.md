@@ -10,7 +10,13 @@ By default, all outputs from the pipeline are stored under the `data/` directory
 
 To add a new region (area of interest) for analysis, follow these steps:
 
-1. **Prepare the region data:** Obtain a GeoJSON that delineates the new region's boundary. Create a named collection folder below `Raw_Spatial_Data/custom_study_area/` and place the file there, for example `Raw_Spatial_Data/custom_study_area/municipalities/Odense.geojson`. Set `custom_study_area_filename` in `config.yaml` to the path relative to `custom_study_area`, such as `municipalities/Odense.geojson`. For workflows over several files, use a template such as `municipalities/{region_name}.geojson`.
+Configure the `study_area` mapping in `config.yaml`:
+
+- Set `source: adm` and choose `GADM_source` (`gadm`, `wb`, or `gb`), `GADM_level`, and, for a specific subdivision, `GADM_region_name`. Use `{region_name}` to select each Snakemake region by name.
+- Set `source: custom` and provide `custom_study_area_filename` relative to `Raw_Spatial_Data/custom_study_area/`. For example, place a GeoJSON in `municipalities/Odense.geojson`, or use `municipalities/{region_name}.geojson` for multiple regions.
+- Set `source: bbox` and supply `bbox: [xmin, ymin, xmax, ymax]` in EPSG:4326.
+
+Existing configurations with top-level `GADM_source`, `GADM_region_name`, `GADM_level`, or `custom_study_area_filename` must be moved into `study_area` and given a `source`. The separate `weather_data_extend` and weather `bbox` settings still control the weather-data download extent.
 
 ## Do I need to download satellite images manually?
 

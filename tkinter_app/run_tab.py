@@ -53,6 +53,7 @@ from lava.utils.spatial_prep_plan import (
     build_spatial_prep_plan,
     format_spatial_prep_plan,
     resolve_custom_study_area_path,
+    resolve_custom_weather_area_path,
 )
 
 try:
@@ -2627,16 +2628,20 @@ class RunTab(ttk.Frame):
                     "DEM_filename is required for spatial data preparation.",
                 )
 
-            custom_name = str(config.get("custom_study_area_filename") or "").strip()
+            study_area = config.get("study_area")
+            custom_name = (
+                str(study_area.get("custom_study_area_filename") or "").strip()
+                if isinstance(study_area, Mapping)
+                and study_area.get("source") == "custom"
+                else ""
+            )
             if custom_name:
                 for region in regions or [str(config.get("study_region_name") or "")]:
                     try:
-                        resolved_path, used_legacy_name = (
-                            resolve_custom_study_area_path(
-                                configured_region=region,
-                                filename_template=custom_name,
-                                project_root=PARENT_DIR,
-                            )
+                        resolved_path = resolve_custom_study_area_path(
+                            configured_region=region,
+                            filename_template=custom_name,
+                            project_root=PARENT_DIR,
                         )
                     except ValueError:
                         resolved_path = (
@@ -2645,7 +2650,6 @@ class RunTab(ttk.Frame):
                             / "custom_study_area"
                             / custom_name
                         )
-                        used_legacy_name = False
                         self._add_preflight_issue(
                             report,
                             "error",
@@ -2656,14 +2660,6 @@ class RunTab(ttk.Frame):
                         f"Custom study area ({region})",
                         resolved_path,
                     )
-                    if used_legacy_name:
-                        self._add_preflight_issue(
-                            report,
-                            "warning",
-                            "Using a legacy flat or cleaned custom study-area path "
-                            f"for {region}: {resolved_path}. Move the GeoJSON into "
-                            "a named collection folder when convenient.",
-                        )
 
             if str(config.get("landcover_source") or "").strip().lower() == "file":
                 name = str(config.get("landcover_filename") or "").strip()
@@ -2748,7 +2744,7 @@ class RunTab(ttk.Frame):
             ):
                 try:
                     weather_area_path, _used_legacy_path = (
-                        resolve_custom_study_area_path(
+                        resolve_custom_weather_area_path(
                             configured_region=str(
                                 config.get("study_region_name") or ""
                             ),

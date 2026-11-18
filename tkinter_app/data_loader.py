@@ -5,6 +5,7 @@ Utility helpers to load initial configuration sections and sample result data.
 from __future__ import annotations
 
 import json
+import math
 from copy import deepcopy
 import ast
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
@@ -31,7 +32,7 @@ SNAKEMAKE_PATH = CONFIGS_PATH / "config_snakemake.yaml"
 SAMPLE_RESULTS_PATH = ROOT_DIR / "src" / "sample-results.json"
 CUSTOM_STUDY_AREA_PATH = ROOT_DIR / "Raw_Spatial_Data" / "custom_study_area"
 
-GADM_SOURCE_OPTIONS = ("gadm", "wb")
+GADM_SOURCE_OPTIONS = ("gadm", "wb", "gb")
 LANDCOVER_SOURCE_OPTIONS = ("openeo", "file")
 OSM_SOURCE_OPTIONS = ("overpass", "geofabrik")
 POPULATION_SOURCE_OPTIONS = ("worldpop", "file", "0")
@@ -222,31 +223,12 @@ CONFIG_SECTION_DEFINITIONS: List[Dict[str, Any]] = [
     {
         "name": "region_definition",
         "displayName": "Region Definition",
-        "description": "Administrative or custom study area inputs.",
+        "description": "Administrative, custom, or bounding-box study area inputs.",
         "parameters": [
             {
-                "key": "GADM_source",
-                "type": "string",
-                "description": "Administrative-boundary source ('gadm' or 'wb').",
-            },
-            {
-                "key": "GADM_region_name",
-                "type": "string",
-                "description": "Exact GADM name given a specific administrative level. Found in column NAME_(level) - e.g. NAME_1 .",
-            },
-            {
-                "key": "GADM_level",
-                "type": "integer",
-                "description": "GADM admin level.",
-            },
-            {
-                "key": "custom_study_area_filename",
-                "type": "nullable_string",
-                "description": (
-                    "GeoJSON path relative to Raw_Spatial_Data/custom_study_area. "
-                    "Keep files in a named collection folder and use "
-                    "{region_name}.geojson for Snakemake iteration."
-                ),
+                "key": "study_area",
+                "type": "mapping",
+                "description": "Select adm, custom, or bbox and configure its inputs.",
             },
         ],
     },
@@ -1801,42 +1783,79 @@ def validate_configuration_documents(
                 "Country code must contain exactly three letters.",
             )
 
-        custom_area = nonempty(config.get("custom_study_area_filename"))
-        gadm_name = nonempty(config.get("GADM_region_name"))
-        gadm_level = nonempty(config.get("GADM_level"))
-        if not custom_area and not (gadm_name and gadm_level):
+        area = config.get("study_area")
+        if not isinstance(area, Mapping):
             add(
                 "error",
                 "config.yaml",
-                "GADM_region_name",
-                "Provide both GADM region name and level, or a custom study-area file.",
+                "study_area",
+                "A study_area mapping is required.",
             )
-        elif custom_area and (gadm_name or gadm_level):
-            add(
-                "warning",
-                "config.yaml",
-                "custom_study_area_filename",
-                "The custom study area overrides the configured GADM region.",
-            )
-        if custom_area and Path(
-            str(config.get("custom_study_area_filename"))
-        ).parent == Path("."):
-            add(
-                "warning",
-                "config.yaml",
-                "custom_study_area_filename",
-                "Place the GeoJSON in a named collection folder and include that "
-                "folder in the relative path.",
-            )
-
-        gadm_source = str(config.get("GADM_source") or "gadm").strip()
-        if gadm_source not in GADM_SOURCE_OPTIONS:
+        elif area.get("source") not in ("adm", "custom", "bbox"):
             add(
                 "error",
                 "config.yaml",
-                "GADM_source",
-                "Administrative-boundary source must be 'gadm' or 'wb'.",
+                "study_area",
+                "Study-area source must be 'adm', 'custom', or 'bbox'.",
             )
+        elif area["source"] == "adm":
+            provider = area.get("GADM_source")
+            level = area.get("GADM_level")
+            if provider not in GADM_SOURCE_OPTIONS:
+                add(
+                    "error",
+                    "config.yaml",
+                    "study_area",
+                    "GADM_source must be 'gadm', 'wb', or 'gb'.",
+                )
+            if not isinstance(level, int) or isinstance(level, bool) or level < 0:
+                add(
+                    "error",
+                    "config.yaml",
+                    "study_area",
+                    "GADM_level must be a non-negative integer.",
+                )
+            elif provider in ("wb", "gb") and level > 2:
+                add(
+                    "error",
+                    "config.yaml",
+                    "study_area",
+                    "World Bank and geoBoundaries support levels 0, 1, and 2.",
+                )
+        elif area["source"] == "custom":
+            custom_filename = area.get("custom_study_area_filename")
+            if not nonempty(custom_filename):
+                add(
+                    "error",
+                    "config.yaml",
+                    "study_area",
+                    "A custom study-area filename is required.",
+                )
+            elif Path(str(custom_filename)).parent == Path("."):
+                add(
+                    "warning",
+                    "config.yaml",
+                    "study_area",
+                    "Place the GeoJSON in a named collection folder.",
+                )
+        else:
+            bounds = area.get("bbox")
+            try:
+                if not isinstance(bounds, (list, tuple)) or len(bounds) != 4:
+                    raise ValueError("Expected four coordinates.")
+                west, south, east, north = (float(value) for value in bounds)
+                valid = all(
+                    math.isfinite(value) for value in (west, south, east, north)
+                ) and (-180 <= west < east <= 180 and -90 <= south < north <= 90)
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                add(
+                    "error",
+                    "config.yaml",
+                    "study_area",
+                    "Study-area bbox must contain ordered EPSG:4326 coordinates [xmin, ymin, xmax, ymax].",
+                )
 
         landcover_source = str(config.get("landcover_source") or "").strip()
         if landcover_source and landcover_source not in LANDCOVER_SOURCE_OPTIONS:

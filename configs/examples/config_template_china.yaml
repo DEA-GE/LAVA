@@ -4,11 +4,13 @@ country_code: CHN #3-letter ISO code; also needed for global wind atlas
 
 
 #--define study region----------------------------------------------------------------------
-# use GADM boundary (https://gadm.org/maps.html)
-GADM_region_name:  #exact name as in GADM file (NAME_{gadm_level})
-GADM_level: 
-# or use custom region (if file is passed, then this is used instead of the GADM definitions above)
-custom_study_area_filename: 'gadm_areas/{region_name}.geojson' # path relative to Raw_Spatial_Data/custom_study_area; use a distinct collection folder when preparing several datasets or levels
+study_area:
+    source: custom # adm, custom, or bbox
+    GADM_source: gadm # gadm, wb, or gb
+    GADM_region_name: # exact administrative name, or {region_name}
+    GADM_level: 1
+    custom_study_area_filename: 'gadm_areas/{region_name}.geojson' # relative to Raw_Spatial_Data/custom_study_area
+    bbox: [116.0, 39.0, 117.0, 41.0] # [xmin, ymin, xmax, ymax] in EPSG:4326
 
 
 #--data retrieval----------------------------------------------------------------------
@@ -84,10 +86,6 @@ model_areas_filename:
 #--advanced details----------------------------------------------------------------------
 
 force_osm_download: 0 #if set to 1, OSM data will be downloaded even if it is already present in the folder
-
-# simplification tolerance for study area
-study_area:
-  tolerance: 0.0005
 
 # shape simplification for overpass
 target_vertices:  360

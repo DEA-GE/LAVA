@@ -8,7 +8,7 @@ import yaml
 from lava.project import PROJECT_ROOT, resolve_project_path
 from lava.datasets.study_area_polygon import get_study_area_polygon
 from lava.utils.common import clean_region_name
-from lava.utils.spatial_prep_plan import resolve_custom_study_area_path
+from lava.utils.spatial_prep_plan import resolve_custom_weather_area_path
 
 logging.basicConfig(level=logging.INFO)
 
@@ -95,7 +95,9 @@ if weather_data_extend == "gadm_country":
     region_name = country_code
 elif weather_data_extend == "wb_country":
     country_code = config["country_code"]
-    region = get_study_area_polygon(source="wb", country_code=country_code, level=0)
+    region = get_study_area_polygon(
+        source="adm", adm_source="wb", country_code=country_code, level=0
+    )
     if region.empty:
         raise ValueError(f"No administrative boundary found for {country_code}")
     logging.info("using admin area within country as study area (source: World Bank)")
@@ -118,7 +120,7 @@ elif weather_data_extend not in (
     "downloaded_region",
 ):  # custom study area
     custom_study_area_filename = weather_data_extend
-    regionPath, used_legacy_study_area_path = resolve_custom_study_area_path(
+    regionPath, used_legacy_study_area_path = resolve_custom_weather_area_path(
         configured_region=study_region_name,
         filename_template=custom_study_area_filename,
         project_root=dirname,
