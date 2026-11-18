@@ -171,7 +171,7 @@ def get_study_area_polygon(
         Name of the administrative area to select at the given level.
         If None, returns all boundaries at the specified level.
     custom_polygon_path : str, optional
-        Path to a custom polygon file; dissolved into a single geometry.
+        Path relative to Raw_Spatial_Data/custom_study_area; dissolved into a single geometry.
     bbox : sequence of four floats, optional
         Bounding box [xmin, ymin, xmax, ymax] in EPSG:4326.
 
@@ -189,11 +189,14 @@ def get_study_area_polygon(
         if not custom_polygon_path:
             raise ValueError("custom_polygon_path is required when source='custom'.")
 
+        custom_path = Path(custom_polygon_path)
+        if custom_path.is_absolute() or ".." in custom_path.parts:
+            raise ValueError(
+                "Custom study-area paths must be relative to "
+                "Raw_Spatial_Data/custom_study_area and cannot contain '..'."
+            )
         polygon_file = (
-            PROJECT_ROOT
-            / "Raw_Spatial_Data"
-            / "custom_study_area"
-            / custom_polygon_path
+            PROJECT_ROOT / "Raw_Spatial_Data" / "custom_study_area" / custom_path
         )
         region = gpd.read_file(polygon_file)
         if region.crs is None:

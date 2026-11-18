@@ -169,31 +169,17 @@ if adm_region_name and "{region_name}" in adm_region_name:
     adm_region_name = adm_region_name.format(region_name=args.region)
 
 # get region boundary
-custom_study_area_filepath = None
-if study_area_source == "custom" and custom_study_area_filename:
-    print(f"\nUsing custom study area filename: {custom_study_area_filename}")
-    try:
-        custom_filename = custom_study_area_filename.format(region_name=args.region)
-    except (KeyError, ValueError) as exc:
-        raise ValueError(
-            f"Invalid custom study-area filename template {custom_study_area_filename!r}: {exc}"
-        ) from exc
-    custom_path = Path(custom_filename)
-    if custom_path.is_absolute() or ".." in custom_path.parts:
-        raise ValueError(
-            "Custom study-area paths must be relative to "
-            "Raw_Spatial_Data/custom_study_area and cannot contain '..'."
-        )
-    custom_study_area_filepath = (
-        PROJECT_ROOT / "Raw_Spatial_Data" / "custom_study_area" / custom_path
-    )
 region = get_study_area_polygon(
     source=study_area_source,
     adm_source=study_area_config.get("GADM_source"),
     country_code=country_code,
     level=study_area_config.get("GADM_level"),
     admin_name=adm_region_name,
-    custom_polygon_path=custom_study_area_filepath,
+    custom_polygon_path=(
+        custom_study_area_filename.format(region_name=args.region)
+        if study_area_source == "custom" and custom_study_area_filename
+        else None
+    ),
     bbox=study_area_config.get("bbox"),
 )
 logging.info("using %s study area", study_area_source)
@@ -335,12 +321,9 @@ if population_data == "file":
 # landcover
 if config["landcover_source"] == "openeo":
     # use region file in EPSG 4326 because openeo default file is in 4326
-    if study_area_source == "custom":
-        landcover_aoi_path = custom_study_area_filepath
-    else:
-        landcover_aoi_path = os.path.join(
-            output_dir, f"{region_name_clean}_EPSG4326.geojson"
-        )
+    landcover_aoi_path = os.path.join(
+        output_dir, f"{region_name_clean}_EPSG4326.geojson"
+    )
     processed_landcover_filePath = prepare_landcover_openeo(
         study_area, landcover_aoi_path, config["resolution_landcover"]
     )
