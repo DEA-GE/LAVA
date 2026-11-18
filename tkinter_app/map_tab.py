@@ -113,9 +113,9 @@ class MapTab(ttk.Frame):
             state="disabled",
         )
         self.preset_add_button.grid(row=0, column=4, padx=(6, 0), pady=8)
-        ttk.Button(
-            presets, text="Refresh", command=self._refresh_preset_regions
-        ).grid(row=0, column=5, padx=8, pady=8)
+        ttk.Button(presets, text="Refresh", command=self._refresh_preset_regions).grid(
+            row=0, column=5, padx=8, pady=8
+        )
         ttk.Label(presets, text="Technology filter:").grid(
             row=1, column=0, sticky="w", padx=(8, 6), pady=(0, 8)
         )
@@ -126,9 +126,7 @@ class MapTab(ttk.Frame):
             state="readonly",
             width=24,
         )
-        self.preset_technology_combo.grid(
-            row=1, column=1, sticky="w", pady=(0, 8)
-        )
+        self.preset_technology_combo.grid(row=1, column=1, sticky="w", pady=(0, 8))
         self.preset_technology_combo.bind(
             "<<ComboboxSelected>>", lambda _event: self._apply_preset_filters()
         )
@@ -141,9 +139,7 @@ class MapTab(ttk.Frame):
             values=("All",),
             state="readonly",
         )
-        self.preset_scenario_combo.grid(
-            row=1, column=3, sticky="ew", pady=(0, 8)
-        )
+        self.preset_scenario_combo.grid(row=1, column=3, sticky="ew", pady=(0, 8))
         self.preset_scenario_combo.bind(
             "<<ComboboxSelected>>", lambda _event: self._apply_preset_filters()
         )
@@ -370,7 +366,9 @@ class MapTab(ttk.Frame):
             for path in available
             if (identity := self._available_land_identity(region, path)) is not None
         ]
-        technologies = sorted({identity[0] for identity in identities}, key=str.casefold)
+        technologies = sorted(
+            {identity[0] for identity in identities}, key=str.casefold
+        )
         scenarios = sorted({identity[1] for identity in identities}, key=str.casefold)
         technology_values = ["All", *technologies]
         scenario_values = ["All", *scenarios]
@@ -470,7 +468,9 @@ class MapTab(ttk.Frame):
             return
         selected_paths = {variable.get().strip() for variable in self.file_vars}
         free_slots = [
-            index for index, variable in enumerate(self.file_vars) if not variable.get().strip()
+            index
+            for index, variable in enumerate(self.file_vars)
+            if not variable.get().strip()
         ]
         added = 0
         for label, path in matching:
@@ -484,8 +484,12 @@ class MapTab(ttk.Frame):
             added += 1
         if added:
             remaining = len(matching) - added
-            suffix = f" {remaining} matching layer(s) did not fit." if remaining > 0 else ""
-            self._set_status(f"Added {added} matching result layer(s).{suffix}", "success")
+            suffix = (
+                f" {remaining} matching layer(s) did not fit." if remaining > 0 else ""
+            )
+            self._set_status(
+                f"Added {added} matching result layer(s).{suffix}", "success"
+            )
         else:
             self._set_status(
                 "Matching result layers are already selected or all layer slots are full.",
@@ -496,14 +500,20 @@ class MapTab(ttk.Frame):
         label = self.preset_layer_var.get().strip()
         path = self.preset_layer_paths.get(label)
         if path is None:
-            messagebox.showwarning("Add Region Layer", "Select an available layer first.")
+            messagebox.showwarning(
+                "Add Region Layer", "Select an available layer first."
+            )
             return
         resolved = str(path.resolve())
         if any(var.get().strip() == resolved for var in self.file_vars):
             self._set_status(f"{label} is already selected.", "warning")
             return
         slot = next(
-            (index for index, variable in enumerate(self.file_vars) if not variable.get().strip()),
+            (
+                index
+                for index, variable in enumerate(self.file_vars)
+                if not variable.get().strip()
+            ),
             None,
         )
         if slot is None:
@@ -651,7 +661,9 @@ class MapTab(ttk.Frame):
                                 features.append(
                                     {
                                         "type": "Feature",
-                                        "properties": dict(feature.get("properties") or {}),
+                                        "properties": dict(
+                                            feature.get("properties") or {}
+                                        ),
                                         "geometry": transform_geom(
                                             source_crs, "EPSG:4326", dict(geometry)
                                         ),
@@ -680,7 +692,9 @@ class MapTab(ttk.Frame):
                             }
                         )
                     if not any(layer["index"] == idx for layer in layers):
-                        raise ValueError("The GeoPackage contains no non-empty vector layers.")
+                        raise ValueError(
+                            "The GeoPackage contains no non-empty vector layers."
+                        )
                 else:
                     raise ValueError(
                         "Unsupported file type. Choose .tif, .tiff, .geojson, or .gpkg."

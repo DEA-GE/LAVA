@@ -177,4 +177,3 @@ class TextSyntaxHighlighter:
             except Exception:
                 pass
             self._after_id = None
-

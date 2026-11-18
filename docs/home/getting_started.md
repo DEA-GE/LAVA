@@ -6,19 +6,22 @@ This section will guide you through setting up the LAVA project on your local sy
 
 Before installing and running **LAVA**, ensure you have the following:
 
-- [Pixi](https://pixi.prefix.dev/latest/) (recommended) or [Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) (Anaconda or Miniconda) or  installed on your system for managing the environment and Python.
+- [Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) (recommendation: Miniconda) or [Pixi](https://pixi.prefix.dev/latest/) to manage the python packages.
 
 !!! note
-    Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH (search for the following folders in your machine).
-
+    Having installed Conda check that you have access to conda in your terminal (or Anaconda Prompt on Windows) with the command `conda --version`. Furthermore, make sure to add conda to your system PATH.
+    Open **Anaconda Prompt** (or **Miniconda Prompt**) from the Start menu and run the line for the shell you use:
     ```console
-    # add to system PATH ("users" might differ on your machine)
-    set PATH=C:\users\miniconda
-    set PATH=C:\users\miniconda\Scripts
+    conda init powershell
     ```
+    or
+    ```console
+    conda init cmd.exe
+    ```
+    If you use more than one shell, run the line for each.
 
-- [Git](https://git-scm.com/install/) (optional) if you plan to clone the repository using Git.
 - [VSCode](https://code.visualstudio.com/download) or another code editor for editing configuration files and scripts. In VSCode you should link the command prompt to the terminal by doing the following: a) Press *Ctrl + Shift + P* to show all commands. b) Type *Select Terminal: Select Default Profile* and click it. c) Click on "Command Prompt".
+- [Git](https://git-scm.com/install/) (optional, but recommended) if you plan to clone the repository using Git. Git is a version control system.
 - A system with sufficient disk space (min. 15 GB) and RAM (16 GB or higher), especially if processing large datasets.
 
 More information on the setup of git can be found [here](https://fneum.github.io/data-science-for-esm/dsesm/setup/#git-option-more-advanced).

@@ -20,12 +20,12 @@ from pyproj import CRS
 
 from lava.project import PROJECT_ROOT
 
-from lava.utils.exclusion_inputs import (
+from lava.utils.exclusion_inputs import (  # noqa: E402
     inspect_prepared_input_files,
     resolve_exclusion_inputs,
 )
-from lava.utils.tech_config import resolve_selected_scenarios
-from lava.utils.region_names import canonical_region_name
+from lava.utils.tech_config import resolve_selected_scenarios  # noqa: E402
+from lava.utils.region_names import canonical_region_name  # noqa: E402
 
 
 LANDCOVER_METADATA_VERSION = 1

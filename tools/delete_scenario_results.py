@@ -138,6 +138,9 @@ def main() -> int:
     parser.add_argument(
         "--yes", action="store_true", help="Perform deletion after preview"
     )
+    parser.add_argument(
+        "--yes", action="store_true", help="Perform deletion after preview"
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     try:
