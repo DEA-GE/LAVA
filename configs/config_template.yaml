@@ -1,6 +1,7 @@
 
 study_region_name: Odense #[mandatory][string] all files and the results folder will be named like that; will be replaced by Snakemake when looping through multiple regions
 country_code: DNK #[mandatory][string: 3-letter ISO code] also needed for global wind atlas
+country_name_solar_atlas: Denmark #[mandatory][string] name of country, check https://globalsolaratlas.info/download  
 
 
 #--define study region----------------------------------------------------------------------
@@ -51,7 +52,6 @@ population_year: 2020 #[situational][integer] year of population data (2015-2030
 # wind and solar resources (GWA and GSA)
 wind_atlas: 1
 solar_atlas: 1
-country_name_solar_atlas: Denmark #[mandatory][string] name of country, check https://globalsolaratlas.info/download  
 
 # protected areas
 protected_areas_source: WDPA #[mandatory][WDPA/file/0]
