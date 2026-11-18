@@ -138,9 +138,9 @@ class DocumentationTab(ttk.Frame):
 
         if yaml is not None and cls.MKDOCS_CONFIG.is_file():
             try:
-                config = yaml.safe_load(
-                    cls.MKDOCS_CONFIG.read_text(encoding="utf-8")
-                ) or {}
+                config = (
+                    yaml.safe_load(cls.MKDOCS_CONFIG.read_text(encoding="utf-8")) or {}
+                )
                 if isinstance(config, Mapping):
                     visit_navigation(config.get("nav", []))
             except (OSError, ValueError, yaml.YAMLError):
@@ -221,9 +221,7 @@ class DocumentationTab(ttk.Frame):
 
         # Image sizing attributes are understood by MkDocs but otherwise show
         # up as literal text in a generic Markdown parser.
-        content = re.sub(
-            r"(!\[[^\]]*\]\([^\n)]+\))\s*\{[^\n}]*\}", r"\1", content
-        )
+        content = re.sub(r"(!\[[^\]]*\]\([^\n)]+\))\s*\{[^\n}]*\}", r"\1", content)
 
         # Convert MkDocs admonitions into block quotes while retaining their
         # title, formatted content, links, and lists.
@@ -259,7 +257,9 @@ class DocumentationTab(ttk.Frame):
     @staticmethod
     def _plain_markdown_text(nodes: Any) -> str:
         if isinstance(nodes, list):
-            return "".join(DocumentationTab._plain_markdown_text(node) for node in nodes)
+            return "".join(
+                DocumentationTab._plain_markdown_text(node) for node in nodes
+            )
         if not isinstance(nodes, Mapping):
             return str(nodes or "")
         node_type = str(nodes.get("type", ""))
@@ -327,9 +327,7 @@ class DocumentationTab(ttk.Frame):
             spacing1=5,
             spacing3=7,
         )
-        widget.tag_configure(
-            "list", lmargin1=20, lmargin2=38, spacing1=2, spacing3=2
-        )
+        widget.tag_configure("list", lmargin1=20, lmargin2=38, spacing1=2, spacing3=2)
         widget.tag_configure(
             "table", font=("Consolas", 9), background="#F7F8FA", spacing1=2
         )
@@ -369,7 +367,9 @@ class DocumentationTab(ttk.Frame):
         widget.tag_bind(
             link_tag,
             "<Enter>",
-            lambda _event, target_widget=widget: target_widget.configure(cursor="hand2"),
+            lambda _event, target_widget=widget: target_widget.configure(
+                cursor="hand2"
+            ),
         )
         widget.tag_bind(
             link_tag,
@@ -403,7 +403,9 @@ class DocumentationTab(ttk.Frame):
             if alt_text:
                 widget.insert("end", alt_text + "\n", ("caption",))
         except (OSError, tk.TclError):
-            widget.insert("end", f"[Image unavailable: {alt_text or target}]", ("emphasis",))
+            widget.insert(
+                "end", f"[Image unavailable: {alt_text or target}]", ("emphasis",)
+            )
 
     def _render_markdown_inline(
         self,
@@ -455,7 +457,9 @@ class DocumentationTab(ttk.Frame):
                     if plain:
                         widget.insert("end", plain, inherited_tags)
             else:
-                self._render_markdown_inline(widget, children, source_path, inherited_tags)
+                self._render_markdown_inline(
+                    widget, children, source_path, inherited_tags
+                )
 
     def _render_markdown_list(
         self,
@@ -504,9 +508,7 @@ class DocumentationTab(ttk.Frame):
         for column in range(column_count):
             longest = max(
                 (
-                    len(
-                        self._plain_markdown_text(cells[column].get("children", []))
-                    )
+                    len(self._plain_markdown_text(cells[column].get("children", [])))
                     for _, cells in rows
                     if column < len(cells)
                 ),
@@ -528,8 +530,10 @@ class DocumentationTab(ttk.Frame):
                 cell = cells[column] if column < len(cells) else {}
                 children = cell.get("children", []) if isinstance(cell, Mapping) else []
                 cell_text = self._plain_markdown_text(children).strip()
-                background = "#E5EAF0" if is_header else (
-                    "#FFFFFF" if row_index % 2 else "#F7F8FA"
+                background = (
+                    "#E5EAF0"
+                    if is_header
+                    else ("#FFFFFF" if row_index % 2 else "#F7F8FA")
                 )
                 target = self._markdown_link_target(children)
                 cell_label = tk.Label(
@@ -587,7 +591,9 @@ class DocumentationTab(ttk.Frame):
                 widget.insert("end", "\n", block_tags + (f"h{level}",))
             elif node_type in {"paragraph", "block_text"}:
                 self._render_markdown_inline(widget, children, source_path, block_tags)
-                widget.insert("end", "\n\n" if node_type == "paragraph" else "", block_tags)
+                widget.insert(
+                    "end", "\n\n" if node_type == "paragraph" else "", block_tags
+                )
             elif node_type == "block_code":
                 raw = str(node.get("raw", "")).rstrip()
                 widget.insert("end", raw + "\n", block_tags + ("code_block",))
@@ -715,4 +721,3 @@ class DocumentationTab(ttk.Frame):
                 f"Could not open the online documentation:\n{exc}",
                 parent=self,
             )
-

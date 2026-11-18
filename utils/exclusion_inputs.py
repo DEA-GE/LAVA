@@ -289,11 +289,7 @@ def validate_region_exclusion_inputs(
 
     issues_by_path = inspect_prepared_input_files(all_required)
     return {
-        job: {
-            path: issues_by_path[path]
-            for path in required
-            if path in issues_by_path
-        }
+        job: {path: issues_by_path[path] for path in required if path in issues_by_path}
         for job, required in required_by_job.items()
         if any(path in issues_by_path for path in required)
     }

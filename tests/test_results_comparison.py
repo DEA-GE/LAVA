@@ -37,7 +37,9 @@ class ResultsComparisonTests(unittest.TestCase):
         self.assertAlmostEqual(result["difference_available_area_km2"], 150.0)
         self.assertAlmostEqual(result["difference_power_potential_TW"], 0.12)
 
-    def test_comparison_filters_and_preserves_rows_missing_from_one_scenario(self) -> None:
+    def test_comparison_filters_and_preserves_rows_missing_from_one_scenario(
+        self,
+    ) -> None:
         rows = [
             {
                 "Scenario": "base",
@@ -65,9 +67,7 @@ class ResultsComparisonTests(unittest.TestCase):
             },
         ]
 
-        comparison = build_scenario_comparison(
-            rows, "base", "high", technology="solar"
-        )
+        comparison = build_scenario_comparison(rows, "base", "high", technology="solar")
 
         self.assertEqual({row["Region"] for row in comparison}, {"North", "South"})
         north = next(row for row in comparison if row["Region"] == "North")
@@ -76,12 +76,16 @@ class ResultsComparisonTests(unittest.TestCase):
         self.assertIsNone(north["difference_available_area_km2"])
         self.assertIsNone(south["baseline_available_area_km2"])
 
-    def test_numeric_result_accepts_scientific_notation_and_rejects_invalid_values(self) -> None:
+    def test_numeric_result_accepts_scientific_notation_and_rejects_invalid_values(
+        self,
+    ) -> None:
         self.assertEqual(numeric_result("2.77e+04"), 27700.0)
         self.assertIsNone(numeric_result("not a number"))
         self.assertIsNone(numeric_result(None))
 
-    def test_available_land_identity_handles_region_and_scenario_underscores(self) -> None:
+    def test_available_land_identity_handles_region_and_scenario_underscores(
+        self,
+    ) -> None:
         path = Path(
             "data/Region_with_underscores/available_land/"
             "Region_with_underscores_onshorewind_policy_high_available_land.tif"

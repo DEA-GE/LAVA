@@ -147,9 +147,7 @@ def validate_shared_scenarios(
     """Require identical scenario sets when technologies are combined."""
     selections = {
         technology: set(
-            resolve_selected_scenarios(
-                technology, scenarios, technology_scenarios
-            )
+            resolve_selected_scenarios(technology, scenarios, technology_scenarios)
         )
         for technology in technologies
     }

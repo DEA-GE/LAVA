@@ -23,12 +23,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from utils.exclusion_inputs import (
+from utils.exclusion_inputs import (  # noqa: E402
     inspect_prepared_input_files,
     resolve_exclusion_inputs,
 )
-from utils.tech_config import resolve_selected_scenarios
-from utils.region_names import canonical_region_name
+from utils.tech_config import resolve_selected_scenarios  # noqa: E402
+from utils.region_names import canonical_region_name  # noqa: E402
 
 
 LANDCOVER_METADATA_VERSION = 1
@@ -315,9 +315,7 @@ def inspect_landcover_bundle(
             {"path": str(global_raster), "reason": global_state["reason"]}
         )
 
-    local_state = inspect_raster_resolution(
-        local_raster, None, expected_crs=local_crs
-    )
+    local_state = inspect_raster_resolution(local_raster, None, expected_crs=local_crs)
     result["local_raster"] = local_state
     if not local_state["compatible"]:
         result["issues"].append(
@@ -340,7 +338,10 @@ def inspect_landcover_bundle(
         result["pixel_size"] = observed_pixel_size
     except Exception as exc:
         result["issues"].append(
-            {"path": str(pixel_size), "reason": f"pixel-size metadata is invalid: {exc}"}
+            {
+                "path": str(pixel_size),
+                "reason": f"pixel-size metadata is invalid: {exc}",
+            }
         )
 
     # Metadata is optional for legacy caches.  If present, it must agree with
@@ -407,7 +408,9 @@ def build_spatial_prep_plan(
         "external_issues": [],
     }
     if not exclusion_enabled:
-        plan["message"] = "Exclusion is not selected; no spatial preparation gate is needed."
+        plan["message"] = (
+            "Exclusion is not selected; no spatial preparation gate is needed."
+        )
         return plan
 
     configured_regions = _as_list(workflow.get("study_region_name"))
@@ -505,7 +508,9 @@ def build_spatial_prep_plan(
                     required_files.extend(job_files)
             required_files = _deduplicate(required_files)
             region_plan["required_files"] = required_files
-            for path_text, reason in inspect_prepared_input_files(required_files).items():
+            for path_text, reason in inspect_prepared_input_files(
+                required_files
+            ).items():
                 path = Path(path_text)
                 repairable = _is_within(path, data_directory)
                 issue = {
@@ -515,9 +520,7 @@ def build_spatial_prep_plan(
                 }
                 region_plan["issues"].append(issue)
                 if not repairable:
-                    plan["external_issues"].append(
-                        {"region": region, **issue}
-                    )
+                    plan["external_issues"].append({"region": region, **issue})
 
             landcover_required = any(
                 Path(path).name.startswith(f"landcover_openeo_{region}_")
@@ -564,9 +567,13 @@ def build_spatial_prep_plan(
 def format_spatial_prep_plan(plan: Mapping[str, Any]) -> list[str]:
     """Return concise human-readable lines for logs and the UI."""
     if not plan.get("applicable"):
-        return [str(plan.get("message", "Spatial preparation check is not applicable."))]
+        return [
+            str(plan.get("message", "Spatial preparation check is not applicable."))
+        ]
     if plan.get("ready"):
-        return ["Spatial preparation check: all required prepared inputs are compatible."]
+        return [
+            "Spatial preparation check: all required prepared inputs are compatible."
+        ]
     lines: list[str] = []
     invalid_regions = plan.get("invalid_regions") or []
     if invalid_regions:

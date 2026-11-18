@@ -282,4 +282,3 @@ def show_map_in_tk(html_path: str, parent: tk.Widget) -> Dict[str, Any]:
         "widget": label,
         "cleanup": lambda: None,
     }
-
